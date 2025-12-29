@@ -1,6 +1,6 @@
 """
 Database configuration and session management.
-Supports both SQLite (development) and PostgreSQL (Supabase/Production).
+Supports both SQLite (development) and PostgreSQL (Railway/Production).
 """
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
@@ -13,7 +13,7 @@ import os
 load_dotenv()
 
 # Database URL - Supports both SQLite and PostgreSQL
-# For Supabase: postgresql://user:password@host:port/database
+# For Railway PostgreSQL: postgresql://postgres:password@host:port/railway
 # For local SQLite: sqlite:///./data/audit.db
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/audit.db")
 
@@ -22,29 +22,23 @@ IS_POSTGRES = DATABASE_URL.startswith("postgresql://") or DATABASE_URL.startswit
 
 # Create engine with appropriate settings
 if IS_POSTGRES:
-    # PostgreSQL/Supabase configuration
-    # Add SSL mode for Supabase connections
-    connect_args = {}
-    if "supabase.co" in DATABASE_URL or "pooler.supabase.com" in DATABASE_URL:
+    # PostgreSQL configuration (Railway PostgreSQL or other PostgreSQL)
+    connect_args = {
+        "connect_timeout": 10  # 10 second timeout
+    }
+    
+    # Railway PostgreSQL typically doesn't require SSL, but some providers do
+    # Check if SSL is needed based on the connection string
+    if "railway.app" in DATABASE_URL or "railway" in DATABASE_URL.lower():
+        # Railway PostgreSQL - SSL is usually handled automatically
+        pass
+    elif "supabase.co" in DATABASE_URL or "pooler.supabase.com" in DATABASE_URL:
         # Supabase requires SSL connections
-        connect_args = {
-            "sslmode": "require",
-            "connect_timeout": 10  # 10 second timeout
-        }
-        
-        # For Railway: Try to force IPv4 if IPv6 is causing issues
-        # This is a workaround for Railway's IPv6 connectivity issues
-        if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_ENVIRONMENT_NAME"):
-            # Railway may have IPv6 connectivity issues
-            # Connection pooling (port 6543) often works better than direct (5432)
-            if ":5432" in DATABASE_URL and "pooler" not in DATABASE_URL:
-                print("⚠️  WARNING: Using direct connection (port 5432) on Railway.")
-                print("   Consider using connection pooling (port 6543) if connection fails.")
-                print("   Get it from: Supabase → Settings → Database → Connection string → Connection pooling")
+        connect_args["sslmode"] = "require"
     
     engine = create_engine(
         DATABASE_URL,
-        poolclass=NullPool,  # Supabase works better with NullPool
+        poolclass=NullPool,  # Works well with Railway PostgreSQL
         pool_pre_ping=True,  # Verify connections before using
         connect_args=connect_args,
         echo=False,  # Set to True for SQL query logging
@@ -97,35 +91,34 @@ def init_db():
             # Provide specific guidance based on error type
             if "Network is unreachable" in error_msg:
                 raise ConnectionError(
-                    f"❌ Network is unreachable - Railway cannot connect to Supabase.\n"
+                    f"❌ Network is unreachable - Cannot connect to PostgreSQL database.\n"
                     f"   This usually means:\n"
-                    f"   1. Supabase project is PAUSED - check dashboard\n"
-                    f"   2. Network Restrictions are blocking Railway IPs\n"
-                    f"   3. Connection string format is wrong\n\n"
-                    f"   Fix: Go to Supabase → Settings → Database → Network Restrictions\n"
-                    f"   Ensure 'Your database can be accessed by all IP addresses' is enabled\n"
-                    f"   Or add Railway IP range (or 0.0.0.0/0 for testing)\n\n"
+                    f"   1. Database service is not running or paused\n"
+                    f"   2. Network restrictions are blocking connections\n"
+                    f"   3. Connection string format is wrong\n"
+                    f"   4. Database host/port is incorrect\n\n"
+                    f"   Check: DATABASE_URL format and database service status\n"
                     f"   Current DATABASE_URL: {DATABASE_URL[:50]}...\n"
                     f"   Error: {error_msg}"
                 )
             elif "password authentication failed" in error_msg.lower():
                 raise ConnectionError(
                     f"❌ Password authentication failed.\n"
-                    f"   Check: DATABASE_URL password matches Supabase database password\n"
+                    f"   Check: DATABASE_URL password matches database password\n"
                     f"   Error: {error_msg}"
                 )
             elif "timeout" in error_msg.lower():
                 raise ConnectionError(
                     f"❌ Connection timeout.\n"
-                    f"   Railway cannot reach Supabase within 10 seconds.\n"
-                    f"   Check: Network restrictions and Supabase project status\n"
+                    f"   Cannot reach database within 10 seconds.\n"
+                    f"   Check: Database service status and network connectivity\n"
                     f"   Error: {error_msg}"
                 )
             else:
                 raise ConnectionError(
                     f"❌ Cannot connect to database.\n"
                     f"   Error: {error_msg}\n"
-                    f"   Check: DATABASE_URL, Supabase project status, network restrictions"
+                    f"   Check: DATABASE_URL format, database service status, network restrictions"
                 )
         
         # Create all tables

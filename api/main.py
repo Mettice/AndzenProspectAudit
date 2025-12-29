@@ -36,15 +36,15 @@ async def startup_event():
         print("⚠️  Application will continue, but database features (login, reports) may not work.")
         print("\n📋 To fix this, check:")
         print("   1. DATABASE_URL in Railway environment variables")
-        print("   2. Supabase project is active (not paused)")
-        print("   3. Network Restrictions allow all IPs (0.0.0.0/0)")
+        print("   2. Railway PostgreSQL service is running and active")
+        print("   3. Connection string format is correct")
         print("   4. Database password is correct")
         print(f"\n   Current DATABASE_URL: {os.getenv('DATABASE_URL', 'NOT SET')[:50]}...")
         if "Network is unreachable" in error_msg:
             print("\n   ⚠️  'Network is unreachable' usually means:")
-            print("      - Supabase project is paused")
-            print("      - Network restrictions are blocking Railway")
+            print("      - Railway PostgreSQL service is paused or not running")
             print("      - Connection string format is incorrect")
+            print("      - Database host/port is wrong")
 
 # CORS middleware - Configure for production
 cors_origins = [

@@ -5,8 +5,8 @@
 ### Essential Variables
 
 ```env
-# Database Connection (from Supabase)
-DATABASE_URL=postgresql://postgres:[PASSWORD]@db.vplzphjygfazhsaqxhbt.supabase.co:5432/postgres
+# Database Connection (from Railway PostgreSQL)
+DATABASE_URL=postgresql://postgres:[PASSWORD]@[HOST]:[PORT]/railway
 
 # JWT Secret Key (for authentication)
 SECRET_KEY=your-generated-secret-key-here
@@ -43,32 +43,38 @@ API_URL=https://web-production-2ce0.up.railway.app
 
 ---
 
-## 🗄️ Supabase (Database) - No Environment Variables Needed
+## 🗄️ Railway PostgreSQL (Database) - Connection String
 
-Supabase doesn't require separate environment variables. The database connection is handled through the `DATABASE_URL` in Railway.
+Railway PostgreSQL provides connection strings, but you need the **PUBLIC** one for local development.
 
-**To get your Supabase connection string:**
-1. Go to: https://supabase.com/dashboard/project/vplzphjygfazhsaqxhbt/settings/database
-2. Scroll down to find **Connection string** section
-3. You'll see tabs: **URI**, **JDBC**, **Golang**, etc.
-4. Click on the **URI** tab
-5. Copy the connection string (it will look like: `postgresql://postgres.[ref]:[YOUR-PASSWORD]@aws-0-us-west-1.pooler.supabase.com:6543/postgres`)
-6. Replace `[YOUR-PASSWORD]` with your actual database password
+### ⚠️ Important: Internal vs Public Connection Strings
 
-**If direct connection (port 5432) fails with "Network is unreachable":**
-- This is often an IPv6 connectivity issue with Railway
-- **Solution**: Use Connection Pooling instead (port 6543)
-- Go to Supabase → Settings → Database → Connection string
-- Look for "Connection pooling" section (may be in a different tab or section)
-- Use the connection pooling URL (port 6543) instead of direct (port 5432)
-- **For Oceania (Sydney) region**: Format: `postgresql://postgres.vplzphjygfazhsaqxhbt:[PASSWORD]@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres`
-- **Note**: The region (`ap-southeast-2` for Sydney) must match your Supabase project region
+Railway provides two connection strings:
+- **Internal** (`postgres.railway.internal`) - Only works inside Railway's network
+- **Public** - Works from your local machine and external services
 
-**If you don't see Connection pooling:**
-- Check if your Supabase project is **paused** (common cause of connection failures)
-- Go to Supabase dashboard and ensure project is active
-- Try the direct connection: `postgresql://postgres:[PASSWORD]@db.vplzphjygfazhsaqxhbt.supabase.co:5432/postgres`
-- Ensure Network Restrictions allow all IPs (0.0.0.0/0)
+### To get your PUBLIC Railway PostgreSQL connection string:
+
+1. Go to your Railway project dashboard
+2. Click on your **PostgreSQL** service
+3. Go to the **Variables** tab
+4. Look for `DATABASE_URL` or `POSTGRES_URL`
+5. **If it contains `postgres.railway.internal`**, you need the public connection string instead:
+   - Go to **Connect** tab (or **Settings** → **Networking**)
+   - Look for **Public Networking** or **Connection String (Public)**
+   - Copy the public connection string (it will have a public hostname, not `railway.internal`)
+
+**Public connection string format:**
+```
+postgresql://postgres:[PASSWORD]@[PUBLIC-HOST]:[PORT]/railway
+```
+
+**Example:**
+```
+postgresql://postgres:password123@containers-us-west-123.railway.app:5432/railway
+```
+
+**Note**: For Railway services (backend), you can use the internal connection string. For local development or external services, use the public one.
 
 ---
 
@@ -91,30 +97,28 @@ Or use OpenSSL:
 openssl rand -hex 32
 ```
 
-### Step 2: Get Supabase Connection String
+### Step 2: Get Railway PostgreSQL Connection String
 
-1. Visit: https://supabase.com/dashboard/project/vplzphjygfazhsaqxhbt/settings/database
-2. Find **Connection string** → **URI** tab
-3. Copy the full connection string
-4. Replace `[YOUR-PASSWORD]` with your actual password
+1. Go to your Railway project dashboard
+2. Click on your **PostgreSQL** service
+3. Go to the **Variables** or **Connect** tab
+4. Copy the `DATABASE_URL` or `POSTGRES_URL` connection string
+5. It will look like: `postgresql://postgres:[PASSWORD]@[HOST]:[PORT]/railway`
+6. **That's it!** Railway PostgreSQL is much simpler - no connection pooling or region configuration needed
 
 ### Step 3: Configure Railway
 
 In Railway dashboard → **Variables**, add:
 
 ```env
-# Option 1: Connection Pooling (RECOMMENDED for Railway - port 6543)
-# For Oceania (Sydney) region - adjust region if your project is in a different region
-DATABASE_URL=postgresql://postgres.vplzphjygfazhsaqxhbt:YOUR_PASSWORD@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres
-
-# Option 2: Direct Connection (port 5432) - may have IPv6 issues on Railway
-# DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@db.vplzphjygfazhsaqxhbt.supabase.co:5432/postgres
+# Railway PostgreSQL connection string (from Railway dashboard)
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@HOST:PORT/railway
 
 SECRET_KEY=your-generated-secret-key
 CORS_ORIGINS=https://your-app.vercel.app
 ```
 
-**Important for Railway**: If you get "Network is unreachable" errors, try connection pooling (Option 1) instead of direct connection (Option 2). Connection pooling often resolves IPv6 connectivity issues.
+**Note**: Railway PostgreSQL doesn't have the connection issues that Supabase had - it's much simpler and more reliable!
 
 ### Step 4: Configure Vercel
 
