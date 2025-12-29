@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "node scripts/inject-api-url.js",
+  "buildCommand": "node ../scripts/inject-api-url.js",
   "outputDirectory": "frontend",
   "routes": [
     {

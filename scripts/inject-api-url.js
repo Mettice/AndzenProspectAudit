@@ -5,7 +5,21 @@ const fs = require('fs');
 const path = require('path');
 
 const apiUrl = process.env.API_URL || process.env.VITE_API_URL || 'https://your-app.railway.app';
-const indexPath = path.join(__dirname, '..', 'frontend', 'index.html');
+
+// Handle both cases: running from project root or from frontend directory
+// If running from frontend (Vercel with root directory set), use current dir
+// Otherwise, go up one level to frontend
+let indexPath;
+if (fs.existsSync(path.join(process.cwd(), 'index.html'))) {
+  // Running from frontend directory
+  indexPath = path.join(process.cwd(), 'index.html');
+} else if (fs.existsSync(path.join(process.cwd(), 'frontend', 'index.html'))) {
+  // Running from project root
+  indexPath = path.join(process.cwd(), 'frontend', 'index.html');
+} else {
+  // Fallback: try relative to script location
+  indexPath = path.join(__dirname, '..', 'frontend', 'index.html');
+}
 
 if (fs.existsSync(indexPath)) {
   let content = fs.readFileSync(indexPath, 'utf8');
