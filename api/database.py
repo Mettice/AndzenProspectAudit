@@ -23,10 +23,17 @@ IS_POSTGRES = DATABASE_URL.startswith("postgresql://") or DATABASE_URL.startswit
 # Create engine with appropriate settings
 if IS_POSTGRES:
     # PostgreSQL/Supabase configuration
+    # Add SSL mode for Supabase connections
+    connect_args = {}
+    if "supabase.co" in DATABASE_URL or "pooler.supabase.com" in DATABASE_URL:
+        # Supabase requires SSL connections
+        connect_args = {"sslmode": "require"}
+    
     engine = create_engine(
         DATABASE_URL,
         poolclass=NullPool,  # Supabase works better with NullPool
         pool_pre_ping=True,  # Verify connections before using
+        connect_args=connect_args,
         echo=False  # Set to True for SQL query logging
     )
 else:
