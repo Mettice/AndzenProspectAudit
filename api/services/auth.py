@@ -59,7 +59,17 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 def get_user_by_username(db: Session, username: str) -> Optional[User]:
     """Get user by username."""
-    return db.query(User).filter(User.username == username).first()
+    try:
+        return db.query(User).filter(User.username == username).first()
+    except Exception as e:
+        # Log database connection errors
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Database query failed: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Database connection failed. Please check your database configuration."
+        )
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:

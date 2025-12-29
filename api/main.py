@@ -31,9 +31,20 @@ async def startup_event():
         init_db()
         print("✓ Database initialized")
     except Exception as e:
-        print(f"⚠️  Warning: Database initialization failed: {e}")
-        print("⚠️  Application will continue, but database features may not work.")
-        print("⚠️  Please check your DATABASE_URL and Supabase connection settings.")
+        error_msg = str(e)
+        print(f"⚠️  Warning: Database initialization failed: {error_msg}")
+        print("⚠️  Application will continue, but database features (login, reports) may not work.")
+        print("\n📋 To fix this, check:")
+        print("   1. DATABASE_URL in Railway environment variables")
+        print("   2. Supabase project is active (not paused)")
+        print("   3. Network Restrictions allow all IPs (0.0.0.0/0)")
+        print("   4. Database password is correct")
+        print(f"\n   Current DATABASE_URL: {os.getenv('DATABASE_URL', 'NOT SET')[:50]}...")
+        if "Network is unreachable" in error_msg:
+            print("\n   ⚠️  'Network is unreachable' usually means:")
+            print("      - Supabase project is paused")
+            print("      - Network restrictions are blocking Railway")
+            print("      - Connection string format is incorrect")
 
 # CORS middleware - Configure for production
 cors_origins = [

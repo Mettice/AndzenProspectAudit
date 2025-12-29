@@ -27,14 +27,25 @@ if IS_POSTGRES:
     connect_args = {}
     if "supabase.co" in DATABASE_URL or "pooler.supabase.com" in DATABASE_URL:
         # Supabase requires SSL connections
-        connect_args = {"sslmode": "require"}
+        # Try different SSL modes for better compatibility
+        connect_args = {
+            "sslmode": "require",
+            "connect_timeout": 10  # 10 second timeout
+        }
+        # For production (Railway), also try without SSL verification if needed
+        # This is less secure but may work if SSL verification is the issue
+        if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_ENVIRONMENT_NAME"):
+            # Running on Railway - use require mode (Supabase needs SSL)
+            pass
     
     engine = create_engine(
         DATABASE_URL,
         poolclass=NullPool,  # Supabase works better with NullPool
         pool_pre_ping=True,  # Verify connections before using
         connect_args=connect_args,
-        echo=False  # Set to True for SQL query logging
+        echo=False,  # Set to True for SQL query logging
+        # Add connection pool settings for better reliability
+        pool_recycle=3600,  # Recycle connections after 1 hour
     )
 else:
     # SQLite configuration (development)
@@ -71,23 +82,60 @@ def init_db():
             # Only create data directory for SQLite
             os.makedirs("data", exist_ok=True)
         
-        # Test connection first
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        # Test connection first with better error reporting
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(text("SELECT 1"))
+                result.fetchone()  # Actually fetch to ensure connection works
+            print(f"✓ Database connection test successful")
+        except Exception as conn_error:
+            error_msg = str(conn_error)
+            # Provide specific guidance based on error type
+            if "Network is unreachable" in error_msg:
+                raise ConnectionError(
+                    f"❌ Network is unreachable - Railway cannot connect to Supabase.\n"
+                    f"   This usually means:\n"
+                    f"   1. Supabase project is PAUSED - check dashboard\n"
+                    f"   2. Network Restrictions are blocking Railway IPs\n"
+                    f"   3. Connection string format is wrong\n\n"
+                    f"   Fix: Go to Supabase → Settings → Database → Network Restrictions\n"
+                    f"   Ensure 'Your database can be accessed by all IP addresses' is enabled\n"
+                    f"   Or add Railway IP range (or 0.0.0.0/0 for testing)\n\n"
+                    f"   Current DATABASE_URL: {DATABASE_URL[:50]}...\n"
+                    f"   Error: {error_msg}"
+                )
+            elif "password authentication failed" in error_msg.lower():
+                raise ConnectionError(
+                    f"❌ Password authentication failed.\n"
+                    f"   Check: DATABASE_URL password matches Supabase database password\n"
+                    f"   Error: {error_msg}"
+                )
+            elif "timeout" in error_msg.lower():
+                raise ConnectionError(
+                    f"❌ Connection timeout.\n"
+                    f"   Railway cannot reach Supabase within 10 seconds.\n"
+                    f"   Check: Network restrictions and Supabase project status\n"
+                    f"   Error: {error_msg}"
+                )
+            else:
+                raise ConnectionError(
+                    f"❌ Cannot connect to database.\n"
+                    f"   Error: {error_msg}\n"
+                    f"   Check: DATABASE_URL, Supabase project status, network restrictions"
+                )
         
         # Create all tables
         Base.metadata.create_all(bind=engine)
         print(f"✓ Database initialized ({'PostgreSQL' if IS_POSTGRES else 'SQLite'})")
-    except Exception as e:
-        error_msg = str(e)
-        if "Network is unreachable" in error_msg or "connection" in error_msg.lower():
-            raise ConnectionError(
-                f"❌ Cannot connect to database. Please check:\n"
-                f"   1. DATABASE_URL is correct in Railway environment variables\n"
-                f"   2. Supabase project is active (not paused)\n"
-                f"   3. Network restrictions allow Railway IPs\n"
-                f"   4. Database password is correct\n"
-                f"   Error: {error_msg}"
-            )
+    except ConnectionError:
+        # Re-raise connection errors with our improved messages
         raise
+    except Exception as e:
+        # Catch any other unexpected errors
+        error_msg = str(e)
+        raise ConnectionError(
+            f"❌ Unexpected database error during initialization.\n"
+            f"   Error: {error_msg}\n"
+            f"   Check: DATABASE_URL format, database server status"
+        )
 
