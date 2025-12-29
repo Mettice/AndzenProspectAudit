@@ -7,20 +7,26 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <!-- CSS path - works for both local (/ui/) and Vercel (/) -->
-  <link rel="stylesheet" href="/ui/style.css" id="main-stylesheet" />
+  <!-- CSS path - absolute path works for Vercel, JavaScript fixes for localhost -->
+  <link rel="stylesheet" href="/style.css" id="main-stylesheet" />
   <!-- API Configuration - Update this script tag with your Railway URL after deployment -->
   <script>
     // Set API URL for production (update this after Railway deployment)
     window.API_URL = window.API_URL || 'https://web-production-2ce0.up.railway.app';
     
-    // Fix CSS path for Vercel (where root is /, not /ui/)
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      const stylesheet = document.getElementById('main-stylesheet');
-      if (stylesheet && !stylesheet.href.includes('/ui/')) {
-        stylesheet.href = '/style.css';
+    // Fix CSS path for local development (where files are served from /ui/)
+    (function() {
+      const isLocal = window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+      
+      if (isLocal) {
+        const stylesheet = document.getElementById('main-stylesheet');
+        if (stylesheet) {
+          // Change from /style.css to /ui/style.css for localhost
+          stylesheet.setAttribute('href', '/ui/style.css');
+        }
       }
-    }
+    })();
   </script>
 </head>
 <body>
