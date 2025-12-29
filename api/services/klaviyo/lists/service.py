@@ -121,6 +121,11 @@ class ListsService:
     async def get_list_growth_data(
         self,
         list_id: Optional[str] = None,
+        months: int = 6,
+        date_range: Optional[Dict[str, str]] = None
+    ) -> Dict[str, Any]:
+        self,
+        list_id: Optional[str] = None,
         months: int = 6
     ) -> Dict[str, Any]:
         """
@@ -240,16 +245,26 @@ class ListsService:
         current_count = await self.get_list_profiles_count(list_id)
         
         # Calculate date range
-        # IMPORTANT: Klaviyo metric aggregates API has limitations on date ranges
-        # Based on sample audits, 6 months is the standard period
-        # Cap at 6 months to avoid API errors
-        effective_months = min(months, 6)
-        if months > 6:
-            logger.warning(f"Requested {months} months, but capping to 6 months for API compatibility (matches sample audit format)")
-        
-        date_range = get_date_range_months(effective_months)
-        start_date = date_range["start"]
-        end_date = date_range["end"]
+        # Use provided date_range if available (for YTD or custom ranges), otherwise calculate from months
+        if date_range:
+            from ..utils.date_helpers import parse_iso_date
+            start_date = parse_iso_date(date_range["start"])
+            end_date = parse_iso_date(date_range["end"])
+            # Calculate effective months from date range
+            effective_months = max(1, min((end_date - start_date).days // 30, 6))
+            if (end_date - start_date).days > 180:
+                logger.warning(f"Date range spans {(end_date - start_date).days} days, but capping analysis to 6 months for API compatibility")
+        else:
+            # IMPORTANT: Klaviyo metric aggregates API has limitations on date ranges
+            # Based on sample audits, 6 months is the standard period
+            # Cap at 6 months to avoid API errors
+            effective_months = min(months, 6)
+            if months > 6:
+                logger.warning(f"Requested {months} months, but capping to 6 months for API compatibility (matches sample audit format)")
+            
+            date_range_dict = get_date_range_months(effective_months)
+            start_date = date_range_dict["start"]
+            end_date = date_range_dict["end"]
         
         # Log date range for debugging
         logger.info(f"List growth date range: {start_date.isoformat()} to {end_date.isoformat()} ({effective_months} months)")

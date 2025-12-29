@@ -8,7 +8,7 @@ import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta, timezone
 
-from .utils.date_helpers import ensure_z_suffix
+from .utils.date_helpers import ensure_z_suffix, parse_iso_date
 from .utils.currency import format_currency
 from .extraction import (
     RevenueExtractor,
@@ -114,6 +114,31 @@ class DataExtractionOrchestrator:
                 "end": end_date.isoformat()
             }
         
+        # Validate date_range - ensure end is not in the future
+        try:
+            start_dt = parse_iso_date(date_range["start"])
+            end_dt = parse_iso_date(date_range["end"])
+            now_dt = datetime.now(timezone.utc)
+            
+            # Check if end date is in the future (more than 1 day ahead)
+            if end_dt > now_dt + timedelta(days=1):
+                logger.warning(f"⚠️  WARNING: End date is in the future! {end_dt.isoformat()} > {now_dt.isoformat()}")
+                logger.warning(f"   Adjusting end date to current time: {now_dt.isoformat()}")
+                end_dt = now_dt
+                date_range["end"] = end_dt.isoformat()
+            
+            # Check if start date is after end date
+            if start_dt >= end_dt:
+                logger.error(f"❌ ERROR: Start date ({start_dt.isoformat()}) is after or equal to end date ({end_dt.isoformat()})")
+                raise ValueError(f"Invalid date range: start must be before end")
+            
+            # Log date range validation
+            days_span = (end_dt - start_dt).days
+            logger.info(f"✅ Date range validated: {start_dt.date()} to {end_dt.date()} ({days_span} days)")
+        except Exception as e:
+            logger.error(f"❌ Error validating date_range: {e}", exc_info=True)
+            raise
+        
         start = ensure_z_suffix(date_range["start"])
         end = ensure_z_suffix(date_range["end"])
         
@@ -122,6 +147,7 @@ class DataExtractionOrchestrator:
             print(f"KLAVIYO DATA EXTRACTION")
             print(f"{'='*60}")
             print(f"Date range: {start} to {end}")
+            print(f"Days: {(end_dt - start_dt).days}")
             print(f"Enhanced data: {'Yes' if include_enhanced else 'No'}")
             print(f"{'='*60}\n")
         
@@ -164,7 +190,11 @@ class DataExtractionOrchestrator:
             enhanced_data["kav_analysis"] = kav_data
             
             # SECTION 5: List Growth Data
-            list_growth = await self.list_extractor.extract(days_for_analysis, verbose)
+            list_growth = await self.list_extractor.extract(
+                days_for_analysis, 
+                date_range=date_range,  # Pass date_range to optimize API calls
+                verbose=verbose
+            )
             enhanced_data["list_growth"] = list_growth
             
             # SECTION 6: Form Performance Data

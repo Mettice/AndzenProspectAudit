@@ -21,6 +21,8 @@ class CampaignStatisticsService:
         """
         self.client = client
         self.metrics = MetricsService(client)
+        # Cache conversion_metric_id to avoid multiple lookups
+        self._cached_conversion_metric_id = None
     
     async def get_statistics(
         self,
@@ -66,24 +68,31 @@ class CampaignStatisticsService:
         
         # conversion_metric_id is REQUIRED
         if not conversion_metric_id:
-            logger.warning(
-                "conversion_metric_id is required for campaign statistics. "
-                "Fetching Placed Order metric (preferring Shopify integration)..."
-            )
-            # Prefer Shopify integration to match dashboard
-            placed_order = await self.metrics.get_metric_by_name("Placed Order", prefer_integration="shopify")
-            if not placed_order:
-                placed_order = await self.metrics.get_metric_by_name("Placed Order")
-            
-            if placed_order:
-                conversion_metric_id = placed_order.get("id")
-                integration = placed_order.get("attributes", {}).get("integration", {})
-                logger.info(f"Using Placed Order metric: {conversion_metric_id} ({integration.get('name', 'Unknown')})")
+            # Use cached value if available
+            if self._cached_conversion_metric_id:
+                logger.debug(f"Using cached conversion_metric_id: {self._cached_conversion_metric_id}")
+                conversion_metric_id = self._cached_conversion_metric_id
             else:
-                logger.error(
-                    "Could not find Placed Order metric and no conversion_metric_id provided"
+                logger.warning(
+                    "conversion_metric_id is required for campaign statistics. "
+                    "Fetching Placed Order metric (preferring Shopify integration)..."
                 )
-                return {}
+                # Prefer Shopify integration to match dashboard
+                placed_order = await self.metrics.get_metric_by_name("Placed Order", prefer_integration="shopify")
+                if not placed_order:
+                    placed_order = await self.metrics.get_metric_by_name("Placed Order")
+                
+                if placed_order:
+                    conversion_metric_id = placed_order.get("id")
+                    # Cache it for future use
+                    self._cached_conversion_metric_id = conversion_metric_id
+                    integration = placed_order.get("attributes", {}).get("integration", {})
+                    logger.info(f"Using Placed Order metric: {conversion_metric_id} ({integration.get('name', 'Unknown')})")
+                else:
+                    logger.error(
+                        "Could not find Placed Order metric and no conversion_metric_id provided"
+                    )
+                    return {}
         
         # Build filter using reporting API syntax
         filter_string = build_reporting_filter(campaign_ids, "campaign_id")

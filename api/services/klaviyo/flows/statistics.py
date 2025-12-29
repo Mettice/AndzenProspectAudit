@@ -24,11 +24,20 @@ class FlowStatisticsService:
         self.client = client
         self.metrics = MetricsService(client)
         self.flows = FlowsService(client)
+        # Cache conversion_metric_id to avoid multiple lookups
+        self._cached_conversion_metric_id = None
     
     async def _resolve_conversion_metric_id(self, conversion_metric_id: Optional[str] = None) -> Optional[str]:
         """Resolve conversion metric ID with multiple fallback options."""
         if conversion_metric_id:
+            # Cache it for future use
+            self._cached_conversion_metric_id = conversion_metric_id
             return conversion_metric_id
+        
+        # Use cached value if available
+        if self._cached_conversion_metric_id:
+            logger.debug(f"Using cached conversion_metric_id: {self._cached_conversion_metric_id}")
+            return self._cached_conversion_metric_id
         
         logger.warning(
             "conversion_metric_id is required for flow statistics. "
@@ -57,10 +66,13 @@ class FlowStatisticsService:
                     metric = await self.metrics.get_metric_by_name(metric_name)
                 
                 if metric and metric.get("id"):
+                    metric_id = metric.get("id")
+                    # Cache the resolved metric ID
+                    self._cached_conversion_metric_id = metric_id
                     integration = metric.get("attributes", {}).get("integration", {})
                     integration_name = integration.get("name", "Unknown") if integration else "None"
-                    logger.info(f"Successfully resolved conversion metric: {metric_name} (ID: {metric.get('id')}, Integration: {integration_name})")
-                    return metric.get("id")
+                    logger.info(f"Successfully resolved conversion metric: {metric_name} (ID: {metric_id}, Integration: {integration_name})")
+                    return metric_id
                     
             except Exception as e:
                 logger.warning(f"Failed to fetch {metric_name} metric: {e}")

@@ -81,6 +81,7 @@ class MetricAggregatesService:
             logger.debug(f"Metric aggregates payload for {metric_id}: {payload}")
         
         try:
+            # Client already doesn't retry 400 errors, so this will fail fast
             response = await self.client.request("POST", "/metric-aggregates/", data=payload)
             # Log successful response for debugging
             if response:
@@ -91,19 +92,11 @@ class MetricAggregatesService:
             # Log as warning instead of error to reduce noise
             error_msg = str(e)
             if "400 Bad Request" in error_msg or "400" in error_msg:
-                logger.warning(f"Metric {metric_id} returned 400 Bad Request. This metric may not support aggregation or the request format is incorrect.")
+                logger.warning(f"Metric {metric_id} returned 400 Bad Request. Skipping this metric (no retries).")
                 logger.warning(f"Date range: {start_date} to {end_date}, Interval: {interval}")
-                logger.debug(f"Request payload was: {payload}")
-                # Try to get more details from the error response
-                if hasattr(e, 'response') and e.response:
-                    try:
-                        error_detail = e.response.json()
-                        logger.debug(f"Error details: {error_detail}")
-                    except:
-                        logger.debug(f"Error response text: {e.response.text if hasattr(e.response, 'text') else 'N/A'}")
+                # Don't log full payload for 400s to reduce noise
             else:
                 logger.warning(f"Error querying metric aggregates for {metric_id}: {e}")
-                logger.debug(f"Request payload was: {payload}")
             return {}
     
     def parse_response(self, response: Dict[str, Any]) -> Dict[str, List]:
