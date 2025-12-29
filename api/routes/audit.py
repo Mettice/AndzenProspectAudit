@@ -43,6 +43,9 @@ async def _process_audit_background(
         try:
             print(f"🚀 Starting background audit generation for report {report_id}...")
             
+            # Initialize progress tracking
+            _report_cache[report_id] = {"progress": 0.0, "step": "Initializing..."}
+            
             # Initialize services
             klaviyo_service = KlaviyoService(api_key=request_data["api_key"])
             benchmark_service = BenchmarkService()
@@ -55,34 +58,49 @@ async def _process_audit_background(
             analysis_framework = AgenticAnalysisFramework(anthropic_api_key=anthropic_api_key)
             report_service = EnhancedReportService()
             
-            # Step 1: Extract data from Klaviyo
+            # Step 1: Extract data from Klaviyo (0-20%)
             print("📊 Extracting data from Klaviyo...")
+            _report_cache[report_id] = {"progress": 5.0, "step": "Extracting data from Klaviyo..."}
             date_range_dict = request_data.get("date_range")
             
+            # Enable fast mode if requested (reduces API calls)
+            fast_mode = request_data.get("fast_mode", False)
+            klaviyo_service._fast_mode = fast_mode
+            
             klaviyo_data = await klaviyo_service.extract_all_data(
-                date_range=date_range_dict
+                date_range=date_range_dict,
+                fast_mode=fast_mode
             )
+            _report_cache[report_id] = {"progress": 20.0, "step": "Data extraction complete"}
             
-            # Step 2: Load benchmarks
+            # Step 2: Load benchmarks (20-25%)
+            print("📊 Loading benchmarks...")
+            _report_cache[report_id] = {"progress": 22.0, "step": "Loading benchmarks..."}
             benchmarks = benchmark_service.get_all_benchmarks()
+            _report_cache[report_id] = {"progress": 25.0, "step": "Benchmarks loaded"}
             
-            # Step 3: Run comprehensive agentic analysis
+            # Step 3: Run comprehensive agentic analysis (25-60%)
             print("🤖 Running comprehensive analysis...")
+            _report_cache[report_id] = {"progress": 30.0, "step": "Running AI analysis..."}
             analysis_results = await analysis_framework.run_comprehensive_analysis(
                 klaviyo_data=klaviyo_data,
                 benchmarks=benchmarks,
                 client_name=request_data["client_name"]
             )
+            _report_cache[report_id] = {"progress": 60.0, "step": "AI analysis complete"}
             
-            # Step 4: Convert analysis results to audit data format
+            # Step 4: Convert analysis results to audit data format (60-80%)
             print("🔄 Converting analysis results to audit data format...")
+            _report_cache[report_id] = {"progress": 65.0, "step": "Formatting audit data..."}
             audit_data = await klaviyo_service.format_audit_data(
                 date_range=date_range_dict,
                 verbose=False
             )
+            _report_cache[report_id] = {"progress": 80.0, "step": "Data formatting complete"}
             
-            # Step 5: Generate audit report  
+            # Step 5: Generate audit report (80-100%)
             print("📝 Generating audit report...")
+            _report_cache[report_id] = {"progress": 85.0, "step": "Generating report..."}
             
             generated_report = await report_service.generate_audit(
                 audit_data=audit_data,
@@ -317,11 +335,14 @@ async def get_report_status(report_id: int):
                 error=cached.get("error", "Unknown error occurred")
             )
         else:
-            # Still processing - estimate progress (rough)
+            # Still processing - get progress from cache
+            cached_progress = cached.get("progress", 25.0)  # Default to 25% if not set
+            cached_step = cached.get("step", "Processing...")
             return ReportStatusResponse(
                 report_id=report.id,
                 status="processing",
-                progress=25.0  # Rough estimate
+                progress=cached_progress,
+                report_data={"step": cached_step, "progress": cached_progress}
             )
     finally:
         db.close()

@@ -76,7 +76,7 @@ class FlowPatternMatcher:
         Get performance data for core flows (Welcome, AC, Browse, Post-Purchase).
         
         Identifies flows by name patterns and returns performance metrics.
-        Limits the number of flows queried to avoid rate limiting.
+        Uses batched API calls to reduce rate limiting issues.
         
         Args:
             days: Number of days for analysis
@@ -85,10 +85,11 @@ class FlowPatternMatcher:
         Returns:
             Dict mapping flow types to their performance data
         """
+        import asyncio
+        
         flows = await self.flows.get_flows()
         
         core_flows = {}
-        flows_queried = 0
         
         # First pass: Identify flows by pattern (no API calls)
         identified_flows = {}
@@ -108,32 +109,152 @@ class FlowPatternMatcher:
                         "flow_status": flow_status
                     }
         
-        # Second pass: Query statistics for identified flows (with rate limiting)
+        # Limit to max flows
+        if len(identified_flows) > limit_flows:
+            # Prioritize live flows
+            live_flows = {k: v for k, v in identified_flows.items() if v["flow_status"] == "live"}
+            other_flows = {k: v for k, v in identified_flows.items() if v["flow_status"] != "live"}
+            identified_flows = dict(list(live_flows.items())[:limit_flows] + list(other_flows.items())[:limit_flows - len(live_flows)])
+        
+        if not identified_flows:
+            # Mark all flows as missing
+            for flow_type in self.FLOW_PATTERNS.keys():
+                core_flows[flow_type] = {
+                    "name": flow_type.replace("_", " ").title(),
+                    "status": "missing",
+                    "email_count": 0,
+                    "performance": {},
+                    "found": False
+                }
+            return core_flows
+        
+        # Map days to timeframe string for API
+        timeframe_map = {
+            7: "last_7_days",
+            30: "last_30_days",
+            90: "last_90_days",
+            365: "last_365_days"
+        }
+        timeframe = timeframe_map.get(days, "last_90_days")
+        if days > 365:
+            timeframe = "last_365_days"
+        
+        # OPTIMIZATION: Batch all flow statistics in ONE API call instead of individual calls
+        flow_ids = [flow_info["flow_id"] for flow_info in identified_flows.values()]
+        
+        # Get flow details and actions in parallel (these are lightweight)
+        flow_details_tasks = []
+        flow_actions_tasks = []
         for flow_type, flow_info in identified_flows.items():
-            if flows_queried >= limit_flows:
-                logger.warning(f"Reached flow query limit ({limit_flows}). Skipping remaining flows.")
-                break
+            flow_id = flow_info["flow_id"]
+            flow_details_tasks.append((flow_type, self.flows.get_flow(flow_id)))
+            flow_actions_tasks.append((flow_type, self.flows.get_flow_actions(flow_id)))
+        
+        # Fetch flow details and actions in parallel
+        flow_details_results = {}
+        flow_actions_results = {}
+        
+        for flow_type, task in flow_details_tasks:
+            try:
+                flow_details_results[flow_type] = await task
+            except Exception as e:
+                logger.warning(f"Error fetching flow details for {flow_type}: {e}")
+                flow_details_results[flow_type] = None
+        
+        # Small delay before fetching actions
+        await asyncio.sleep(0.5)
+        
+        for flow_type, task in flow_actions_tasks:
+            try:
+                flow_actions_results[flow_type] = await task
+            except Exception as e:
+                logger.warning(f"Error fetching flow actions for {flow_type}: {e}")
+                flow_actions_results[flow_type] = []
+        
+        # CRITICAL FIX: Batch statistics call for ALL flows at once
+        # This reduces 7-10 individual API calls to just 1 call
+        try:
+            batched_stats_response = await self.stats.get_statistics(
+                flow_ids=flow_ids,
+                statistics=[
+                    "recipients",
+                    "opens", 
+                    "open_rate",
+                    "clicks",
+                    "click_rate",
+                    "conversions",
+                    "conversion_rate", 
+                    "conversion_value",
+                    "conversion_uniques"
+                ],
+                timeframe=timeframe
+            )
             
+            # Parse batched results into a dict keyed by flow_id
+            batched_stats_by_flow_id = {}
+            if batched_stats_response and "data" in batched_stats_response:
+                results = batched_stats_response.get("data", {}).get("attributes", {}).get("results", [])
+                for result in results:
+                    flow_id = result.get("id")
+                    if flow_id:
+                        from ..parsers import extract_statistics
+                        stats = extract_statistics({"data": {"attributes": {"results": [result]}}})
+                        batched_stats_by_flow_id[flow_id] = stats
+        except Exception as e:
+            logger.error(f"Error fetching batched flow statistics: {e}", exc_info=True)
+            batched_stats_by_flow_id = {}
+        
+        # Combine all data for each flow
+        for flow_type, flow_info in identified_flows.items():
             flow_id = flow_info["flow_id"]
             flow = flow_info["flow"]
             
-            # Get detailed stats for this flow (with rate limiting built-in)
-            flow_stats = await self.stats.get_individual_stats(flow_id, days)
-            flows_queried += 1
+            # Get flow details
+            flow_detail = flow_details_results.get(flow_type) or flow
+            flow_attrs = flow_detail.get("attributes", {}) if flow_detail else {}
+            flow_name = flow_attrs.get("name", flow.get("attributes", {}).get("name", "Unknown"))
+            flow_status = flow_info["flow_status"]
+            
+            # Get email count from actions
+            actions = flow_actions_results.get(flow_type, [])
+            email_count = len([
+                a for a in actions 
+                if a.get("attributes", {}).get("action_type") == "EMAIL"
+            ])
+            
+            # Get statistics from batched response
+            stats = batched_stats_by_flow_id.get(flow_id, {})
+            
+            # Calculate revenue per recipient
+            recipients = stats.get("recipients", 0)
+            revenue = stats.get("revenue", 0) or stats.get("conversion_value", 0)
+            if recipients > 0 and revenue > 0:
+                stats["revenue_per_recipient"] = revenue / recipients
+            else:
+                stats["revenue_per_recipient"] = 0
+            
+            # Ensure basic structure
+            if not stats:
+                stats = {
+                    "recipients": 0,
+                    "opens": 0,
+                    "open_rate": 0,
+                    "clicks": 0,
+                    "click_rate": 0,
+                    "conversions": 0,
+                    "conversion_rate": 0,
+                    "revenue": 0,
+                    "revenue_per_recipient": 0
+                }
             
             core_flows[flow_type] = {
                 "flow_id": flow_id,
-                "name": flow.get("attributes", {}).get("name"),
-                "status": flow_info["flow_status"],
-                "email_count": flow_stats.get("email_count", 0),
-                "performance": flow_stats.get("performance", {}),
+                "name": flow_name,
+                "status": flow_status,
+                "email_count": email_count,
+                "performance": stats,
                 "found": True
             }
-            
-            # Small delay between flow queries
-            if flows_queried < len(identified_flows):
-                import asyncio
-                await asyncio.sleep(0.2)
         
         # Mark missing flows
         for flow_type in self.FLOW_PATTERNS.keys():

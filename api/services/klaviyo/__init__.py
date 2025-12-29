@@ -263,7 +263,8 @@ class KlaviyoService:
         self,
         date_range: Optional[Dict[str, str]] = None,
         include_enhanced: bool = True,
-        verbose: bool = True
+        verbose: bool = True,
+        fast_mode: bool = False
     ) -> Dict[str, Any]:
         """
         Extract all data from Klaviyo for audit reports.

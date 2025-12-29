@@ -26,6 +26,10 @@ class FlowStatisticsService:
         self.flows = FlowsService(client)
         # Cache conversion_metric_id to avoid multiple lookups
         self._cached_conversion_metric_id = None
+        # Cache for flow statistics to avoid duplicate API calls
+        # Key: (tuple(sorted(flow_ids)), timeframe, tuple(sorted(statistics)))
+        # Value: cached response
+        self._stats_cache = {}
     
     async def _resolve_conversion_metric_id(self, conversion_metric_id: Optional[str] = None) -> Optional[str]:
         """Resolve conversion metric ID with multiple fallback options."""
@@ -108,7 +112,8 @@ class FlowStatisticsService:
         flow_ids: List[str],
         statistics: Optional[List[str]] = None,
         timeframe: str = "last_30_days",
-        conversion_metric_id: Optional[str] = None
+        conversion_metric_id: Optional[str] = None,
+        use_cache: bool = True
     ) -> Dict[str, Any]:
         """
         Get flow statistics using Reporting API.
@@ -124,6 +129,7 @@ class FlowStatisticsService:
             statistics: List of statistics to fetch
             timeframe: Time period
             conversion_metric_id: Metric ID for conversion tracking (REQUIRED)
+            use_cache: Whether to use cached results if available (default True)
             
         Returns:
             Dict with flow statistics
@@ -150,6 +156,18 @@ class FlowStatisticsService:
                 )
                 return {}
         
+        # Check cache first to avoid duplicate API calls
+        if use_cache:
+            cache_key = (
+                tuple(sorted(flow_ids)),
+                timeframe,
+                tuple(sorted(statistics)),
+                conversion_metric_id
+            )
+            if cache_key in self._stats_cache:
+                logger.debug(f"Using cached flow statistics for {len(flow_ids)} flows")
+                return self._stats_cache[cache_key]
+        
         # Build filter - same syntax as campaigns
         filter_string = build_reporting_filter(flow_ids, "flow_id")
         
@@ -166,13 +184,30 @@ class FlowStatisticsService:
         }
         
         try:
-            return await self.client.request(
+            response = await self.client.request(
                 "POST",
                 "/flow-values-reports/",
                 data=payload,
                 retry_on_429=True,
                 max_retries=3
             )
+            
+            # Cache the response
+            if use_cache and response:
+                cache_key = (
+                    tuple(sorted(flow_ids)),
+                    timeframe,
+                    tuple(sorted(statistics)),
+                    conversion_metric_id
+                )
+                self._stats_cache[cache_key] = response
+                # Limit cache size to prevent memory issues (keep last 50 entries)
+                if len(self._stats_cache) > 50:
+                    # Remove oldest entry (simple FIFO)
+                    oldest_key = next(iter(self._stats_cache))
+                    del self._stats_cache[oldest_key]
+            
+            return response
         except Exception as e:
             logger.error(f"Error fetching flow statistics: {e}", exc_info=True)
             if hasattr(e, 'response') and hasattr(e.response, 'text'):

@@ -734,6 +734,47 @@
       }, 100); // Update every 100ms
     }
 
+    function updateProgress(percentage) {
+      // Update progress bar with specific percentage from polling
+      const progressFill = document.getElementById('progress-fill');
+      const progressPercentage = document.getElementById('progress-percentage');
+      
+      if (progressFill && progressPercentage) {
+        const clampedPercentage = Math.max(0, Math.min(100, percentage));
+        progressFill.style.width = `${clampedPercentage}%`;
+        progressPercentage.textContent = `${Math.floor(clampedPercentage)}%`;
+        
+        // Update estimated time based on progress
+        const estimatedTimeEl = document.getElementById('progress-time');
+        if (estimatedTimeEl) {
+          if (clampedPercentage < 25) {
+            estimatedTimeEl.textContent = 'Estimated time remaining: 20-25 minutes';
+          } else if (clampedPercentage < 50) {
+            estimatedTimeEl.textContent = 'Estimated time remaining: 15-20 minutes';
+          } else if (clampedPercentage < 75) {
+            estimatedTimeEl.textContent = 'Estimated time remaining: 10-15 minutes';
+          } else {
+            estimatedTimeEl.textContent = 'Estimated time remaining: Less than 10 minutes';
+          }
+        }
+        
+        // Update stages based on progress
+        const stages = document.querySelectorAll('.stage');
+        const stageIndex = Math.floor((clampedPercentage / 100) * 4);
+        stages.forEach((stage, idx) => {
+          if (idx < stageIndex) {
+            stage.classList.add('completed');
+            stage.classList.remove('active');
+          } else if (idx === stageIndex) {
+            stage.classList.add('active');
+            stage.classList.remove('completed');
+          } else {
+            stage.classList.remove('active', 'completed');
+          }
+        });
+      }
+    }
+
     function hideProgress() {
       if (progressInterval) {
         clearInterval(progressInterval);
@@ -895,8 +936,13 @@
             
             const statusJson = await statusRes.json();
             
-            // Update progress if available
+            // Update progress if available (stop automatic animation if we have real progress)
             if (statusJson.progress !== undefined) {
+              // Stop the automatic progress animation since we have real progress from server
+              if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+              }
               updateProgress(statusJson.progress);
             }
             

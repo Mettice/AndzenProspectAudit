@@ -80,7 +80,7 @@ class FlowExtractor:
                     
                     # Add delay between batches to avoid rate limiting
                     if i + batch_size < len(all_flow_ids):
-                        await asyncio.sleep(2.0)  # 2 second delay between batches
+                        await asyncio.sleep(3.0)  # 3 second delay between batches (increased for safety)
                         
                 except Exception as e:
                     if verbose:

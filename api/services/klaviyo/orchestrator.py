@@ -89,7 +89,8 @@ class DataExtractionOrchestrator:
         self,
         date_range: Optional[Dict[str, str]] = None,
         include_enhanced: bool = True,
-        verbose: bool = True
+        verbose: bool = True,
+        fast_mode: bool = False
     ) -> Dict[str, Any]:
         """
         Extract all data from Klaviyo for audit reports.
@@ -196,27 +197,53 @@ class DataExtractionOrchestrator:
             )
             enhanced_data["kav_analysis"] = kav_data
             
-            # SECTION 5: List Growth Data
-            list_growth = await self.list_extractor.extract(
-                days_for_analysis, 
-                date_range=date_range,  # Pass date_range to optimize API calls
-                verbose=verbose
-            )
-            enhanced_data["list_growth"] = list_growth
+            # SECTION 5: List Growth Data (skip in fast mode - expensive)
+            if not fast_mode:
+                try:
+                    list_growth = await self.list_extractor.extract(
+                        days_for_analysis, 
+                        date_range=date_range,  # Pass date_range to optimize API calls
+                        verbose=verbose
+                    )
+                    enhanced_data["list_growth"] = list_growth
+                except Exception as e:
+                    logger.warning(f"⚠️  List growth extraction failed (continuing): {e}")
+                    enhanced_data["list_growth"] = {"lists": [], "growth_data": []}
+            else:
+                if verbose:
+                    print("  ⏭️  Skipping list growth (fast mode)")
+                enhanced_data["list_growth"] = {"lists": [], "growth_data": []}
             
-            # SECTION 6: Form Performance Data
-            form_data = await self.form_extractor.extract(days_for_analysis, verbose, date_range=date_range)
-            enhanced_data["forms"] = form_data
+            # SECTION 6: Form Performance Data (skip in fast mode - expensive)
+            if not fast_mode:
+                try:
+                    form_data = await self.form_extractor.extract(days_for_analysis, verbose, date_range=date_range)
+                    enhanced_data["forms"] = form_data
+                except Exception as e:
+                    logger.warning(f"⚠️  Form performance extraction failed (continuing): {e}")
+                    enhanced_data["forms"] = {"forms": []}
+            else:
+                if verbose:
+                    print("  ⏭️  Skipping form performance (fast mode)")
+                enhanced_data["forms"] = {"forms": []}
             
-            # SECTION 7: Core Flows Deep Dive
-            if verbose:
-                period_label = f"{days_for_analysis} Days" if days_for_analysis < 365 else f"{days_for_analysis // 30} Months" if days_for_analysis < 730 else "Year to Date"
-                print(f"\n🎯 SECTION 7: Core Flows Performance ({period_label})")
-                print("-" * 40)
-            
-            try:
-                core_flows = await self.flow_patterns.get_core_flows_performance(days=days_for_analysis)
-                enhanced_data["core_flows"] = core_flows
+            # SECTION 7: Core Flows Deep Dive (skip in fast mode - very expensive)
+            if not fast_mode:
+                if verbose:
+                    period_label = f"{days_for_analysis} Days" if days_for_analysis < 365 else f"{days_for_analysis // 30} Months" if days_for_analysis < 730 else "Year to Date"
+                    print(f"\n🎯 SECTION 7: Core Flows Performance ({period_label})")
+                    print("-" * 40)
+                
+                try:
+                    core_flows = await self.flow_patterns.get_core_flows_performance(days=days_for_analysis)
+                    enhanced_data["core_flows"] = core_flows
+                except Exception as e:
+                    logger.warning(f"⚠️  Core flows extraction failed (continuing): {e}")
+                    enhanced_data["core_flows"] = {}
+            else:
+                if verbose:
+                    print("  ⏭️  Skipping core flows deep dive (fast mode)")
+                enhanced_data["core_flows"] = {}
                 
                 if verbose:
                     for flow_type, flow_info in core_flows.items():
