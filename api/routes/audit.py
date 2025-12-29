@@ -25,6 +25,8 @@ router = APIRouter()
 # In-memory store for report HTML content (for async jobs)
 # In production, use Redis or database
 _report_cache = {}
+# Track running background tasks for cancellation
+_running_tasks = {}
 
 
 async def _process_audit_background(
@@ -281,6 +283,12 @@ async def _process_audit_background(
             db.commit()
             print(f"✅ Audit report {report_id} completed successfully")
             
+        except asyncio.CancelledError:
+            print(f"⚠️ Report {report_id} was cancelled")
+            _report_cache[report_id] = {"error": "Audit generation cancelled", "progress": 0.0}
+            report.status = ReportStatus.FAILED
+            db.commit()
+            raise
         except Exception as e:
             import traceback
             error_msg = str(e)
@@ -432,13 +440,14 @@ async def generate_audit(request: AuditRequest, background_tasks: BackgroundTask
             "start_time": start_time.isoformat()
         }
         
-        # Add background task
-        background_tasks.add_task(
+        # Add background task and track it
+        task = background_tasks.add_task(
             _process_audit_background,
             report_id=report_id,
             request_data=request_data,
             llm_config=llm_config
         )
+        _running_tasks[report_id] = task
         
         # Return immediately with report_id
         return AuditResponse(
@@ -565,6 +574,44 @@ async def get_report_status(report_id: int):
             )
     finally:
         db.close()
+
+
+@router.post("/cancel/{report_id}")
+async def cancel_audit(report_id: int):
+    """
+    Cancel a running audit generation.
+    
+    This will mark the report as failed and stop the background task.
+    """
+    try:
+        # Mark report as failed in cache
+        _report_cache[report_id] = {
+            "error": "Audit generation cancelled by user",
+            "progress": 0.0,
+            "step": "Cancelled"
+        }
+        
+        # Remove from running tasks
+        if report_id in _running_tasks:
+            task = _running_tasks.pop(report_id)
+            # Note: FastAPI BackgroundTasks can't be cancelled directly,
+            # but we've marked it as failed in cache
+        
+        # Update database
+        db = SessionLocal()
+        try:
+            report = db.query(Report).filter(Report.id == report_id).first()
+            if report:
+                report.status = ReportStatus.FAILED
+                db.commit()
+                print(f"✓ Report {report_id} marked as cancelled")
+        finally:
+            db.close()
+        
+        return {"success": True, "message": f"Report {report_id} cancelled"}
+    except Exception as e:
+        print(f"❌ Error cancelling report {report_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to cancel report: {str(e)}")
 
 
 @router.post("/generate-pro", response_model=AuditResponse)

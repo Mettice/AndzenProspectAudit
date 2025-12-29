@@ -101,6 +101,27 @@ class KlaviyoClient:
                     )
                     
                     # Parse and use Klaviyo rate limit headers (if available)
+                    # Check RateLimit-Remaining BEFORE processing response
+                    rate_limit_remaining = None
+                    rate_limit_reset = None
+                    try:
+                        rate_limit_remaining = response.headers.get("RateLimit-Remaining")
+                        rate_limit_reset = response.headers.get("RateLimit-Reset")
+                        if rate_limit_remaining:
+                            remaining_int = int(rate_limit_remaining)
+                            # If we're very low on quota (< 5 remaining), wait before next request
+                            if remaining_int < 5 and rate_limit_reset:
+                                reset_seconds = int(rate_limit_reset)
+                                if reset_seconds > 0 and reset_seconds < 60:
+                                    logger.warning(
+                                        f"Rate limit quota very low ({remaining_int} remaining, "
+                                        f"resets in {reset_seconds}s). Waiting {reset_seconds}s before continuing..."
+                                    )
+                                    await asyncio.sleep(reset_seconds)
+                    except (ValueError, TypeError):
+                        pass
+                    
+                    # Update rate limiter based on headers
                     self._update_rate_limits_from_headers(response)
                     
                     # Check for rate limiting
@@ -117,12 +138,33 @@ class KlaviyoClient:
                             jitter = random.uniform(0.1, 0.3)
                             retry_after = base_delay + jitter
                         
-                        # Use server-provided retry time (don't cap it - Klaviyo knows best)
+                        # Cap retry time at 5 minutes max (anything longer is likely an error)
+                        # Klaviyo rate limits reset every minute, so max should be ~60 seconds
+                        capped_retry = min(retry_after, 300)  # Cap at 5 minutes
+                        if capped_retry != retry_after:
+                            logger.warning(
+                                f"Retry-After value {retry_after}s capped to {capped_retry}s "
+                                f"(rate limit windows reset every minute)"
+                            )
+                        
+                        # If retry time is still unreasonable (> 2 minutes), fail fast instead of waiting
+                        if capped_retry > 120:  # More than 2 minutes
+                            logger.error(
+                                f"Rate limit retry time too long ({capped_retry}s). "
+                                f"Failing request instead of waiting. Please try again later."
+                            )
+                            raise HTTPStatusError(
+                                f"Rate limit exceeded. Retry-After: {capped_retry}s. "
+                                f"Please wait and try again later.",
+                                request=None,
+                                response=response
+                            )
+                        
                         logger.warning(
-                            f"Rate limited (429). Waiting {retry_after:.1f} seconds (from Retry-After header) before retry "
+                            f"Rate limited (429). Waiting {capped_retry:.1f} seconds before retry "
                             f"{attempt + 1}/{max_retries}..."
                         )
-                        await asyncio.sleep(retry_after)
+                        await asyncio.sleep(capped_retry)
                         
                         # Wait for rate limiter again before retry
                         await self.rate_limiter.acquire()
@@ -170,14 +212,23 @@ class KlaviyoClient:
             response: HTTP response object
             
         Returns:
-            Retry delay in seconds, or None if not found
+            Retry delay in seconds (capped at 300 seconds/5 minutes), or None if not found
         """
         try:
             retry_after = response.headers.get("Retry-After")
             if retry_after:
-                return int(retry_after)
-        except (ValueError, TypeError):
-            pass
+                retry_seconds = int(retry_after)
+                # Cap at 5 minutes (300 seconds) - anything longer is likely an error
+                # Klaviyo rate limits reset every minute, so max wait should be ~60 seconds
+                if retry_seconds > 300:
+                    logger.warning(
+                        f"Retry-After header value {retry_seconds}s seems incorrect (>{300}s). "
+                        f"Capping to 60 seconds (1 minute window reset)."
+                    )
+                    return 60  # Default to 1 minute (rate limit window reset)
+                return retry_seconds
+        except (ValueError, TypeError) as e:
+            logger.debug(f"Could not parse Retry-After header: {e}")
         return None
     
     def _update_rate_limits_from_headers(self, response):
@@ -202,19 +253,27 @@ class KlaviyoClient:
                 remaining_int = int(remaining)
                 reset_int = int(reset)
                 
-                # If we're running low on remaining requests, slow down
+                # If we're running low on remaining requests, slow down significantly
                 # Calculate requests per minute from limit
                 # Klaviyo uses 1-minute windows for steady rate limits
-                if remaining_int < limit_int * 0.2:  # Less than 20% remaining
-                    # Slow down by increasing minimum interval
-                    # Reduce to 50% of normal rate when low on quota
+                if remaining_int < 10:  # Less than 10 remaining - CRITICAL
+                    # Very aggressive slowdown - use only what's remaining
+                    self.rate_limiter.requests_per_minute = max(1, remaining_int)
+                    logger.warning(
+                        f"⚠️ Rate limit CRITICAL ({remaining_int}/{limit_int} remaining). "
+                        f"Reduced to {self.rate_limiter.requests_per_minute} req/min. "
+                        f"Window resets in {reset_int}s"
+                    )
+                elif remaining_int < limit_int * 0.2:  # Less than 20% remaining
+                    # Slow down significantly - use 30% of limit
                     self.rate_limiter.requests_per_minute = max(
-                        int(limit_int * 0.5),  # Use 50% of limit when low
+                        int(limit_int * 0.3),  # Use 30% of limit when low
                         remaining_int  # But never less than remaining
                     )
-                    logger.debug(
-                        f"Rate limit low ({remaining_int}/{limit_int} remaining). "
-                        f"Reduced to {self.rate_limiter.requests_per_minute} req/min"
+                    logger.warning(
+                        f"⚠️ Rate limit low ({remaining_int}/{limit_int} remaining). "
+                        f"Reduced to {self.rate_limiter.requests_per_minute} req/min. "
+                        f"Window resets in {reset_int}s"
                     )
                 elif remaining_int > limit_int * 0.5:  # More than 50% remaining
                     # We have plenty of quota, can use normal rate
@@ -222,7 +281,7 @@ class KlaviyoClient:
                     original_rpm = int(limit_int * 0.8)
                     if self.rate_limiter.requests_per_minute < original_rpm:
                         self.rate_limiter.requests_per_minute = original_rpm
-                        logger.debug(f"Rate limit healthy. Reset to {original_rpm} req/min")
+                        logger.debug(f"Rate limit healthy ({remaining_int}/{limit_int}). Reset to {original_rpm} req/min")
         except (ValueError, TypeError, AttributeError) as e:
             # Headers not available or invalid - that's okay, use defaults
             pass
