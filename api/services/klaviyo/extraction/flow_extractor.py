@@ -47,7 +47,7 @@ class FlowExtractor:
         if flows:
             # Batch flows to reduce API load - process in smaller chunks
             all_flow_ids = [f["id"] for f in flows[:50]]
-            batch_size = 10  # Process 10 flows at a time to reduce rate limiting
+            batch_size = 5  # Reduced to 5 flows per batch to avoid rate limiting
             
             if verbose:
                 print(f"  Fetching statistics for {len(all_flow_ids)} flows in batches of {batch_size}...")
@@ -80,11 +80,14 @@ class FlowExtractor:
                     
                     # Add delay between batches to avoid rate limiting
                     if i + batch_size < len(all_flow_ids):
-                        await asyncio.sleep(3.0)  # 3 second delay between batches (increased for safety)
+                        await asyncio.sleep(8.0)  # 8 second delay between batches (increased to prevent rate limiting)
                         
                 except Exception as e:
                     if verbose:
                         print(f"    ⚠️ Batch {batch_num} failed: {e}")
+                    # Add extra delay after failure before retrying next batch
+                    if i + batch_size < len(all_flow_ids):
+                        await asyncio.sleep(10.0)  # Extra delay after failure
                     continue
             
             if flow_statistics and verbose:

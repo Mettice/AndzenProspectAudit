@@ -44,8 +44,20 @@ async def _process_audit_background(
         try:
             print(f"🚀 Starting background audit generation for report {report_id}...")
             
-            # Initialize progress tracking
-            _report_cache[report_id] = {"progress": 0.0, "step": "Initializing..."}
+            # Initialize progress tracking with start time (preserve if already exists)
+            from datetime import datetime
+            if report_id not in _report_cache:
+                start_time = datetime.now()
+                _report_cache[report_id] = {
+                    "progress": 0.0, 
+                    "step": "Initializing...",
+                    "start_time": start_time.isoformat()
+                }
+            else:
+                # Preserve existing start_time if cache already initialized
+                existing_cache = _report_cache[report_id]
+                if "start_time" not in existing_cache:
+                    existing_cache["start_time"] = datetime.now().isoformat()
             
             # Initialize services
             klaviyo_service = KlaviyoService(api_key=request_data["api_key"])
@@ -61,51 +73,207 @@ async def _process_audit_background(
             
             # Step 1: Extract data from Klaviyo (0-20%)
             print("📊 Extracting data from Klaviyo...")
-            _report_cache[report_id] = {"progress": 5.0, "step": "Extracting data from Klaviyo..."}
+            # Preserve start_time from initialization
+            existing_cache = _report_cache.get(report_id, {})
+            existing_start_time = existing_cache.get("start_time", datetime.now().isoformat())
+            _report_cache[report_id].update({
+                "progress": 5.0, 
+                "step": "Extracting data from Klaviyo...",
+                "start_time": existing_start_time  # Preserve original start time
+            })
             date_range_dict = request_data.get("date_range")
             
-            klaviyo_data = await klaviyo_service.extract_all_data(
-                date_range=date_range_dict
-            )
-            _report_cache[report_id] = {"progress": 20.0, "step": "Data extraction complete"}
+            # Update progress during extraction (continuous progress simulation)
+            import asyncio
+            extraction_done = asyncio.Event()
+            extraction_start = datetime.now()
+            
+            async def simulate_extraction_progress():
+                steps = [
+                    (8.0, "Fetching revenue data..."),
+                    (11.0, "Fetching campaign data..."),
+                    (14.0, "Fetching flow data..."),
+                    (17.0, "Fetching list growth data..."),
+                ]
+                step_index = 0
+                last_update = datetime.now()
+                
+                while not extraction_done.is_set():
+                    elapsed = (datetime.now() - extraction_start).total_seconds()
+                    
+                    if step_index < len(steps):
+                        progress, step = steps[step_index]
+                        _report_cache[report_id].update({"progress": progress, "step": step})
+                        step_index += 1
+                        # Wait before next step or until extraction completes
+                        try:
+                            await asyncio.wait_for(extraction_done.wait(), timeout=8.0)
+                            break
+                        except asyncio.TimeoutError:
+                            continue  # Continue to next step
+                    else:
+                        # All steps done, but extraction still running - gradually increase progress
+                        # Calculate progress based on elapsed time (assume extraction takes 2-5 minutes)
+                        # Progress from 17% to 19% over time
+                        time_based_progress = min(19.0, 17.0 + (elapsed / 120.0) * 2.0)  # 2 minutes to go from 17% to 19%
+                        if (datetime.now() - last_update).total_seconds() >= 3.0:  # Update every 3 seconds
+                            _report_cache[report_id].update({
+                                "progress": time_based_progress, 
+                                "step": "Finalizing data extraction..."
+                            })
+                            last_update = datetime.now()
+                        # Check every 2 seconds
+                        try:
+                            await asyncio.wait_for(extraction_done.wait(), timeout=2.0)
+                            break
+                        except asyncio.TimeoutError:
+                            continue
+            
+            # Start progress simulation as background task
+            progress_task = asyncio.create_task(simulate_extraction_progress())
+            
+            try:
+                # Run extraction
+                klaviyo_data = await klaviyo_service.extract_all_data(date_range=date_range_dict)
+            finally:
+                # Signal extraction is done and cancel progress task
+                extraction_done.set()
+                progress_task.cancel()
+                try:
+                    await progress_task
+                except asyncio.CancelledError:
+                    pass
+            
+            _report_cache[report_id].update({"progress": 20.0, "step": "Data extraction complete"})
             
             # Step 2: Load benchmarks (20-25%)
             print("📊 Loading benchmarks...")
-            _report_cache[report_id] = {"progress": 22.0, "step": "Loading benchmarks..."}
+            _report_cache[report_id].update({"progress": 22.0, "step": "Loading benchmarks..."})
             benchmarks = benchmark_service.get_all_benchmarks()
-            _report_cache[report_id] = {"progress": 25.0, "step": "Benchmarks loaded"}
+            _report_cache[report_id].update({"progress": 25.0, "step": "Benchmarks loaded"})
             
             # Step 3: Run comprehensive agentic analysis (25-60%)
             print("🤖 Running comprehensive analysis...")
-            _report_cache[report_id] = {"progress": 30.0, "step": "Running AI analysis..."}
-            analysis_results = await analysis_framework.run_comprehensive_analysis(
-                klaviyo_data=klaviyo_data,
-                benchmarks=benchmarks,
-                client_name=request_data["client_name"]
-            )
-            _report_cache[report_id] = {"progress": 60.0, "step": "AI analysis complete"}
+            _report_cache[report_id].update({"progress": 30.0, "step": "Running AI analysis..."})
+            
+            # Simulate progress during AI analysis (continuous until done)
+            analysis_done = asyncio.Event()
+            analysis_start = datetime.now()
+            
+            async def simulate_ai_progress():
+                steps = [
+                    (35.0, "Analyzing revenue data..."),
+                    (40.0, "Analyzing campaign performance..."),
+                    (45.0, "Analyzing flow performance..."),
+                    (50.0, "Generating insights..."),
+                    (55.0, "Finalizing analysis..."),
+                ]
+                step_index = 0
+                last_update = datetime.now()
+                
+                while not analysis_done.is_set():
+                    elapsed = (datetime.now() - analysis_start).total_seconds()
+                    
+                    if step_index < len(steps):
+                        progress, step = steps[step_index]
+                        _report_cache[report_id].update({"progress": progress, "step": step})
+                        step_index += 1
+                        # Wait before next step or until analysis completes
+                        try:
+                            await asyncio.wait_for(analysis_done.wait(), timeout=12.0)
+                            break
+                        except asyncio.TimeoutError:
+                            continue  # Continue to next step
+                    else:
+                        # All steps done, but analysis still running - gradually increase progress
+                        # Calculate progress based on elapsed time (assume analysis takes 3-8 minutes)
+                        # Progress from 55% to 59% over time
+                        time_based_progress = min(59.0, 55.0 + (elapsed / 180.0) * 4.0)  # 3 minutes to go from 55% to 59%
+                        if (datetime.now() - last_update).total_seconds() >= 3.0:  # Update every 3 seconds
+                            _report_cache[report_id].update({
+                                "progress": time_based_progress, 
+                                "step": "Finalizing AI analysis..."
+                            })
+                            last_update = datetime.now()
+                        # Check every 3 seconds
+                        try:
+                            await asyncio.wait_for(analysis_done.wait(), timeout=3.0)
+                            break
+                        except asyncio.TimeoutError:
+                            continue
+            
+            # Start progress simulation as background task
+            progress_task = asyncio.create_task(simulate_ai_progress())
+            
+            try:
+                # Run analysis
+                analysis_results = await analysis_framework.run_comprehensive_analysis(
+                    klaviyo_data=klaviyo_data,
+                    benchmarks=benchmarks,
+                    client_name=request_data["client_name"]
+                )
+            finally:
+                # Signal analysis is done and cancel progress task
+                analysis_done.set()
+                progress_task.cancel()
+                try:
+                    await progress_task
+                except asyncio.CancelledError:
+                    pass
+            
+            _report_cache[report_id].update({"progress": 60.0, "step": "AI analysis complete"})
             
             # Step 4: Convert analysis results to audit data format (60-80%)
             print("🔄 Converting analysis results to audit data format...")
-            _report_cache[report_id] = {"progress": 65.0, "step": "Formatting audit data..."}
+            _report_cache[report_id].update({"progress": 65.0, "step": "Formatting audit data..."})
             audit_data = await klaviyo_service.format_audit_data(
                 date_range=date_range_dict,
                 verbose=False
             )
-            _report_cache[report_id] = {"progress": 80.0, "step": "Data formatting complete"}
+            _report_cache[report_id].update({"progress": 80.0, "step": "Data formatting complete"})
             
             # Step 5: Generate audit report (80-100%)
             print("📝 Generating audit report...")
-            _report_cache[report_id] = {"progress": 85.0, "step": "Generating report..."}
+            _report_cache[report_id].update({"progress": 85.0, "step": "Generating report..."})
             
-            generated_report = await report_service.generate_audit(
-                audit_data=audit_data,
-                client_name=request_data["client_name"],
-                auditor_name=request_data.get("auditor_name"),
-                client_code=request_data.get("client_code"),
-                industry=request_data.get("industry"),
-                llm_config=llm_config
-            )
+            # Simulate progress during report generation
+            report_done = asyncio.Event()
+            
+            async def simulate_report_progress():
+                steps = [
+                    (88.0, "Rendering templates..."),
+                    (92.0, "Generating PDF..."),
+                    (96.0, "Finalizing report..."),
+                ]
+                step_index = 0
+                while not report_done.is_set() and step_index < len(steps):
+                    progress, step = steps[step_index]
+                    _report_cache[report_id].update({"progress": progress, "step": step})
+                    step_index += 1
+                    try:
+                        await asyncio.wait_for(report_done.wait(), timeout=20.0)
+                        break
+                    except asyncio.TimeoutError:
+                        continue
+            
+            progress_task = asyncio.create_task(simulate_report_progress())
+            
+            try:
+                generated_report = await report_service.generate_audit(
+                    audit_data=audit_data,
+                    client_name=request_data["client_name"],
+                    auditor_name=request_data.get("auditor_name"),
+                    client_code=request_data.get("client_code"),
+                    industry=request_data.get("industry"),
+                    llm_config=llm_config
+                )
+            finally:
+                report_done.set()
+                progress_task.cancel()
+                try:
+                    await progress_task
+                except asyncio.CancelledError:
+                    pass
             
             # Update report with results
             report.filename = generated_report.get("filename", report.filename)
@@ -114,8 +282,10 @@ async def _process_audit_background(
             report.file_path_word = generated_report.get("word_url")
             report.status = ReportStatus.COMPLETED
             
-            # Store HTML content in cache
+            # Store HTML content in cache and set final progress
             _report_cache[report_id] = {
+                "progress": 100.0,
+                "step": "Report generation complete",
                 "html_content": generated_report.get("html_content"),
                 "report_data": {
                     "filename": generated_report.get("filename"),
@@ -272,6 +442,15 @@ async def generate_audit(request: AuditRequest, background_tasks: BackgroundTask
         finally:
             db.close()
         
+        # Initialize cache immediately so status endpoint has initial values
+        from datetime import datetime
+        start_time = datetime.now()
+        _report_cache[report_id] = {
+            "progress": 0.0,
+            "step": "Initializing...",
+            "start_time": start_time.isoformat()
+        }
+        
         # Add background task
         background_tasks.add_task(
             _process_audit_background,
@@ -332,13 +511,73 @@ async def get_report_status(report_id: int):
             )
         else:
             # Still processing - get progress from cache
-            cached_progress = cached.get("progress", 25.0)  # Default to 25% if not set
-            cached_step = cached.get("step", "Processing...")
+            cached_progress = cached.get("progress", 0.0)  # Default to 0% if not set (not started yet)
+            cached_step = cached.get("step", "Initializing...")
+            start_time = cached.get("start_time")
+            
+            # Calculate estimated time remaining based on progress
+            # Use stage-based estimates since progress is not linear
+            estimated_remaining = None
+            if start_time and cached_progress > 1:
+                from datetime import datetime
+                try:
+                    start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                    elapsed = (datetime.now(start_dt.tzinfo) - start_dt).total_seconds()
+                    elapsed_minutes = elapsed / 60
+                    
+                    # Stage-based time estimates (based on typical durations)
+                    # Extraction: 0-20% (typically 2-5 min)
+                    # Benchmarks: 20-25% (typically < 1 min)
+                    # AI Analysis: 25-60% (typically 10-20 min - the longest)
+                    # Formatting: 60-80% (typically 1-2 min)
+                    # Report Gen: 80-100% (typically 2-5 min)
+                    
+                    if cached_progress < 20:
+                        # Extraction phase: estimate based on typical 3-4 min for extraction, then add remaining stages
+                        # If we're at X% of extraction, estimate: (20-X)/20 * 4 min + 15 min (AI) + 3 min (rest)
+                        extraction_remaining = ((20 - cached_progress) / 20) * 4  # minutes
+                        remaining_phases = 15 + 3  # AI analysis + formatting + report gen
+                        estimated_remaining = int(extraction_remaining + remaining_phases)
+                    elif cached_progress < 25:
+                        # Benchmarks phase: almost done, just add remaining
+                        estimated_remaining = int(15 + 3)  # AI + rest
+                    elif cached_progress < 60:
+                        # AI Analysis phase: the longest part
+                        # If we're at X% of AI phase (25-60%), estimate remaining
+                        ai_progress = (cached_progress - 25) / 35  # 0-1 progress through AI phase
+                        ai_remaining = (1 - ai_progress) * 15  # typical 15 min for AI
+                        remaining_phases = 3  # formatting + report gen
+                        estimated_remaining = int(ai_remaining + remaining_phases)
+                    elif cached_progress < 80:
+                        # Formatting phase: estimate remaining
+                        formatting_progress = (cached_progress - 60) / 20  # 0-1 progress through formatting
+                        formatting_remaining = (1 - formatting_progress) * 1.5  # typical 1.5 min
+                        report_gen = 3  # typical 3 min for report gen
+                        estimated_remaining = int(formatting_remaining + report_gen)
+                    else:
+                        # Report generation phase: estimate based on actual progress rate
+                        if elapsed > 10:
+                            rate = cached_progress / elapsed  # % per second
+                            remaining_seconds = (100 - cached_progress) / rate if rate > 0 else 0
+                            estimated_remaining = max(1, int(remaining_seconds / 60))
+                        else:
+                            estimated_remaining = 3  # default for report gen
+                    
+                    # Ensure reasonable bounds
+                    estimated_remaining = max(1, min(30, estimated_remaining))
+                except:
+                    pass
+            
             return ReportStatusResponse(
                 report_id=report.id,
                 status="processing",
                 progress=cached_progress,
-                report_data={"step": cached_step, "progress": cached_progress}
+                report_data={
+                    "step": cached_step, 
+                    "progress": cached_progress,
+                    "estimated_remaining_minutes": estimated_remaining,
+                    "start_time": start_time
+                }
             )
     finally:
         db.close()

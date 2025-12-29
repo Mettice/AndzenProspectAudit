@@ -230,7 +230,7 @@
           <div class="progress-header">
             <div class="progress-info">
               <span class="progress-label">Processing Audit Report</span>
-              <span class="progress-time" id="progress-time">Estimated time: Less than 30 minutes</span>
+              <span class="progress-time" id="progress-time">Estimated time: 25-30 minutes</span>
             </div>
           </div>
           <div class="progress-bar-wrapper">
@@ -681,7 +681,8 @@
     // Progress bar management
     let progressInterval = null;
     let startTime = null;
-    const ESTIMATED_TIME_MS = 25 * 60 * 1000; // 25 minutes in milliseconds
+    let lastProgressUpdate = null;
+    const ESTIMATED_TIME_MS = 27.5 * 60 * 1000; // 27.5 minutes (middle of 25-30) in milliseconds
 
     function showProgress() {
       const progressContainer = document.getElementById('progress-container');
@@ -732,15 +733,19 @@
           currentStage = newStage;
         }
         
-        // Update estimated time
-        const remaining = Math.max(0, ESTIMATED_TIME_MS - elapsed);
-        const remainingMinutes = Math.ceil(remaining / 60000);
+        // Update estimated time (only use this as fallback - real progress will override)
+        // Only update if progress is very low to avoid showing wrong countdown
         const timeElement = document.getElementById('progress-time');
-        if (remainingMinutes > 0) {
-          timeElement.textContent = `Estimated time remaining: ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
-        } else {
-          timeElement.textContent = 'Almost done...';
+        if (timeElement && progress < 5) {
+          const remaining = Math.max(0, ESTIMATED_TIME_MS - elapsed);
+          const remainingMinutes = Math.ceil(remaining / 60000);
+          if (remainingMinutes > 0 && remainingMinutes <= 30) {
+            timeElement.textContent = `Estimated time remaining: ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+          } else {
+            timeElement.textContent = 'Estimated time: 25-30 minutes';
+          }
         }
+        // If progress >= 5%, let updateProgress() handle the countdown based on actual progress
       }, 100); // Update every 100ms
     }
 
@@ -754,18 +759,51 @@
         progressFill.style.width = `${clampedPercentage}%`;
         progressPercentage.textContent = `${Math.floor(clampedPercentage)}%`;
         
-        // Update estimated time based on progress
+        // Calculate countdown based on elapsed time and progress (simple calculation)
         const estimatedTimeEl = document.getElementById('progress-time');
-        if (estimatedTimeEl) {
-          if (clampedPercentage < 25) {
-            estimatedTimeEl.textContent = 'Estimated time remaining: 20-25 minutes';
-          } else if (clampedPercentage < 50) {
-            estimatedTimeEl.textContent = 'Estimated time remaining: 15-20 minutes';
-          } else if (clampedPercentage < 75) {
-            estimatedTimeEl.textContent = 'Estimated time remaining: 10-15 minutes';
+        if (estimatedTimeEl && startTime) {
+          const elapsed = Date.now() - startTime;
+          
+          if (clampedPercentage === 0) {
+            // At start, show initial estimate
+            estimatedTimeEl.textContent = 'Estimated time: 25-30 minutes';
+          } else if (clampedPercentage >= 95) {
+            // Near completion
+            estimatedTimeEl.textContent = 'Almost done...';
+          } else if (clampedPercentage >= 20 && elapsed > 10000) {
+            // Only calculate if we have meaningful elapsed time (> 10 seconds) and progress (>= 20%)
+            const elapsedSeconds = elapsed / 1000; // Convert to seconds
+            const progressRate = clampedPercentage / elapsedSeconds; // percentage per second
+            if (progressRate > 0) {
+              const remainingSeconds = (100 - clampedPercentage) / progressRate;
+              let remainingMinutes = Math.ceil(remainingSeconds / 60);
+              
+              // Prevent time from increasing - only allow decrease or stay same
+              if (!window.lastEstimatedMinutesFromUpdate) window.lastEstimatedMinutesFromUpdate = 30;
+              if (remainingMinutes > window.lastEstimatedMinutesFromUpdate) {
+                // Progress went backwards or calculation is off, keep previous estimate
+                remainingMinutes = window.lastEstimatedMinutesFromUpdate;
+              } else {
+                window.lastEstimatedMinutesFromUpdate = remainingMinutes;
+              }
+              
+              // Clamp to reasonable range
+              const clampedMinutes = Math.max(1, Math.min(30, remainingMinutes));
+              
+              if (clampedMinutes > 1) {
+                estimatedTimeEl.textContent = `Estimated time remaining: ${clampedMinutes} minute${clampedMinutes !== 1 ? 's' : ''}`;
+              } else {
+                estimatedTimeEl.textContent = 'Estimated time remaining: Less than 1 minute';
+              }
+            } else {
+              estimatedTimeEl.textContent = 'Estimated time: 25-30 minutes';
+            }
           } else {
-            estimatedTimeEl.textContent = 'Estimated time remaining: Less than 10 minutes';
+            // Before 20% progress, always show default estimate
+            estimatedTimeEl.textContent = 'Estimated time: 25-30 minutes';
           }
+        } else if (estimatedTimeEl) {
+          estimatedTimeEl.textContent = 'Estimated time: 25-30 minutes';
         }
         
         // Update stages based on progress
@@ -782,6 +820,9 @@
             stage.classList.remove('active', 'completed');
           }
         });
+        
+        // Store last progress update time
+        lastProgressUpdate = Date.now();
       }
     }
 
@@ -930,8 +971,12 @@
         // Poll for status every 5 seconds
         const pollInterval = 5000; // 5 seconds
         const maxPollTime = 60 * 60 * 1000; // 1 hour max
-        const startTime = Date.now();
+        // Use global startTime, don't create a new local one
+        if (!startTime) {
+          startTime = Date.now();
+        }
         let pollTimer;
+        let lastKnownProgress = 0; // Track progress for time calculation
         
         const pollStatus = async () => {
           try {
@@ -946,14 +991,203 @@
             
             const statusJson = await statusRes.json();
             
-            // Update progress if available (stop automatic animation if we have real progress)
+            // Always ensure progress container is visible when processing
+            const progressContainer = document.getElementById('progress-container');
+            const resultBox = document.getElementById('result-box');
+            if (progressContainer && resultBox) {
+              if (statusJson.status === 'processing') {
+                progressContainer.style.display = 'block';
+                resultBox.style.display = 'none';
+              } else if (statusJson.status === 'completed' || statusJson.status === 'failed') {
+                // Only hide when truly done or failed
+                progressContainer.style.display = 'none';
+                resultBox.style.display = 'block';
+              }
+            }
+            
+            // Update progress if available
             if (statusJson.progress !== undefined) {
               // Stop the automatic progress animation since we have real progress from server
               if (progressInterval) {
                 clearInterval(progressInterval);
                 progressInterval = null;
               }
+              
+              // Set startTime from server if available (use global startTime)
+              const reportData = statusJson.report_data || {};
+              if (reportData.start_time && !startTime) {
+                const serverStartTime = new Date(reportData.start_time);
+                startTime = serverStartTime.getTime();
+              } else if (!startTime) {
+                startTime = Date.now();
+              }
+              
               updateProgress(statusJson.progress);
+              
+              // Update last known progress for time calculation (do this first)
+              lastKnownProgress = statusJson.progress || 0;
+              
+              // Update time remaining - only calculate when we have enough data
+              const timeElement = document.getElementById('progress-time');
+              if (timeElement) {
+                const currentProgress = statusJson.progress || 0;
+                
+                // Simple rule: Only show calculated estimates after 20% progress
+                // Before that, always show default estimate
+                if (currentProgress >= 95) {
+                  timeElement.textContent = 'Almost done...';
+                } else if (currentProgress >= 20 && reportData.start_time) {
+                  // Calculate estimate only after 20% progress
+                  const serverStartTime = new Date(reportData.start_time).getTime();
+                  const serverElapsed = Date.now() - serverStartTime;
+                  const serverElapsedSeconds = serverElapsed / 1000;
+                  
+                  if (serverElapsedSeconds > 10 && currentProgress > 0) {
+                    const progressRate = currentProgress / serverElapsedSeconds;
+                    if (progressRate > 0) {
+                      const remainingSeconds = (100 - currentProgress) / progressRate;
+                      let remainingMinutes = Math.ceil(remainingSeconds / 60);
+                      
+                      // Prevent time from increasing
+                      if (!window.lastEstimatedMinutesFromPoll) window.lastEstimatedMinutesFromPoll = 30;
+                      if (remainingMinutes > window.lastEstimatedMinutesFromPoll) {
+                        remainingMinutes = window.lastEstimatedMinutesFromPoll;
+                      } else {
+                        window.lastEstimatedMinutesFromPoll = remainingMinutes;
+                      }
+                      
+                      // Clamp to reasonable range
+                      const clampedMinutes = Math.max(1, Math.min(30, remainingMinutes));
+                      
+                      if (clampedMinutes > 1) {
+                        timeElement.textContent = `Estimated time remaining: ${clampedMinutes} minute${clampedMinutes !== 1 ? 's' : ''}`;
+                      } else {
+                        timeElement.textContent = 'Estimated time remaining: Less than 1 minute';
+                      }
+                    } else {
+                      timeElement.textContent = 'Estimated time: 25-30 minutes';
+                    }
+                  } else {
+                    timeElement.textContent = 'Estimated time: 25-30 minutes';
+                  }
+                } else {
+                  // Before 20% progress, always show default
+                  timeElement.textContent = 'Estimated time: 25-30 minutes';
+                }
+              }
+              
+              // Set up real-time countdown timer that updates every second
+              if (!progressInterval && statusJson.status === 'processing') {
+                // Store server estimate and start time in closure for timer
+                const serverEstimate = reportData.estimated_remaining_minutes;
+                const serverStartTimeForTimer = reportData.start_time ? new Date(reportData.start_time).getTime() : null;
+                const clientStartTimeForTimer = startTime; // Capture current startTime
+                
+                progressInterval = setInterval(() => {
+                  const timeElement = document.getElementById('progress-time');
+                  if (!timeElement) return;
+                  
+                  // Use server estimate if available - only calculate after 20% progress
+                  if (serverStartTimeForTimer) {
+                    const progressPercentage = document.getElementById('progress-percentage');
+                    const currentProgress = progressPercentage ? parseFloat(progressPercentage.textContent.replace('%', '')) : lastKnownProgress;
+                    
+                    if (currentProgress >= 95) {
+                      timeElement.textContent = 'Almost done...';
+                      return;
+                    } else if (currentProgress < 20) {
+                      // Before 20% progress, always show default
+                      timeElement.textContent = 'Estimated time: 25-30 minutes';
+                      return;
+                    } else if (currentProgress >= 20) {
+                      // Calculate estimate only after 20% progress
+                      const serverElapsed = Date.now() - serverStartTimeForTimer;
+                      const serverElapsedSeconds = serverElapsed / 1000;
+                      
+                      if (serverElapsedSeconds > 10 && currentProgress > 0) {
+                        const progressRate = currentProgress / serverElapsedSeconds;
+                        if (progressRate > 0) {
+                          const remainingSeconds = (100 - currentProgress) / progressRate;
+                          let remainingMinutes = Math.ceil(remainingSeconds / 60);
+                          
+                          // Prevent time from increasing
+                          if (!window.lastEstimatedMinutes) window.lastEstimatedMinutes = 30;
+                          if (remainingMinutes > window.lastEstimatedMinutes) {
+                            remainingMinutes = window.lastEstimatedMinutes;
+                          } else {
+                            window.lastEstimatedMinutes = remainingMinutes;
+                          }
+                          
+                          const clampedMinutes = Math.max(1, Math.min(30, remainingMinutes));
+                          
+                          if (clampedMinutes > 1) {
+                            timeElement.textContent = `Estimated time remaining: ${clampedMinutes} minute${clampedMinutes !== 1 ? 's' : ''}`;
+                            return;
+                          } else {
+                            timeElement.textContent = 'Estimated time remaining: Less than 1 minute';
+                            return;
+                          }
+                        }
+                      }
+                    }
+                    
+                    // Fallback: show default
+                    timeElement.textContent = 'Estimated time: 25-30 minutes';
+                    return;
+                  }
+                  
+                  // Fallback: calculate from current progress (only after 20% progress)
+                  if (clientStartTimeForTimer) {
+                    const progressPercentage = document.getElementById('progress-percentage');
+                    const currentProgress = progressPercentage ? parseFloat(progressPercentage.textContent.replace('%', '')) : lastKnownProgress;
+                    
+                    if (currentProgress >= 95) {
+                      timeElement.textContent = 'Almost done...';
+                      return;
+                    } else if (currentProgress < 20) {
+                      // Before 20% progress, always show default
+                      timeElement.textContent = 'Estimated time: 25-30 minutes';
+                      return;
+                    } else if (currentProgress >= 20 && currentProgress < 100) {
+                      const elapsed = Date.now() - clientStartTimeForTimer;
+                      
+                      // Only calculate if we have meaningful progress (>= 20%) and elapsed time
+                      if (elapsed > 10000) {  // At least 10 seconds
+                        // Calculate remaining time: if X% done in Y time, remaining = (100-X) / (X/Y)
+                        const elapsedSeconds = elapsed / 1000;
+                        const progressRate = currentProgress / elapsedSeconds; // % per second
+                        if (progressRate > 0) {
+                          const remainingSeconds = (100 - currentProgress) / progressRate;
+                          let remainingMinutes = Math.ceil(remainingSeconds / 60);
+                          
+                          // Prevent countdown from going backward - keep time stable or decreasing
+                          if (!window.lastEstimatedMinutes) window.lastEstimatedMinutes = 30;
+                          if (remainingMinutes > window.lastEstimatedMinutes) {
+                            remainingMinutes = window.lastEstimatedMinutes;
+                          } else {
+                            window.lastEstimatedMinutes = remainingMinutes;
+                          }
+                          
+                          const clampedMinutes = Math.max(1, Math.min(30, remainingMinutes));
+                          
+                          if (clampedMinutes > 1) {
+                            timeElement.textContent = `Estimated time remaining: ${clampedMinutes} minute${clampedMinutes !== 1 ? 's' : ''}`;
+                          } else {
+                            timeElement.textContent = 'Estimated time remaining: Less than 1 minute';
+                          }
+                        } else {
+                          timeElement.textContent = 'Estimated time: 25-30 minutes';
+                        }
+                      } else {
+                        // Too early to calculate, show default
+                        timeElement.textContent = 'Estimated time: 25-30 minutes';
+                      }
+                    } else {
+                      timeElement.textContent = 'Estimated time: 25-30 minutes';
+                    }
+                  }
+                }, 1000); // Update every second
+              }
             }
             
             if (statusJson.status === 'completed') {
@@ -1034,30 +1268,58 @@
             } else if (statusJson.status === 'failed') {
               // Audit failed
               clearInterval(pollTimer);
+              if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+              }
               hideProgress();
               setStatus('Failed', 'error');
               throw new Error(statusJson.error || 'Audit generation failed');
             } else if (statusJson.status === 'processing') {
               // Still processing, continue polling
+              // Ensure progress container stays visible
+              const progressContainer = document.getElementById('progress-container');
+              const resultBox = document.getElementById('result-box');
+              if (progressContainer && resultBox) {
+                progressContainer.style.display = 'block';
+                resultBox.style.display = 'none';
+              }
+              
               log(`Status: Processing... (${Math.round(statusJson.progress || 0)}%)`);
               
               // Check if we've exceeded max time
               if (Date.now() - startTime > maxPollTime) {
                 clearInterval(pollTimer);
+                if (progressInterval) {
+                  clearInterval(progressInterval);
+                  progressInterval = null;
+                }
                 hideProgress();
                 setStatus('Timeout', 'error');
                 throw new Error('Audit generation timed out after 1 hour');
               }
             }
           } catch (error) {
-            if (error.message.includes('timeout') || error.message.includes('failed')) {
+            // Only hide progress if it's a fatal error (failed or timeout)
+            if (error.message.includes('timeout') || error.message.includes('failed') || error.message.includes('Audit generation')) {
               clearInterval(pollTimer);
+              if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+              }
               hideProgress();
               setStatus('Error', 'error');
               throw error;
             }
-            // For other errors, continue polling (might be temporary)
+            // For other errors (network issues, etc.), keep progress visible and continue polling
             log(`Status check error: ${error.message}. Retrying...`);
+            // Ensure progress stays visible during retries
+            const progressContainer = document.getElementById('progress-container');
+            const resultBox = document.getElementById('result-box');
+            if (progressContainer && resultBox) {
+              progressContainer.style.display = 'block';
+              resultBox.style.display = 'none';
+            }
           }
         };
         
@@ -1065,6 +1327,11 @@
         await pollStatus();
         pollTimer = setInterval(pollStatus, pollInterval);
       } catch (err) {
+        // Only hide progress if it's a fatal error
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
         hideProgress();
         setStatus('Error', 'error');
         
@@ -1077,7 +1344,10 @@
         }
         
         log('Error: ' + errorMessage);
-        resultBox.innerHTML = `<p class="error">Error: ${errorMessage}</p>`;
+        const resultBox = document.getElementById('result-box');
+        if (resultBox) {
+          resultBox.innerHTML = `<p class="error">Error: ${errorMessage}</p>`;
+        }
       } finally {
         submitBtn.disabled = false;
         if (typeof timeoutId !== 'undefined' && timeoutId !== null) {

@@ -222,22 +222,46 @@ class RevenueTimeSeriesService:
                 else:
                     timeframe = "last_365_days"
                 
-                # Query flow statistics with conversion_value
-                # Reporting API uses the same attribution model as the dashboard
-                flow_stats_response = await self.flow_stats.get_statistics(
-                    flow_ids=flow_ids,
-                    statistics=["conversion_value", "conversions"],
-                    timeframe=timeframe,
-                    conversion_metric_id=conversion_metric_id
-                )
+                # CRITICAL FIX: Batch flow queries to avoid rate limiting
+                # Process flows in smaller batches with delays
+                batch_size = 10  # Smaller batches for revenue queries
+                import asyncio
                 
-                # Extract revenue from response
-                if flow_stats_response and "data" in flow_stats_response:
-                    results = flow_stats_response["data"].get("attributes", {}).get("results", [])
-                    for result in results:
-                        stats = result.get("statistics", {})
-                        revenue = stats.get("conversion_value", 0)
-                        flow_sum += float(revenue) if revenue else 0
+                for i in range(0, len(flow_ids), batch_size):
+                    batch_ids = flow_ids[i:i + batch_size]
+                    batch_num = (i // batch_size) + 1
+                    total_batches = (len(flow_ids) + batch_size - 1) // batch_size
+                    
+                    try:
+                        logger.debug(f"Querying flow revenue batch {batch_num}/{total_batches} ({len(batch_ids)} flows)...")
+                        
+                        # Query flow statistics with conversion_value for this batch
+                        flow_stats_response = await self.flow_stats.get_statistics(
+                            flow_ids=batch_ids,
+                            statistics=["conversion_value", "conversions"],
+                            timeframe=timeframe,
+                            conversion_metric_id=conversion_metric_id,
+                            use_cache=True  # Use cache if available
+                        )
+                        
+                        # Extract revenue from response
+                        if flow_stats_response and "data" in flow_stats_response:
+                            results = flow_stats_response["data"].get("attributes", {}).get("results", [])
+                            for result in results:
+                                stats = result.get("statistics", {})
+                                revenue = stats.get("conversion_value", 0)
+                                flow_sum += float(revenue) if revenue else 0
+                        
+                        # Add delay between batches to avoid rate limiting
+                        if i + batch_size < len(flow_ids):
+                            await asyncio.sleep(5.0)  # 5 second delay between batches for revenue queries
+                            
+                    except Exception as batch_error:
+                        logger.warning(f"Batch {batch_num} failed: {batch_error}. Continuing with remaining batches...")
+                        # Continue with next batch instead of failing completely
+                        if i + batch_size < len(flow_ids):
+                            await asyncio.sleep(5.0)  # Still wait before next batch
+                        continue
                 
                 logger.info(f"✅ Flow Revenue: ${flow_sum:,.2f}")
             else:
