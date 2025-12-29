@@ -11,7 +11,7 @@ This implements a multi-agent system that:
 Based on comprehensive audits (Urth & Dreamland Baby examples)
 """
 import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
 from anthropic import Anthropic
 import json
 from datetime import datetime
@@ -36,10 +36,17 @@ class AgenticAnalysisFramework:
         self,
         klaviyo_data: Dict[str, Any],
         benchmarks: Dict[str, Any],
-        client_name: str
+        client_name: str,
+        progress_callback: Optional[Callable[[float, str], None]] = None
     ) -> Dict[str, Any]:
         """
         Run complete multi-agent analysis pipeline.
+        
+        Args:
+            klaviyo_data: Raw Klaviyo API data
+            benchmarks: Industry benchmark data
+            client_name: Client name for personalization
+            progress_callback: Optional callback function(progress: float, step: str) to report progress
         
         Returns comprehensive analysis with:
         - Executive summary with KAV analysis
@@ -52,34 +59,52 @@ class AgenticAnalysisFramework:
         """
         print("🤖 Starting Agentic Analysis Framework...")
         
-        # Stage 1: Data Processing Agent
+        # Stage 1: Data Processing Agent (30-38%)
         print("  📊 Agent 1: Processing and structuring data...")
+        if progress_callback:
+            progress_callback(30.0, "Processing and structuring data...")
         processed_data = await self._data_processing_agent(klaviyo_data)
+        if progress_callback:
+            progress_callback(38.0, "Data processing complete")
         
-        # Stage 2: Benchmark Comparison Agent
+        # Stage 2: Benchmark Comparison Agent (38-46%)
         print("  📈 Agent 2: Running benchmark comparisons...")
+        if progress_callback:
+            progress_callback(38.0, "Running benchmark comparisons...")
         benchmark_analysis = await self._benchmark_comparison_agent(
             processed_data,
             benchmarks
         )
+        if progress_callback:
+            progress_callback(46.0, "Benchmark comparisons complete")
         
-        # Stage 3: Pattern Recognition Agent
+        # Stage 3: Pattern Recognition Agent (46-52%)
         print("  🔍 Agent 3: Identifying patterns and trends...")
+        if progress_callback:
+            progress_callback(46.0, "Identifying patterns and trends...")
         pattern_analysis = await self._pattern_recognition_agent(
             processed_data,
             benchmark_analysis
         )
+        if progress_callback:
+            progress_callback(52.0, "Pattern recognition complete")
         
-        # Stage 4: Strategic Analysis Agent
+        # Stage 4: Strategic Analysis Agent (52-56%)
         print("  💡 Agent 4: Generating strategic insights...")
+        if progress_callback:
+            progress_callback(52.0, "Generating strategic insights...")
         strategic_analysis = await self._strategic_analysis_agent(
             processed_data,
             benchmark_analysis,
             pattern_analysis
         )
+        if progress_callback:
+            progress_callback(56.0, "Strategic analysis complete")
         
-        # Stage 5: Report Synthesis Agent
+        # Stage 5: Report Synthesis Agent (56-60%)
         print("  📝 Agent 5: Synthesizing final report...")
+        if progress_callback:
+            progress_callback(56.0, "Synthesizing final report...")
         final_report = await self._report_synthesis_agent(
             client_name,
             processed_data,
@@ -87,6 +112,8 @@ class AgenticAnalysisFramework:
             pattern_analysis,
             strategic_analysis
         )
+        if progress_callback:
+            progress_callback(60.0, "AI analysis complete")
         
         print("✅ Agentic analysis complete!")
         return final_report

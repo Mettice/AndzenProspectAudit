@@ -161,74 +161,46 @@ async def _process_audit_background(
             benchmarks = benchmark_service.get_all_benchmarks()
             _report_cache[report_id].update({"progress": 25.0, "step": "Benchmarks loaded"})
             
-            # Step 3: Run comprehensive agentic analysis (25-60%)
+            # Step 3: Run comprehensive agentic analysis (30-60%)
             print("🤖 Running comprehensive analysis...")
             _report_cache[report_id].update({"progress": 30.0, "step": "Running AI analysis..."})
             
-            # Simulate progress during AI analysis (continuous until done)
+            # Real progress tracking based on actual analysis stages
             analysis_done = asyncio.Event()
-            analysis_start = datetime.now()
             
-            async def simulate_ai_progress():
-                steps = [
-                    (35.0, "Analyzing revenue data..."),
-                    (40.0, "Analyzing campaign performance..."),
-                    (45.0, "Analyzing flow performance..."),
-                    (50.0, "Generating insights..."),
-                    (55.0, "Finalizing analysis..."),
-                ]
-                step_index = 0
-                last_update = datetime.now()
-                
-                while not analysis_done.is_set():
-                    elapsed = (datetime.now() - analysis_start).total_seconds()
-                    
-                    if step_index < len(steps):
-                        progress, step = steps[step_index]
-                        _report_cache[report_id].update({"progress": progress, "step": step})
-                        step_index += 1
-                        # Wait before next step or until analysis completes
-                        try:
-                            await asyncio.wait_for(analysis_done.wait(), timeout=12.0)
-                            break
-                        except asyncio.TimeoutError:
-                            continue  # Continue to next step
-                    else:
-                        # All steps done, but analysis still running - gradually increase progress
-                        # Calculate progress based on elapsed time (assume analysis takes 3-8 minutes)
-                        # Progress from 55% to 59% over time
-                        time_based_progress = min(59.0, 55.0 + (elapsed / 180.0) * 4.0)  # 3 minutes to go from 55% to 59%
-                        if (datetime.now() - last_update).total_seconds() >= 3.0:  # Update every 3 seconds
-                            _report_cache[report_id].update({
-                                "progress": time_based_progress, 
-                                "step": "Finalizing AI analysis..."
-                            })
-                            last_update = datetime.now()
-                        # Check every 3 seconds
-                        try:
-                            await asyncio.wait_for(analysis_done.wait(), timeout=3.0)
-                            break
-                        except asyncio.TimeoutError:
-                            continue
-            
-            # Start progress simulation as background task
-            progress_task = asyncio.create_task(simulate_ai_progress())
+            # Progress callback function that updates cache based on actual analysis stage
+            def update_analysis_progress(progress: float, step: str):
+                """Update progress based on actual analysis stage."""
+                _report_cache[report_id].update({
+                    "progress": progress,
+                    "step": step
+                })
+                print(f"✓ Progress updated to {progress:.1f}%: {step}")
             
             try:
-                # Run analysis
-                analysis_results = await analysis_framework.run_comprehensive_analysis(
-                    klaviyo_data=klaviyo_data,
-                    benchmarks=benchmarks,
-                    client_name=request_data["client_name"]
-                )
-            finally:
-                # Signal analysis is done and cancel progress task
-                analysis_done.set()
-                progress_task.cancel()
+                # Run analysis with timeout protection and real progress tracking
+                print(f"🤖 Starting AI analysis for report {report_id}...")
                 try:
-                    await progress_task
-                except asyncio.CancelledError:
-                    pass
+                    # Add a timeout to prevent hanging forever (30 minutes max)
+                    analysis_results = await asyncio.wait_for(
+                        analysis_framework.run_comprehensive_analysis(
+                            klaviyo_data=klaviyo_data,
+                            benchmarks=benchmarks,
+                            client_name=request_data["client_name"],
+                            progress_callback=update_analysis_progress
+                        ),
+                        timeout=1800.0  # 30 minutes max
+                    )
+                    print(f"✓ AI analysis completed for report {report_id}")
+                except asyncio.TimeoutError:
+                    print(f"❌ AI analysis timed out after 30 minutes for report {report_id}")
+                    _report_cache[report_id].update({
+                        "progress": 30.0,
+                        "step": "AI analysis timed out - please try again"
+                    })
+                    raise Exception("AI analysis timed out after 30 minutes. Please try again.")
+            finally:
+                analysis_done.set()
             
             _report_cache[report_id].update({"progress": 60.0, "step": "AI analysis complete"})
             
@@ -537,7 +509,7 @@ async def get_report_status(report_id: int):
                     # Stage-based time estimates (based on typical durations)
                     # Extraction: 0-20% (typically 2-5 min)
                     # Benchmarks: 20-25% (typically < 1 min)
-                    # AI Analysis: 25-60% (typically 10-20 min - the longest)
+                    # AI Analysis: 30-60% (typically 10-20 min - the longest)
                     # Formatting: 60-80% (typically 1-2 min)
                     # Report Gen: 80-100% (typically 2-5 min)
                     
@@ -550,10 +522,13 @@ async def get_report_status(report_id: int):
                     elif cached_progress < 25:
                         # Benchmarks phase: almost done, just add remaining
                         estimated_remaining = int(15 + 3)  # AI + rest
+                    elif cached_progress < 30:
+                        # Between benchmarks and AI analysis start
+                        estimated_remaining = int(15 + 3)  # AI + rest
                     elif cached_progress < 60:
                         # AI Analysis phase: the longest part
-                        # If we're at X% of AI phase (25-60%), estimate remaining
-                        ai_progress = (cached_progress - 25) / 35  # 0-1 progress through AI phase
+                        # If we're at X% of AI phase (30-60%), estimate remaining
+                        ai_progress = (cached_progress - 30) / 30  # 0-1 progress through AI phase (30% range)
                         ai_remaining = (1 - ai_progress) * 15  # typical 15 min for AI
                         remaining_phases = 3  # formatting + report gen
                         estimated_remaining = int(ai_remaining + remaining_phases)
