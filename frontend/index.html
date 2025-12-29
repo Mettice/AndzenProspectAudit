@@ -846,7 +846,15 @@
       }
 
       log('Submitting audit request...');
-      console.log('📤 Payload being sent:', JSON.stringify(payload, null, 2));
+      
+      // Safe logging - redact sensitive API keys
+      const safePayload = { ...payload };
+      if (safePayload.api_key) safePayload.api_key = '[REDACTED]';
+      if (safePayload.anthropic_api_key) safePayload.anthropic_api_key = '[REDACTED]';
+      if (safePayload.openai_api_key) safePayload.openai_api_key = '[REDACTED]';
+      if (safePayload.gemini_api_key) safePayload.gemini_api_key = '[REDACTED]';
+      
+      console.log('📤 Payload being sent (API keys redacted):', JSON.stringify(safePayload, null, 2));
       console.log('📤 date_range:', payload.date_range);
       console.log('📤 days:', payload.days);
       showProgress();
@@ -858,11 +866,18 @@
           headers['Authorization'] = `Bearer ${token}`;
         }
 
+        // Use AbortController for timeout (1 hour max)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60 * 60 * 1000); // 1 hour
+        
         const res = await fetch(`${API_BASE_URL}/api/audit/generate`, {
           method: 'POST',
           headers: headers,
           body: JSON.stringify(payload),
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
 
         const json = await res.json();
         if (!res.ok || !json.success) {
@@ -954,10 +969,22 @@
       } catch (err) {
         hideProgress();
         setStatus('Error', 'error');
-        log('Error: ' + err.message);
-        resultBox.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+        
+        // Better error messages for common issues
+        let errorMessage = err.message;
+        if (err.name === 'AbortError' || err.message.includes('timeout') || err.message.includes('aborted')) {
+          errorMessage = 'Request timed out. Audit generation can take up to 1 hour. Please try again or check Railway logs.';
+        } else if (err.message === 'Failed to fetch' || err.message.includes('NetworkError')) {
+          errorMessage = 'Network error. The request may have timed out (audit generation takes up to 1 hour). Check your connection and Railway deployment status.';
+        }
+        
+        log('Error: ' + errorMessage);
+        resultBox.innerHTML = `<p class="error">Error: ${errorMessage}</p>`;
       } finally {
         submitBtn.disabled = false;
+        if (typeof timeoutId !== 'undefined' && timeoutId !== null) {
+          clearTimeout(timeoutId);
+        }
       }
     });
   </script>
