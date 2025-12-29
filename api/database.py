@@ -2,7 +2,7 @@
 Database configuration and session management.
 Supports both SQLite (development) and PostgreSQL (Supabase/Production).
 """
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -66,11 +66,28 @@ def init_db():
     """
     Initialize database - create all tables.
     """
-    if not IS_POSTGRES:
-        # Only create data directory for SQLite
-        os.makedirs("data", exist_ok=True)
-    
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
-    print(f"✓ Database initialized ({'PostgreSQL' if IS_POSTGRES else 'SQLite'})")
+    try:
+        if not IS_POSTGRES:
+            # Only create data directory for SQLite
+            os.makedirs("data", exist_ok=True)
+        
+        # Test connection first
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        
+        # Create all tables
+        Base.metadata.create_all(bind=engine)
+        print(f"✓ Database initialized ({'PostgreSQL' if IS_POSTGRES else 'SQLite'})")
+    except Exception as e:
+        error_msg = str(e)
+        if "Network is unreachable" in error_msg or "connection" in error_msg.lower():
+            raise ConnectionError(
+                f"❌ Cannot connect to database. Please check:\n"
+                f"   1. DATABASE_URL is correct in Railway environment variables\n"
+                f"   2. Supabase project is active (not paused)\n"
+                f"   3. Network restrictions allow Railway IPs\n"
+                f"   4. Database password is correct\n"
+                f"   Error: {error_msg}"
+            )
+        raise
 

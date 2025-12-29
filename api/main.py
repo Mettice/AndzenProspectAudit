@@ -27,8 +27,13 @@ app = FastAPI(
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on application startup."""
-    init_db()
-    print("✓ Database initialized")
+    try:
+        init_db()
+        print("✓ Database initialized")
+    except Exception as e:
+        print(f"⚠️  Warning: Database initialization failed: {e}")
+        print("⚠️  Application will continue, but database features may not work.")
+        print("⚠️  Please check your DATABASE_URL and Supabase connection settings.")
 
 # CORS middleware - Configure for production
 cors_origins = [
@@ -41,7 +46,12 @@ cors_origins = [
 
 # Add Vercel/Custom origins from environment
 if os.getenv("CORS_ORIGINS"):
-    cors_origins.extend([origin.strip() for origin in os.getenv("CORS_ORIGINS").split(",")])
+    # Split by comma and clean up each origin
+    env_origins = [origin.strip() for origin in os.getenv("CORS_ORIGINS").split(",") if origin.strip()]
+    cors_origins.extend(env_origins)
+    print(f"✓ CORS origins from environment: {env_origins}")
+
+print(f"✓ CORS configured for origins: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,

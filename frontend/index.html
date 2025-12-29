@@ -401,7 +401,15 @@
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: params.toString()
+          body: params.toString(),
+          credentials: 'include' // Include cookies for CORS
+        }).catch(err => {
+          // Handle network errors (CORS, connection refused, etc.)
+          console.error('Fetch error:', err);
+          if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+            throw new Error('Cannot connect to server. Please check:\n1. Backend is running\n2. CORS is configured correctly\n3. Network connection');
+          }
+          throw err;
         });
 
         if (!res.ok) {
