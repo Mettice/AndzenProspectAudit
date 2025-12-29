@@ -1,12 +1,9 @@
 # Nixpacks configuration for Railway deployment
-# This ensures system dependencies are installed
-
-[phases.setup]
-nixPkgs = ["python310", "gobject-introspection", "cairo", "pango", "gdk-pixbuf", "libffi"]
+# Nixpacks auto-detects Python and installs requirements.txt automatically
+# We just need to add Playwright browser installation after dependencies are installed
 
 [phases.install]
 cmds = [
-  "pip install -r requirements.txt",
   "playwright install chromium",
   "playwright install-deps chromium"
 ]
