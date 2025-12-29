@@ -107,12 +107,21 @@ async def generate_audit(request: AuditRequest):
             client_code=getattr(request, 'client_code', None)
         )
         
-        print(f"✅ Audit report generated: {report.get('url')}")
+        print(f"✅ Audit report generated: {report.get('html_url')}")
+        print(f"   HTML content length: {len(report.get('html_content', ''))} characters")
         
         return AuditResponse(
             success=True,
-            report_url=report.get("url"),
-            report_data=report.get("data")
+            report_url=report.get("html_url"),  # Changed from "url" to "html_url"
+            html_content=report.get("html_content"),  # Include HTML content for inline display
+            report_data={
+                "filename": report.get("filename"),
+                "html_url": report.get("html_url"),
+                "pdf_url": report.get("pdf_url"),
+                "word_url": report.get("word_url"),
+                "pages": report.get("pages"),
+                "sections": report.get("sections", [])
+            }
         )
         
     except Exception as e:
