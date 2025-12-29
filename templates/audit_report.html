@@ -1,0 +1,279 @@
+{#
+  Main Audit Report Template
+  Orchestrates all section templates into a complete 18-page audit report
+  
+  Data required:
+  - cover_data: Cover page information
+  - kav_data: KAV analysis data
+  - list_growth_data: List growth metrics
+  - data_capture_data: Form performance data
+  - automation_overview_data: Flow performance overview
+  - welcome_flow_data: Welcome series deep dive
+  - abandoned_cart_data: Abandoned cart deep dive
+  - browse_abandonment_data: Browse abandonment analysis
+  - post_purchase_data: Post purchase analysis
+  - reviews_data: Reviews/Okendo data
+  - wishlist_data: Wishlist automation data
+  - campaign_performance_data: Campaign performance
+  - segmentation_data: Segmentation strategy
+#}
+
+{% extends "base.html" %}
+
+{% block title %}{{ cover_data.client_name }} - Customer Journey Marketing: Audit Insights{% endblock %}
+
+{% block inline_styles %}
+/* Page break utility */
+.page-break {
+    page-break-after: always;
+    break-after: page;
+    height: 0;
+    margin: 0;
+    padding: 0;
+}
+
+/* General section styles */
+.section {
+    background: #FFFFFF;
+    padding: 2.5rem 3rem; /* Increased padding to match sample audit spacing */
+    margin: 0;
+    min-height: calc(100vh - 4rem);
+}
+
+.section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem; /* Reduced from 3.75rem - was too large */
+    color: #000000; /* Match sample: pure black for titles */
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 4px solid #65DA4F;
+    padding-bottom: 0.5rem;
+    margin-bottom: 2rem;
+    line-height: 1.2;
+}
+
+/* Data table with green header */
+.data-table-green {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.data-table-green thead {
+    background: #65DA4F;
+}
+
+.data-table-green th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 0.833rem; /* Match sample: 0.833333em */
+    color: #000000; /* Match sample: pure black for table headers */
+    border: none;
+}
+
+.data-table-green td {
+    padding: 0.75rem 1rem;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.833rem; /* Match sample: 0.833333em for table cells */
+    color: #000000; /* Match sample: pure black */
+    border-bottom: 1px solid #E5E7EB;
+    line-height: 1.5;
+}
+
+.data-table-green tbody tr:hover {
+    background: #F9FAFB;
+}
+
+.no-data {
+    text-align: center;
+    color: #999;
+    font-style: italic;
+}
+
+/* Table title bar */
+.table-title-bar {
+    background: #65DA4F;
+    color: #262626;
+    padding: 0.75rem 1rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.05em;
+}
+
+/* Print optimization */
+@media print {
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+    
+    body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    .section {
+        page-break-inside: avoid;
+        padding: 15mm;
+        margin: 0;
+        background: #FFFFFF !important;
+    }
+    
+    .page-break {
+        page-break-after: always !important;
+        break-after: page !important;
+    }
+    
+    .cover-page {
+        min-height: 100vh;
+        page-break-after: always;
+    }
+    
+    /* Ensure colors print correctly */
+    .data-table-green thead {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        background: #65DA4F !important;
+    }
+    
+    .section-title {
+        color: #000000 !important;
+        border-bottom-color: #65DA4F !important;
+    }
+    
+    .subsection-title {
+        color: #000000 !important;
+    }
+    
+    .narrative-text,
+    .data-table-green td,
+    .data-table-green th {
+        color: #000000 !important;
+    }
+    
+    /* Prevent chart overflow and ensure proper printing */
+    canvas {
+        max-width: 100% !important;
+        height: auto !important;
+        page-break-inside: avoid;
+    }
+    
+    .kav-chart,
+    .chart-container {
+        page-break-inside: avoid;
+        margin: 1rem 0;
+    }
+    
+    .chart-legend {
+        page-break-inside: avoid;
+        color: #000000 !important;
+    }
+    
+    /* Ensure tables don't break awkwardly */
+    .data-table-green {
+        page-break-inside: avoid;
+    }
+    
+    .data-table-green tr {
+        page-break-inside: avoid;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Page 1: Cover -->
+{% include "sections/cover.html" with context %}
+
+<div class="page-break"></div>
+
+<!-- Pages 2-3: KAV Analysis -->
+{% if kav_data %}
+{% include "sections/kav_analysis.html" with context %}
+<div class="page-break"></div>
+{% endif %}
+
+<!-- Page 4: List Growth -->
+{% if list_growth_data %}
+{% include "sections/list_growth.html" with context %}
+<div class="page-break"></div>
+{% endif %}
+
+<!-- Pages 5-6: Data Capture -->
+{% if data_capture_data %}
+{% include "sections/data_capture.html" with context %}
+<div class="page-break"></div>
+{% endif %}
+
+<!-- Page 7: Automation Performance Overview -->
+{% if automation_overview_data %}
+{% if automation_overview_data.flow_lifecycle_analysis %}
+{% include "sections/automation_overview_enhanced.html" with context %}
+{% else %}
+{% include "sections/automation_overview.html" with context %}
+{% endif %}
+<div class="page-break"></div>
+{% endif %}
+
+<!-- Page 8: Welcome Series Deep Dive -->
+{% if welcome_flow_data %}
+{% include "sections/flow_welcome.html" with context %}
+<div class="page-break"></div>
+{% endif %}
+
+<!-- Pages 9-10: Abandoned Cart Deep Dive -->
+{% if abandoned_cart_data %}
+{% include "sections/flow_abandoned_cart.html" with context %}
+<div class="page-break"></div>
+{% endif %}
+
+<!-- Page 11: Browse Abandonment -->
+{% if browse_abandonment_data %}
+{% include "sections/flow_browse_abandonment.html" with context %}
+<div class="page-break"></div>
+{% endif %}
+
+<!-- Pages 12-13: Post Purchase -->
+{% if post_purchase_data %}
+{% include "sections/flow_post_purchase.html" with context %}
+<div class="page-break"></div>
+{% endif %}
+
+<!-- Page 14: Reviews/Okendo -->
+{% if reviews_data %}
+{% include "sections/advanced_reviews.html" with context %}
+<div class="page-break"></div>
+{% endif %}
+
+<!-- Pages 15-16: Wishlist Automation -->
+{% if wishlist_data %}
+{% include "sections/advanced_wishlist.html" with context %}
+<div class="page-break"></div>
+{% endif %}
+
+<!-- Page 17: Campaign Performance -->
+{% if campaign_performance_data %}
+{% include "sections/campaign_performance.html" with context %}
+<div class="page-break"></div>
+{% endif %}
+
+<!-- Page 18: Segmentation Strategy -->
+{% if segmentation_data %}
+{% include "sections/segmentation_strategy.html" with context %}
+<div class="page-break"></div>
+{% endif %}
+
+<!-- Page 19: Phase 3 Strategic Recommendations -->
+{% if strategic_recommendations_data %}
+{% include "sections/strategic_recommendations_enhanced.html" with context %}
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{# Chart initialization is handled by base.html - no need for duplicate #}
+{% endblock %}
+

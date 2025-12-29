@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Andzen Klaviyo Audit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/ui/style.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="brand">
+        <div class="logo-text">ANDZEN</div>
+        <div class="brand-text">
+          <p class="eyebrow">Internal Tool</p>
+          <h1>Prospect Audit Launcher</h1>
+          <p class="sub">Generate comprehensive Klaviyo audit reports with one click</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="user-info" id="user-info" style="display: none;">
+          <span class="user-name" id="user-name"></span>
+          <span class="user-role" id="user-role"></span>
+          <button class="btn-logout" id="btn-logout">Logout</button>
+        </div>
+        <div class="status" id="status-pill">Idle</div>
+      </div>
+    </header>
+
+    <!-- Login Form -->
+    <main id="login-section" class="login-container" style="display: none;">
+      <section class="card login-card">
+        <h2>Login</h2>
+        <form id="login-form">
+          <label>
+            Username
+            <input type="text" name="username" placeholder="Enter your username" required autocomplete="username" />
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" placeholder="Enter your password" required autocomplete="current-password" />
+          </label>
+          <button type="submit" id="login-btn">Login</button>
+          <div id="login-error" class="error" style="display: none; margin-top: 12px;"></div>
+        </form>
+      </section>
+    </main>
+
+    <!-- Main Application (shown after login) -->
+    <main id="app-section" class="grid" style="display: none;">
+      <section class="card form-card">
+        <h2>Audit Inputs</h2>
+        <form id="audit-form">
+          <label>
+            Klaviyo API Key
+            <div class="input-with-test">
+              <input type="password" name="api_key" id="klaviyo-api-key" placeholder="Klaviyo private API key" required />
+              <button type="button" class="btn-test-api" onclick="testKlaviyoAPI()" title="Test Klaviyo API connection">
+                <span class="test-icon">🔌</span>
+                <span class="test-text">Test</span>
+              </button>
+              <span class="api-status" id="klaviyo-api-status"></span>
+            </div>
+          </label>
+          
+          <div class="section-divider">
+            <h3>LLM Configuration (Optional)</h3>
+            <p class="hint-small">Leave empty to use environment variables</p>
+          </div>
+          
+          <label>
+            LLM Provider
+            <select name="llm_provider" id="llm-provider-select">
+              <option value="claude">Claude (Anthropic)</option>
+              <option value="openai">OpenAI</option>
+              <option value="gemini">Gemini (Google)</option>
+            </select>
+          </label>
+          
+          <label id="claude-api-key-label" style="display: none;">
+            Claude API Key
+            <div class="input-with-test">
+              <input type="password" name="anthropic_api_key" id="claude-api-key" placeholder="Anthropic API key" />
+              <button type="button" class="btn-test-api" onclick="testLLMAPI('claude')" title="Test Claude API connection">
+                <span class="test-icon">🔌</span>
+                <span class="test-text">Test</span>
+              </button>
+              <span class="api-status" id="claude-api-status"></span>
+            </div>
+          </label>
+          <label id="claude-model-label" style="display: none;">
+            Claude Model
+            <select name="claude_model">
+              <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (Recommended)</option>
+              <option value="claude-opus-4-5">Claude Opus 4.5 (Most Capable)</option>
+              <option value="claude-haiku-4-5">Claude Haiku 4.5 (Fastest)</option>
+            </select>
+          </label>
+          
+          <label id="openai-api-key-label" style="display: none;">
+            OpenAI API Key
+            <div class="input-with-test">
+              <input type="password" name="openai_api_key" id="openai-api-key" placeholder="OpenAI API key" />
+              <button type="button" class="btn-test-api" onclick="testLLMAPI('openai')" title="Test OpenAI API connection">
+                <span class="test-icon">🔌</span>
+                <span class="test-text">Test</span>
+              </button>
+              <span class="api-status" id="openai-api-status"></span>
+            </div>
+          </label>
+          <label id="openai-model-label" style="display: none;">
+            OpenAI Model
+            <select name="openai_model">
+              <option value="gpt-5.2">GPT-5.2 (Best for Coding & Agentic Tasks) - Recommended</option>
+              <option value="gpt-5.2-pro">GPT-5.2 Pro (Smarter & More Precise)</option>
+              <option value="gpt-5">GPT-5 (Intelligent Reasoning Model)</option>
+              <option value="gpt-5-mini">GPT-5 Mini (Faster, Cost-Efficient)</option>
+              <option value="gpt-5-nano">GPT-5 Nano (Fastest, Most Cost-Efficient)</option>
+              <option value="gpt-4.1">GPT-4.1 (Smartest Non-Reasoning Model)</option>
+            </select>
+          </label>
+          
+          <label id="gemini-api-key-label" style="display: none;">
+            Gemini API Key
+            <div class="input-with-test">
+              <input type="password" name="gemini_api_key" id="gemini-api-key" placeholder="Google AI API key" />
+              <button type="button" class="btn-test-api" onclick="testLLMAPI('gemini')" title="Test Gemini API connection">
+                <span class="test-icon">🔌</span>
+                <span class="test-text">Test</span>
+              </button>
+              <span class="api-status" id="gemini-api-status"></span>
+            </div>
+          </label>
+          <label id="gemini-model-label" style="display: none;">
+            Gemini Model
+            <select name="gemini_model">
+              <option value="gemini-3-pro">Gemini 3 Pro (Most Intelligent, Multimodal) - Recommended</option>
+              <option value="gemini-3-flash">Gemini 3 Flash (Most Balanced, Designed to Scale)</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro (Advanced Thinking Model)</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Best Price-Performance)</option>
+              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Ultra Fast, Cost-Efficient)</option>
+            </select>
+          </label>
+          
+          <label>
+            Client Name
+            <input type="text" name="client_name" placeholder="Acme Co." required />
+          </label>
+          <label>
+            Client Type
+            <select name="client_type" id="client-type-select">
+              <option value="prospect">Prospect</option>
+              <option value="existing">Existing Client</option>
+            </select>
+          </label>
+          <label>
+            Industry
+            <select name="industry" id="industry-select">
+              <option value="apparel_accessories">Apparel & Accessories</option>
+              <option value="fashion_accessories">Fashion & Accessories</option>
+              <option value="toys_collectibles">Toys & Collectibles</option>
+              <option value="ecommerce_collections">E-commerce Collections</option>
+              <option value="beauty_cosmetics">Beauty & Cosmetics</option>
+              <option value="electronics">Electronics</option>
+              <option value="home_garden">Home & Garden</option>
+              <option value="food_beverage">Food & Beverage</option>
+              <option value="health_fitness">Health & Fitness</option>
+              <option value="retail">General Retail</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>
+            Analysis Period
+            <select name="period" id="period-select">
+              <option value="90">3 Months (90 days)</option>
+              <option value="180">6 Months (180 days)</option>
+              <option value="365">1 Year (365 days)</option>
+              <option value="ytd" id="ytd-option">Year to Date (YTD)</option>
+              <option value="custom">Custom Date Range</option>
+            </select>
+          </label>
+          <div class="two-col" id="custom-dates" style="display: none;">
+            <label>
+              Start Date
+              <input type="date" name="start_date" />
+            </label>
+            <label>
+              End Date
+              <input type="date" name="end_date" />
+            </label>
+          </div>
+          <label>
+            Auditor Name
+            <input type="text" name="auditor_name" placeholder="Andzen Team" />
+          </label>
+          <button type="submit" id="submit-btn">Generate Audit</button>
+        </form>
+        <p class="hint">Tip: Select analysis period. System will automatically compare with previous period.</p>
+      </section>
+
+      <section class="card results-card">
+        <h2>Result</h2>
+        <div id="result-box" class="result-box">
+          <p class="muted">No audit run yet.</p>
+        </div>
+        <div id="progress-container" class="progress-container" style="display: none;">
+          <div class="progress-header">
+            <div class="progress-info">
+              <span class="progress-label">Processing Audit Report</span>
+              <span class="progress-time" id="progress-time">Estimated time: Less than 30 minutes</span>
+            </div>
+          </div>
+          <div class="progress-bar-wrapper">
+            <div class="progress-bar" id="progress-bar">
+              <div class="progress-fill" id="progress-fill"></div>
+              <div class="progress-shine"></div>
+            </div>
+            <div class="progress-percentage" id="progress-percentage">0%</div>
+          </div>
+          <div class="progress-stages" id="progress-stages">
+            <div class="stage active" data-stage="0">
+              <div class="stage-icon">📊</div>
+              <div class="stage-label">Extracting Data</div>
+            </div>
+            <div class="stage" data-stage="1">
+              <div class="stage-icon">🤖</div>
+              <div class="stage-label">AI Analysis</div>
+            </div>
+            <div class="stage" data-stage="2">
+              <div class="stage-icon">📝</div>
+              <div class="stage-label">Generating Report</div>
+            </div>
+            <div class="stage" data-stage="3">
+              <div class="stage-icon">✅</div>
+              <div class="stage-label">Finalizing</div>
+            </div>
+          </div>
+        </div>
+        <div id="log-box" class="log-box" aria-live="polite"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // API Configuration - supports both local development and production
+    const API_BASE_URL = (() => {
+      // Check for environment variable (Vercel)
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Use the same port as the current page
+        const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+        // If port is 8001, use 8001, otherwise default to 8000
+        const apiPort = port === '8001' ? '8001' : '8000';
+        return `http://${window.location.hostname}:${apiPort}`;
+      }
+      // For production, use Railway URL from environment or default
+      return window.API_URL || 'https://your-app.railway.app';
+    })();
+    
+    console.log('API Base URL:', API_BASE_URL);
+    console.log('Current location:', window.location.href);
+
+    // Authentication State Management
+    let authToken = null;
+    let currentUser = null;
+
+    // Get token from localStorage
+    function getAuthToken() {
+      return localStorage.getItem('auth_token');
+    }
+
+    // Save token to localStorage
+    function setAuthToken(token) {
+      localStorage.setItem('auth_token', token);
+      authToken = token;
+    }
+
+    // Remove token from localStorage
+    function clearAuthToken() {
+      localStorage.removeItem('auth_token');
+      authToken = null;
+      currentUser = null;
+    }
+
+    // Get current user info
+    async function getCurrentUser() {
+      const token = getAuthToken();
+      if (!token) return null;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (res.ok) {
+          const user = await res.json();
+          currentUser = user;
+          return user;
+        } else {
+          clearAuthToken();
+          return null;
+        }
+      } catch (err) {
+        console.error('Error fetching user:', err);
+        clearAuthToken();
+        return null;
+      }
+    }
+
+    // Check authentication status on page load
+    async function checkAuth() {
+      const token = getAuthToken();
+      if (token) {
+        authToken = token;
+        const user = await getCurrentUser();
+        if (user) {
+          showApp();
+          updateUserInfo(user);
+          return true;
+        }
+      }
+      showLogin();
+      return false;
+    }
+
+    // Show login form
+    function showLogin() {
+      document.getElementById('login-section').style.display = 'block';
+      document.getElementById('app-section').style.display = 'none';
+      document.getElementById('user-info').style.display = 'none';
+    }
+
+    // Show main application
+    function showApp() {
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('app-section').style.display = 'grid';
+      document.getElementById('user-info').style.display = 'flex';
+    }
+
+    // Update user info in header
+    function updateUserInfo(user) {
+      document.getElementById('user-name').textContent = user.username;
+      document.getElementById('user-role').textContent = user.role.toUpperCase();
+      currentUser = user;
+    }
+
+    // Login form handler
+    const loginForm = document.getElementById('login-form');
+    const loginBtn = document.getElementById('login-btn');
+    const loginError = document.getElementById('login-error');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginBtn.disabled = true;
+      loginError.style.display = 'none';
+
+      const formData = new FormData(loginForm);
+      const username = formData.get('username');
+      const password = formData.get('password');
+
+      try {
+        // OAuth2PasswordRequestForm expects form-urlencoded data
+        const params = new URLSearchParams();
+        params.append('username', username);
+        params.append('password', password);
+
+        const loginUrl = `${API_BASE_URL}/api/auth/login`;
+        console.log('Login URL:', loginUrl);
+        
+        const res = await fetch(loginUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: params.toString()
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ detail: `HTTP ${res.status}: ${res.statusText}` }));
+          throw new Error(errorData.detail || `Login failed: ${res.status} ${res.statusText}`);
+        }
+
+        const data = await res.json();
+
+        if (res.ok && data.access_token) {
+          setAuthToken(data.access_token);
+          updateUserInfo(data.user);
+          showApp();
+          loginForm.reset();
+        } else {
+          loginError.textContent = data.detail || 'Login failed. Please check your credentials.';
+          loginError.style.display = 'block';
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        loginError.textContent = err.message || 'Network error. Please try again.';
+        loginError.style.display = 'block';
+      } finally {
+        loginBtn.disabled = false;
+      }
+    });
+
+    // Logout handler
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      clearAuthToken();
+      showLogin();
+    });
+
+    // Initialize: Check auth on page load
+    checkAuth();
+    
+    const form = document.getElementById('audit-form');
+    const resultBox = document.getElementById('result-box');
+    const logBox = document.getElementById('log-box');
+    const statusPill = document.getElementById('status-pill');
+    const submitBtn = document.getElementById('submit-btn');
+    const periodSelect = document.getElementById('period-select');
+    const customDates = document.getElementById('custom-dates');
+
+    // Calculate and update YTD option label with current days
+    function updateYTDOption() {
+      const today = new Date();
+      const yearStart = new Date(today.getFullYear(), 0, 1); // January 1st
+      const daysSinceYearStart = Math.floor((today - yearStart) / (1000 * 60 * 60 * 24));
+      const ytdOption = document.getElementById('ytd-option');
+      if (ytdOption) {
+        ytdOption.textContent = `Year to Date (YTD) - ${daysSinceYearStart} days`;
+      }
+    }
+    
+    // Update YTD option on page load
+    updateYTDOption();
+    
+    // Show/hide custom date inputs based on period selection
+    periodSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'custom') {
+        customDates.style.display = 'grid';
+      } else {
+        customDates.style.display = 'none';
+      }
+    });
+    
+    // Show/hide LLM API key fields based on provider selection
+    const llmProviderSelect = document.getElementById('llm-provider-select');
+    const claudeApiKeyLabel = document.getElementById('claude-api-key-label');
+    const claudeModelLabel = document.getElementById('claude-model-label');
+    const openaiApiKeyLabel = document.getElementById('openai-api-key-label');
+    const openaiModelLabel = document.getElementById('openai-model-label');
+    const geminiApiKeyLabel = document.getElementById('gemini-api-key-label');
+    const geminiModelLabel = document.getElementById('gemini-model-label');
+    
+    function updateLLMFields() {
+      const provider = llmProviderSelect.value;
+      
+      // Hide all fields first
+      claudeApiKeyLabel.style.display = 'none';
+      claudeModelLabel.style.display = 'none';
+      openaiApiKeyLabel.style.display = 'none';
+      openaiModelLabel.style.display = 'none';
+      geminiApiKeyLabel.style.display = 'none';
+      geminiModelLabel.style.display = 'none';
+      
+      // Show relevant fields based on provider
+      if (provider === 'claude') {
+        claudeApiKeyLabel.style.display = 'block';
+        claudeModelLabel.style.display = 'block';
+      } else if (provider === 'openai') {
+        openaiApiKeyLabel.style.display = 'block';
+        openaiModelLabel.style.display = 'block';
+      } else if (provider === 'gemini') {
+        geminiApiKeyLabel.style.display = 'block';
+        geminiModelLabel.style.display = 'block';
+      }
+    }
+    
+    llmProviderSelect.addEventListener('change', updateLLMFields);
+    updateLLMFields(); // Initialize on page load
+    
+    // Download file helper function
+    function downloadFile(url, filename) {
+      if (!url) {
+        log(`Download URL not available for ${filename}`);
+        return;
+      }
+      
+      // Get auth token for authenticated requests
+      const token = getAuthToken();
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      // For HTTP URLs, use fetch and download
+      fetch(url, { headers })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(downloadUrl);
+          log(`Downloaded ${filename}`);
+        })
+        .catch(err => {
+          log(`Error downloading ${filename}: ${err.message}`);
+          // Fallback: try opening in new window
+          window.open(url, '_blank');
+        });
+    }
+
+    function setStatus(text, tone = 'idle') {
+      statusPill.textContent = text;
+      statusPill.dataset.tone = tone;
+    }
+
+    function log(message) {
+      const entry = document.createElement('div');
+      entry.textContent = message;
+      logBox.prepend(entry);
+    }
+
+    // API Testing Functions
+    async function testKlaviyoAPI() {
+      const apiKeyInput = document.getElementById('klaviyo-api-key');
+      const statusEl = document.getElementById('klaviyo-api-status');
+      const testBtn = apiKeyInput.nextElementSibling;
+      
+      const apiKey = apiKeyInput.value.trim();
+      if (!apiKey) {
+        showAPIStatus(statusEl, 'error', 'Please enter an API key');
+        return;
+      }
+      
+      // Disable button and show loading
+      testBtn.disabled = true;
+      showAPIStatus(statusEl, 'testing', 'Testing...');
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/audit/test-connection?api_key=${encodeURIComponent(apiKey)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          showAPIStatus(statusEl, 'success', '✓ Connected');
+          log('✓ Klaviyo API connection successful');
+        } else {
+          showAPIStatus(statusEl, 'error', '✗ Failed');
+          log(`✗ Klaviyo API connection failed: ${data.message || 'Unknown error'}`);
+        }
+      } catch (err) {
+        showAPIStatus(statusEl, 'error', '✗ Error');
+        log(`✗ Error testing Klaviyo API: ${err.message}`);
+      } finally {
+        testBtn.disabled = false;
+      }
+    }
+
+    async function testLLMAPI(provider) {
+      const apiKeyInput = document.getElementById(`${provider}-api-key`);
+      const statusEl = document.getElementById(`${provider}-api-status`);
+      const testBtn = apiKeyInput.nextElementSibling;
+      const modelSelect = document.querySelector(`select[name="${provider}_model"]`);
+      
+      const apiKey = apiKeyInput.value.trim();
+      if (!apiKey) {
+        showAPIStatus(statusEl, 'error', 'Please enter an API key');
+        return;
+      }
+      
+      // Disable button and show loading
+      testBtn.disabled = true;
+      showAPIStatus(statusEl, 'testing', 'Testing...');
+      
+      try {
+        const model = modelSelect ? modelSelect.value : null;
+        const params = new URLSearchParams({
+          provider: provider,
+          api_key: apiKey
+        });
+        if (model) {
+          params.append('model', model);
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/api/audit/test-llm?${params.toString()}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          showAPIStatus(statusEl, 'success', '✓ Connected');
+          log(`✓ ${provider.capitalize()} API connection successful`);
+        } else {
+          showAPIStatus(statusEl, 'error', '✗ Failed');
+          log(`✗ ${provider.capitalize()} API connection failed: ${data.message || data.error || 'Unknown error'}`);
+        }
+      } catch (err) {
+        showAPIStatus(statusEl, 'error', '✗ Error');
+        log(`✗ Error testing ${provider.capitalize()} API: ${err.message}`);
+      } finally {
+        testBtn.disabled = false;
+      }
+    }
+
+    function showAPIStatus(statusEl, type, message) {
+      statusEl.textContent = message;
+      statusEl.className = `api-status api-status-${type}`;
+      
+      // Auto-hide success messages after 5 seconds
+      if (type === 'success') {
+        setTimeout(() => {
+          if (statusEl.textContent === message) {
+            statusEl.textContent = '';
+            statusEl.className = 'api-status';
+          }
+        }, 5000);
+      }
+    }
+
+    // Helper to capitalize first letter
+    String.prototype.capitalize = function() {
+      return this.charAt(0).toUpperCase() + this.slice(1);
+    };
+
+    // Progress bar management
+    let progressInterval = null;
+    let startTime = null;
+    const ESTIMATED_TIME_MS = 25 * 60 * 1000; // 25 minutes in milliseconds
+
+    function showProgress() {
+      const progressContainer = document.getElementById('progress-container');
+      const resultBox = document.getElementById('result-box');
+      
+      resultBox.style.display = 'none';
+      progressContainer.style.display = 'block';
+      
+      startTime = Date.now();
+      let progress = 0;
+      let currentStage = 0;
+      
+      // Reset progress
+      document.getElementById('progress-fill').style.width = '0%';
+      document.getElementById('progress-percentage').textContent = '0%';
+      document.querySelectorAll('.stage').forEach((stage, idx) => {
+        stage.classList.remove('active', 'completed');
+        if (idx === 0) stage.classList.add('active');
+      });
+      
+      // Animate progress bar
+      progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const estimatedProgress = Math.min(95, (elapsed / ESTIMATED_TIME_MS) * 100);
+        
+        // Smooth progress animation
+        progress = Math.min(progress + 0.3, estimatedProgress);
+        
+        const progressFill = document.getElementById('progress-fill');
+        const progressPercentage = document.getElementById('progress-percentage');
+        
+        progressFill.style.width = `${progress}%`;
+        progressPercentage.textContent = `${Math.floor(progress)}%`;
+        
+        // Update stages based on progress
+        const newStage = Math.floor((progress / 100) * 4);
+        if (newStage > currentStage && newStage < 4) {
+          document.querySelectorAll('.stage').forEach((stage, idx) => {
+            if (idx < newStage) {
+              stage.classList.add('completed');
+              stage.classList.remove('active');
+            } else if (idx === newStage) {
+              stage.classList.add('active');
+            } else {
+              stage.classList.remove('active', 'completed');
+            }
+          });
+          currentStage = newStage;
+        }
+        
+        // Update estimated time
+        const remaining = Math.max(0, ESTIMATED_TIME_MS - elapsed);
+        const remainingMinutes = Math.ceil(remaining / 60000);
+        const timeElement = document.getElementById('progress-time');
+        if (remainingMinutes > 0) {
+          timeElement.textContent = `Estimated time remaining: ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+        } else {
+          timeElement.textContent = 'Almost done...';
+        }
+      }, 100); // Update every 100ms
+    }
+
+    function hideProgress() {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+      
+      const progressContainer = document.getElementById('progress-container');
+      const resultBox = document.getElementById('result-box');
+      
+      progressContainer.style.display = 'none';
+      resultBox.style.display = 'block';
+      
+      // Complete the progress bar
+      document.getElementById('progress-fill').style.width = '100%';
+      document.getElementById('progress-percentage').textContent = '100%';
+      document.querySelectorAll('.stage').forEach(stage => {
+        stage.classList.add('completed');
+        stage.classList.remove('active');
+      });
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setStatus('Running...', 'running');
+      submitBtn.disabled = true;
+
+      const data = new FormData(form);
+      const period = data.get('period');
+      
+      const payload = {
+        api_key: data.get('api_key'),
+        client_name: data.get('client_name'),
+        client_type: data.get('client_type') || 'prospect',
+        industry: data.get('industry') || 'apparel_accessories',
+        auditor_name: data.get('auditor_name') || undefined,
+        days: undefined,
+        date_range: undefined,
+        // LLM configuration
+        llm_provider: data.get('llm_provider') || undefined,
+        anthropic_api_key: data.get('anthropic_api_key') || undefined,
+        claude_model: data.get('claude_model') || undefined,
+        openai_api_key: data.get('openai_api_key') || undefined,
+        openai_model: data.get('openai_model') || undefined,
+        gemini_api_key: data.get('gemini_api_key') || undefined,
+        gemini_model: data.get('gemini_model') || undefined,
+      };
+
+      // Handle period selection
+      if (period === 'custom') {
+        const start = data.get('start_date');
+        const end = data.get('end_date');
+        if (start && end) {
+          // Set start date to beginning of day (UTC)
+          const startDate = new Date(start);
+          startDate.setUTCHours(0, 0, 0, 0);
+          
+          // Set end date to end of day (UTC)
+          const endDate = new Date(end);
+          endDate.setUTCHours(23, 59, 59, 999);
+          
+          payload.date_range = {
+            start: startDate.toISOString(),
+            end: endDate.toISOString(),
+          };
+          
+          // Calculate days for logging
+          const days = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
+          log(`Custom date range: ${start} to ${end} (${days} days)`);
+        } else {
+          throw new Error('Please select both start and end dates for custom range');
+        }
+      } else if (period === 'ytd') {
+        // Calculate Year to Date: from January 1st of current year to today
+        const today = new Date();
+        const yearStart = new Date(today.getFullYear(), 0, 1); // January 1st at 00:00:00
+        
+        // Set time to start of day for year start (UTC)
+        yearStart.setUTCHours(0, 0, 0, 0);
+        
+        // Set time to end of day for today (UTC)
+        const todayEnd = new Date(today);
+        todayEnd.setUTCHours(23, 59, 59, 999);
+        
+        // Send actual date range for YTD (ISO format with Z suffix)
+        payload.date_range = {
+          start: yearStart.toISOString(),
+          end: todayEnd.toISOString()
+        };
+        
+        // Also calculate days for display/other purposes
+        const daysSinceYearStart = Math.floor((today - yearStart) / (1000 * 60 * 60 * 24));
+        payload.days = daysSinceYearStart;
+        
+        log(`Year to Date: ${yearStart.toISOString().split('T')[0]} to ${todayEnd.toISOString().split('T')[0]} (${daysSinceYearStart} days)`);
+      } else {
+        // Use days parameter for standard periods
+        payload.days = parseInt(period);
+      }
+
+      log('Submitting audit request...');
+      showProgress();
+
+      try {
+        const token = getAuthToken();
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const res = await fetch(`${API_BASE_URL}/api/audit/generate`, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(payload),
+        });
+
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          throw new Error(json.detail || 'Audit failed');
+        }
+
+        hideProgress();
+        setStatus('Completed', 'success');
+        log('Audit completed successfully.');
+
+        const htmlContent = json.html_content;
+        const reportFilename = json.report_data?.filename || 'report.html';
+        
+        // Helper function to create full download URL from relative path
+        function getFullDownloadUrl(relativePath) {
+          if (!relativePath) return null;
+          // If already a full HTTP URL, use it
+          if (relativePath.startsWith('http')) {
+            return relativePath;
+          }
+          // If it's a relative path (starts with /), prepend API_BASE_URL
+          if (relativePath.startsWith('/')) {
+            return `${API_BASE_URL}${relativePath}`;
+          }
+          // Otherwise, assume it's a filename and create the download URL
+          return `${API_BASE_URL}/api/audit/download-file?path=${encodeURIComponent(relativePath)}`;
+        }
+        
+        // Build download buttons using URLs from backend
+        let downloadButtons = '<div class="download-buttons">';
+        
+        // HTML download
+        const htmlDownloadUrl = getFullDownloadUrl(json.report_url);
+        if (htmlDownloadUrl) {
+          downloadButtons += `<button class="btn-download" onclick="downloadFile('${htmlDownloadUrl}', '${reportFilename}')">Download HTML</button>`;
+        }
+        
+        // PDF download
+        const pdfDownloadUrl = getFullDownloadUrl(json.report_data?.pdf_url);
+        if (pdfDownloadUrl) {
+          const pdfFilename = reportFilename.replace('.html', '.pdf');
+          downloadButtons += `<button class="btn-download" onclick="downloadFile('${pdfDownloadUrl}', '${pdfFilename}')">Download PDF</button>`;
+        } else {
+          downloadButtons += `<button class="btn-download btn-disabled" disabled title="PDF generation failed or unavailable">Download PDF (Unavailable)</button>`;
+        }
+        
+        // Word download
+        const wordDownloadUrl = getFullDownloadUrl(json.report_data?.word_url);
+        if (wordDownloadUrl) {
+          const wordFilename = reportFilename.replace('.html', '.docx');
+          downloadButtons += `<button class="btn-download" onclick="downloadFile('${wordDownloadUrl}', '${wordFilename}')">Download Word</button>`;
+        } else {
+          downloadButtons += `<button class="btn-download btn-disabled" disabled title="Word generation failed or unavailable">Download Word (Unavailable)</button>`;
+        }
+        
+        downloadButtons += '</div>';
+        
+        // Display report inline if HTML content is available
+        if (htmlContent) {
+          // Properly escape HTML for iframe srcdoc attribute
+          const escapedHtml = htmlContent
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+          
+          resultBox.innerHTML = `
+            <div class="success-box">
+              <p class="label">Report Generated Successfully</p>
+              <p class="value">${json.report_data?.filename || 'Report'}</p>
+              ${downloadButtons}
+            </div>
+            <div class="report-preview" id="report-preview">
+              <iframe srcdoc="${escapedHtml}" style="width: 100%; height: 600px; border: 1px solid var(--brand-border); border-radius: 8px; margin-top: 16px;"></iframe>
+            </div>
+          `;
+        } else {
+          // Fallback to file link if HTML content not available
+          const reportUrl = json.report_url || json.report_data?.url || 'Report generated';
+          resultBox.innerHTML = `
+            <div class="success-box">
+              <p class="label">Report ready</p>
+              <p class="value">${reportUrl}</p>
+              ${downloadButtons}
+            </div>
+          `;
+        }
+      } catch (err) {
+        hideProgress();
+        setStatus('Error', 'error');
+        log('Error: ' + err.message);
+        resultBox.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+

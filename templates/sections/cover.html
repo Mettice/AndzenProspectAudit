@@ -1,0 +1,190 @@
+{#
+  Cover Page Section - Page 1
+  
+  Data required:
+  - client_name: str
+  - client_code: str (optional)
+  - audit_date: str
+  - auditor_name: str
+  - client_logo_url: str (optional)
+#}
+
+<section class="cover-page page" data-page="1">
+    <div class="cover-content">
+        <!-- Andzen Brush Stroke -->
+        <div class="cover-brush-stroke">
+            <svg viewBox="0 0 200 30" class="brush-stroke-svg">
+                <path d="M10,15 Q50,5 100,15 T190,15" stroke="#65DA4F" stroke-width="8" fill="none" stroke-linecap="round"/>
+                <circle cx="185" cy="10" r="3" fill="#65DA4F"/>
+            </svg>
+        </div>
+        
+        <!-- Client Name/Logo -->
+        <div class="cover-client">
+            {% if client_logo_url %}
+                {# Support both embedded images and URLs #}
+                {% if client_logo_url.startswith('data:image/') %}
+                    <img src="{{ client_logo_url }}" alt="{{ client_name }}" class="client-logo">
+                {% else %}
+                    {{ client_logo_url | embed_image(client_name, 'client-logo') }}
+                {% endif %}
+            {% elif client_logo_path %}
+                {# Support file path with automatic embedding #}
+                {{ client_logo_path | embed_image(client_name, 'client-logo') }}
+            {% else %}
+                <h1 class="client-name">{{ client_name|upper }}</h1>
+            {% endif %}
+        </div>
+        
+        <!-- Report Title -->
+        <div class="cover-title">
+            <h2>Customer Journey Marketing:</h2>
+            <h3 class="cover-subtitle"><em>Audit Insights</em></h3>
+        </div>
+        
+        <!-- Client Details Table -->
+        <table class="cover-details-table">
+            <tbody>
+                <tr>
+                    <td class="detail-label">Client Name</td>
+                    <td class="detail-value">{{ client_name }}</td>
+                </tr>
+                {% if client_code %}
+                <tr>
+                    <td class="detail-label">Andzen Client Code</td>
+                    <td class="detail-value">{{ client_code }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td class="detail-label">Audit Date</td>
+                    <td class="detail-value">{{ audit_date }}</td>
+                </tr>
+                <tr>
+                    <td class="detail-label">Audit by</td>
+                    <td class="detail-value">{{ auditor_name }}</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Andzen Footer Logo -->
+        <div class="cover-footer">
+            <svg viewBox="0 0 30 20" class="andzen-logo-small">
+                <path d="M5,18 L10,5 L15,18 M7,14 L13,14" stroke="#65DA4F" stroke-width="2" fill="none"/>
+            </svg>
+        </div>
+    </div>
+</section>
+
+<style>
+.cover-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to bottom, #000000 0%, #000000 85%, #001a00 100%);
+    color: #FFFFFF;
+    text-align: center;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+}
+
+.cover-page::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    background: radial-gradient(ellipse at bottom, rgba(101, 218, 79, 0.2) 0%, transparent 70%);
+    filter: blur(40px);
+}
+
+.cover-content {
+    max-width: 600px;
+    padding: 2rem;
+    position: relative;
+    z-index: 1;
+}
+
+.cover-brush-stroke {
+    margin-bottom: 2rem;
+}
+
+.brush-stroke-svg {
+    width: 200px;
+    height: 30px;
+}
+
+.cover-client {
+    margin-bottom: 3rem;
+}
+
+.client-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 4rem;
+    letter-spacing: 0.15em;
+    margin: 0;
+    color: #FFFFFF;
+}
+
+.client-logo {
+    max-width: 300px;
+    max-height: 100px;
+}
+
+.cover-title h2 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 2rem;
+    font-weight: 400;
+    margin: 0 0 0.5rem 0;
+    color: #FFFFFF;
+}
+
+.cover-subtitle {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 400;
+    font-style: italic;
+    margin: 0;
+    color: #FFFFFF;
+}
+
+.cover-details-table {
+    width: 100%;
+    max-width: 400px;
+    margin: 3rem auto;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.cover-details-table td {
+    padding: 0.75rem 1rem;
+    border: 1px solid #B7B9BC;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+}
+
+.detail-label {
+    background: #F5F5F5;
+    color: #262626;
+    font-weight: 600;
+    width: 50%;
+}
+
+.detail-value {
+    background: #FFFFFF;
+    color: #262626;
+}
+
+.cover-footer {
+    position: absolute;
+    bottom: 2rem;
+    left: 2rem;
+}
+
+.andzen-logo-small {
+    width: 30px;
+    height: 20px;
+}
+</style>

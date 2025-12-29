@@ -1,0 +1,268 @@
+{#
+  Browse Abandonment Section - Page 11
+  
+  Data required:
+  - browse_abandonment_data: dict with flows, benchmark, recommendations
+#}
+
+<section class="section page" data-page="11">
+    <h1 class="section-title">BROWSE ABANDONMENT</h1>
+    
+    <div class="flow-intro">
+        {% if browse_abandonment_data.narrative %}
+            {{ browse_abandonment_data.narrative|safe }}
+        {% else %}
+            <p>
+                <em>Browse abandonment captures customers who have shown interest by viewing products but left without adding to cart. LLM analysis unavailable.</em>
+            </p>
+        {% endif %}
+    </div>
+    
+    <!-- Browse Abandonment Flow Performance Table -->
+    <div class="flow-performance-section">
+        <h4 class="subsection-title">Browse Abandonment Flow Performance in the last 90 Days</h4>
+        
+        <table class="data-table-green">
+            <thead>
+                <tr>
+                    <th>Flow Name</th>
+                    <th>Average Open Rate</th>
+                    <th>Average Click Rate</th>
+                    <th>Average Placed Order Rate</th>
+                    <th>Revenue Per Recipient</th>
+                    <th>Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for flow in browse_abandonment_data.flows %}
+                <tr>
+                    <td>{{ flow.name }}</td>
+                    <td>{{ (flow.open_rate|default(0))|round(2) }}%</td>
+                    <td>{{ (flow.click_rate|default(0))|round(2) }}%</td>
+                    <td>{{ (flow.placed_order_rate|default(0))|round(2) }}%</td>
+                    <td>${{ "{:,.2f}".format(flow.revenue_per_recipient|default(0)) }}</td>
+                    <td>${{ "{:,.2f}".format(flow.revenue|default(0)) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="no-data">No browse abandonment flow found - Consider implementing this flow</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Benchmark Comparison -->
+    <div class="benchmark-section">
+        <h4 class="benchmark-question">
+            <em>What does "good" look like for browse abandonment flows 
+            (<u>{{ browse_abandonment_data.industry|default('Apparel and Accessories') }}</u>)?</em>
+        </h4>
+        
+        <table class="data-table-green benchmark-table">
+            <thead>
+                <tr>
+                    <th>Flow Name</th>
+                    <th>Open Rate</th>
+                    <th>Click Rate</th>
+                    <th>Conversion Rate</th>
+                    <th>Revenue Per Recipient</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ browse_abandonment_data.benchmark.name|default('Browse Abandonment') }}</td>
+                    <td>{{ browse_abandonment_data.benchmark.open_rate|default(45.20) }}%</td>
+                    <td>{{ browse_abandonment_data.benchmark.click_rate|default(4.80) }}%</td>
+                    <td>{{ browse_abandonment_data.benchmark.conversion_rate|default(1.85) }}%</td>
+                    <td>${{ browse_abandonment_data.benchmark.revenue_per_recipient|default(2.10) }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Performance Analysis -->
+    <div class="flow-analysis">
+        {% if browse_abandonment_data.secondary_narrative %}
+            {{ browse_abandonment_data.secondary_narrative|safe }}
+        {% else %}
+            <p>
+                <em>LLM analysis unavailable. Review the metrics above to identify optimization opportunities.</em>
+            </p>
+        {% endif %}
+        
+        {% if browse_abandonment_data.areas_of_opportunity %}
+        <div class="areas-of-opportunity-section">
+            <h4 class="subsection-title">Areas of Opportunity</h4>
+            <table class="opportunity-table">
+                <thead>
+                    <tr>
+                        <th>Opportunity</th>
+                        <th>Recommended Action</th>
+                        <th>Why it Matters</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for opp in browse_abandonment_data.areas_of_opportunity %}
+                    <tr>
+                        <td>{{ opp.opportunity }}</td>
+                        <td>{{ opp.recommended_action }}</td>
+                        <td>{{ opp.why_it_matters }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        
+        {# Strategic Value Elements #}
+        {% from "components/strategic_value_elements.html" import root_cause_analysis, risk_flags, quick_wins, enhanced_recommendations %}
+        
+        {% if browse_abandonment_data.root_cause_analysis %}
+        {{ root_cause_analysis(browse_abandonment_data.root_cause_analysis) }}
+        {% endif %}
+        
+        {% if browse_abandonment_data.risk_flags %}
+        {{ risk_flags(browse_abandonment_data.risk_flags) }}
+        {% endif %}
+        
+        {% if browse_abandonment_data.quick_wins %}
+        {{ quick_wins(browse_abandonment_data.quick_wins) }}
+        {% endif %}
+        
+        {% if browse_abandonment_data.recommendations %}
+        {{ enhanced_recommendations(browse_abandonment_data.recommendations) }}
+        {% endif %}
+    </div>
+</section>
+
+<style>
+.flow-intro p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin-bottom: 2rem;
+}
+
+.flow-performance-section {
+    margin: 2rem 0;
+}
+
+.subsection-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Reduced from 2.17rem - was too large */
+    font-weight: 700;
+    color: #000000; /* Match sample: pure black */
+    margin-bottom: 1rem;
+    margin-top: 1.5rem;
+    line-height: 1.3;
+}
+
+.benchmark-section {
+    margin: 2rem 0;
+}
+
+.benchmark-question {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.benchmark-table {
+    margin-top: 0;
+}
+
+.flow-analysis {
+    background: #FFFFFF;
+    padding: 1.5rem;
+    border-left: 4px solid #65DA4F;
+    margin-top: 2rem;
+}
+
+.flow-analysis p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin: 0 0 1rem 0;
+}
+
+.flow-analysis p:last-child {
+    margin-bottom: 0;
+}
+
+.no-data {
+    text-align: center;
+    font-style: italic;
+    color: #666;
+}
+
+.recommendations {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.recommendations h5 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #262626;
+}
+
+.recommendations ul {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.recommendations li {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+}
+
+.areas-of-opportunity-section {
+    margin: 2rem 0;
+}
+
+.opportunity-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.opportunity-table thead {
+    background-color: #65DA4F;
+    color: #000;
+}
+
+.opportunity-table th {
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: 1px solid #4CAF50;
+}
+
+.opportunity-table td {
+    padding: 0.75rem;
+    border: 1px solid #E0E0E0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    vertical-align: top;
+}
+
+.opportunity-table tbody tr:nth-child(even) {
+    background-color: #F9F9F9;
+}
+
+.opportunity-table tbody tr:hover {
+    background-color: #F0F8F0;
+}
+</style>
+
+{# Include strategic value elements styles #}
+{% include "components/strategic_value_elements_styles.html" %}

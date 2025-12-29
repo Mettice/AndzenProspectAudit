@@ -1,0 +1,94 @@
+"""
+Campaign data extraction module.
+"""
+import logging
+from typing import Dict, Any, List
+
+logger = logging.getLogger(__name__)
+
+
+class CampaignExtractor:
+    """Extracts campaign data from Klaviyo."""
+    
+    def __init__(self, campaigns, campaign_stats):
+        """
+        Initialize campaign extractor.
+        
+        Args:
+            campaigns: CampaignsService instance
+            campaign_stats: CampaignStatisticsService instance
+        """
+        self.campaigns = campaigns
+        self.campaign_stats = campaign_stats
+    
+    async def extract(
+        self,
+        start: str,
+        end: str,
+        verbose: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Extract campaign data and statistics for all channels (Email, SMS, Push).
+        
+        Args:
+            start: Start date (ISO format with Z suffix)
+            end: End date (ISO format with Z suffix)
+            verbose: Whether to print progress messages
+            
+        Returns:
+            Dict with 'campaigns', 'campaign_statistics', and channel breakdown
+        """
+        if verbose:
+            print("\n📧 SECTION 2: Campaign Data")
+            print("-" * 40)
+        
+        # Fetch campaigns for all channels
+        all_campaigns = []
+        email_campaigns = await self.campaigns.get_campaigns(start, end, "email")
+        all_campaigns.extend(email_campaigns)
+        if verbose:
+            print(f"  ✓ Fetched {len(email_campaigns)} email campaigns")
+        
+        sms_campaigns = await self.campaigns.get_campaigns(start, end, "sms")
+        all_campaigns.extend(sms_campaigns)
+        if verbose:
+            print(f"  ✓ Fetched {len(sms_campaigns)} SMS campaigns")
+        
+        # Push campaigns: Klaviyo API doesn't support push channel filter
+        # The campaigns endpoint returns 400 Bad Request for push channel
+        # Push campaigns may need to be fetched differently or aren't available via this endpoint
+        push_campaigns = []
+        try:
+            push_campaigns = await self.campaigns.get_campaigns(start, end, "push")
+            all_campaigns.extend(push_campaigns)
+            if verbose:
+                print(f"  ✓ Fetched {len(push_campaigns)} push campaigns")
+        except Exception as e:
+            # Push campaigns not supported via campaigns endpoint (API limitation)
+            # This is expected - Klaviyo API doesn't support push channel filter
+            if verbose:
+                logger.debug(f"Push campaigns not available via campaigns endpoint (API limitation): {e}")
+                print(f"  ⚠ Push campaigns not available (Klaviyo API limitation - push channel not supported)")
+            push_campaigns = []
+        
+        # Get statistics for all campaigns
+        campaign_statistics = {}
+        if all_campaigns:
+            campaign_ids = [c["id"] for c in all_campaigns[:50]]
+            if verbose:
+                print(f"  Fetching statistics for {len(campaign_ids)} campaigns...")
+            campaign_statistics = await self.campaign_stats.get_statistics(
+                campaign_ids=campaign_ids,
+                timeframe="last_365_days"
+            )
+            if campaign_statistics and verbose:
+                print(f"  ✓ Campaign statistics extracted")
+        
+        return {
+            "campaigns": all_campaigns,
+            "campaign_statistics": campaign_statistics,
+            "email_campaigns": email_campaigns,
+            "sms_campaigns": sms_campaigns,
+            "push_campaigns": push_campaigns
+        }
+

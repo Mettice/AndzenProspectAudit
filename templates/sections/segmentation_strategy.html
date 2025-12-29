@@ -1,0 +1,142 @@
+{#
+  Segmentation Strategy Section - Page 18
+  
+  Data required:
+  - segmentation_data: dict with tracks and send_strategy
+#}
+
+<section class="section page" data-page="18">
+    <h2 class="section-subtitle">Segmentation Strategy</h2>
+    
+    <div class="segmentation-intro">
+        <p>
+            In our roadmap, we'll fine tune your segments and explore the various tracks you should establish 
+            depending on engagement levels to achieve the best email outcomes.
+        </p>
+        {% if segmentation_data.recommended_strategy %}
+        <p>
+            {{ segmentation_data.recommended_strategy }}
+        </p>
+        {% else %}
+        <p>
+            The segmentation strategy below outlines recommended engagement tracks based on subscriber behavior.
+        </p>
+        {% endif %}
+    </div>
+    
+    <!-- Segmentation Table -->
+    <div class="segmentation-table-section">
+        <table class="data-table-green">
+            <thead>
+                <tr>
+                    <th>Segment Name</th>
+                    <th>Recommended Cadence</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for track in segmentation_data.tracks %}
+                <tr>
+                    <td>{{ track.name }}</td>
+                    <td>{{ track.cadence }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td>Track A: Highly Engaged</td>
+                    <td>Daily</td>
+                </tr>
+                <tr>
+                    <td>Track B: Moderately Engaged</td>
+                    <td>2-3x/week</td>
+                </tr>
+                <tr>
+                    <td>Track C: Broad Engaged</td>
+                    <td>1x/week</td>
+                </tr>
+                <tr>
+                    <td>Track D: Unengaged</td>
+                    <td>Goes through Sunset Flow then suppressed if remains unengaged in a few days</td>
+                </tr>
+                <tr>
+                    <td>Track E: For Suppression</td>
+                    <td>Do not send. Needs to be suppressed</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Send Strategy -->
+    {% if segmentation_data.send_strategy_description %}
+    <div class="send-strategy-section">
+        <h3>Send Strategy</h3>
+        {{ segmentation_data.send_strategy_description|safe }}
+    </div>
+    {% endif %}
+    
+    <!-- Footer -->
+    <div class="section-footer">
+        <div class="andzen-footer-logo">
+            <svg viewBox="0 0 30 20" class="andzen-logo-small">
+                <path d="M5,18 L10,5 L15,18 M7,14 L13,14" stroke="#65DA4F" stroke-width="2" fill="none"/>
+            </svg>
+        </div>
+    </div>
+</section>
+
+<style>
+.section-subtitle {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #262626;
+}
+
+.segmentation-intro {
+    margin-bottom: 2rem;
+}
+
+.segmentation-intro p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+.segmentation-table-section {
+    margin: 2rem 0;
+}
+
+.send-strategy-section {
+    margin-top: 3rem;
+}
+
+.send-strategy-section h3 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.send-strategy-section p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin-bottom: 1.25rem;
+}
+
+.section-footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+}
+
+.andzen-footer-logo {
+    width: 30px;
+}
+
+.andzen-logo-small {
+    width: 30px;
+    height: 20px;
+}
+</style>
+

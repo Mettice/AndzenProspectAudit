@@ -1,0 +1,1020 @@
+{#
+  Phase 3: Strategic Recommendations Enhanced Section
+  
+  Displays Carissa-level strategic recommendations with implementation guidance,
+  priority scoring, and comprehensive business impact analysis.
+  
+  Data required:
+  - strategic_recommendations_data: Phase 3 strategic analysis results
+#}
+
+{% if strategic_recommendations_data and strategic_recommendations_data.phase3_enabled %}
+<section class="section page strategic-recommendations" data-page="19">
+    <h1 class="section-title">STRATEGIC RECOMMENDATIONS & IMPLEMENTATION ROADMAP</h1>
+    
+    <!-- Executive Summary Panel -->
+    {% if strategic_recommendations_data.strategic_recommendations %}
+    {% set sr_data = strategic_recommendations_data.strategic_recommendations %}
+    <div class="strategic-executive-summary">
+        <div class="summary-header">
+            <div class="summary-icon">🎯</div>
+            <div class="summary-content">
+                <h3>Strategic Intelligence Executive Summary</h3>
+                <p class="executive-narrative">{{ sr_data.executive_summary }}</p>
+            </div>
+        </div>
+        
+        <div class="summary-metrics">
+            <div class="metric-card">
+                <span class="metric-value">${{ "{:,.0f}".format(sr_data.get("total_revenue_impact", 0)) }}</span>
+                <span class="metric-label">Total Revenue Potential</span>
+            </div>
+            <div class="metric-card">
+                {% set recommendations = sr_data.get("recommendations", {}) %}
+                <span class="metric-value">{{ recommendations.get("tier_1_critical", [])|length + recommendations.get("tier_2_high_impact", [])|length + recommendations.get("tier_3_strategic", [])|length }}</span>
+                <span class="metric-label">Strategic Initiatives</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-value">{{ sr_data.get("quick_wins", [])|length }}</span>
+                <span class="metric-label">Quick Wins Identified</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Risk Flags Section -->
+    {% if strategic_recommendations_data.strategic_recommendations and strategic_recommendations_data.strategic_recommendations.risk_flags %}
+    {% set risk_flags_list = strategic_recommendations_data.strategic_recommendations.risk_flags %}
+    {% if risk_flags_list and risk_flags_list|length > 0 %}
+    <div class="strategic-risk-flags">
+        <h2 class="subsection-title">Critical Risk Flags</h2>
+        <div class="risk-flags-container">
+            {% for risk in risk_flags_list %}
+            <div class="risk-flag risk-{{ risk.get('severity', 'medium') }}">
+                <div class="risk-header">
+                    <span class="risk-severity-badge severity-{{ risk.get('severity', 'medium') }}">
+                        {{ risk.get('severity', 'medium').upper() }}
+                    </span>
+                    <span class="risk-icon">
+                        {% if risk.get('severity') == 'critical' %}🚨
+                        {% elif risk.get('severity') == 'high' %}⚠️
+                        {% else %}ℹ️
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="risk-content">
+                    <h5 class="risk-issue">{{ risk.get('issue', 'Unknown Issue') }}</h5>
+                    {% if risk.get('impact') %}
+                    <p class="risk-impact"><strong>Impact:</strong> {{ risk.impact }}</p>
+                    {% endif %}
+                    {% if risk.get('urgency') %}
+                    <p class="risk-urgency"><strong>Urgency:</strong> {{ risk.urgency }}</p>
+                    {% endif %}
+                    {% if risk.get('recommended_action') %}
+                    <p class="risk-action"><strong>Action:</strong> {{ risk.recommended_action }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+    
+    <!-- Strategic Priorities Matrix -->
+    {% if strategic_recommendations_data.strategic_recommendations and strategic_recommendations_data.strategic_recommendations.recommendations %}
+    {% set recommendations = strategic_recommendations_data.strategic_recommendations.recommendations %}
+    
+    <!-- Tier 1: Critical (0-30 days) -->
+    {% if recommendations.tier_1_critical %}
+    <div class="recommendations-tier tier-critical">
+        <div class="tier-header">
+            <div class="tier-badge critical">TIER 1: CRITICAL</div>
+            <div class="tier-meta">
+                <span class="timeline">0-30 Days</span>
+                <span class="count">{{ recommendations.tier_1_critical|length }} Initiatives</span>
+            </div>
+        </div>
+        
+        <div class="recommendations-grid">
+            {% for rec in recommendations.tier_1_critical %}
+            <div class="recommendation-card critical-card">
+                <div class="card-header">
+                    <div class="rec-title">{{ rec.title if rec.title else 'Critical Recommendation' }}</div>
+                    <div class="rec-category">{{ rec.category.replace('_', ' ')|title if rec.category else 'CRITICAL' }}</div>
+                </div>
+                
+                <div class="card-content">
+                    {% if rec.description %}
+                    <div class="problem-statement">
+                        <strong>Strategic Challenge:</strong>
+                        <p>{{ rec.description }}</p>
+                    </div>
+                    {% elif rec.problem_statement %}
+                    <div class="problem-statement">
+                        <strong>Strategic Challenge:</strong>
+                        <p>{{ rec.problem_statement }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if rec.rationale %}
+                    <div class="business-impact">
+                        <strong>Why This Matters:</strong>
+                        <p>{{ rec.rationale }}</p>
+                    </div>
+                    {% elif rec.business_impact %}
+                    <div class="business-impact">
+                        <strong>Business Impact:</strong>
+                        <p>{{ rec.business_impact }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="implementation-details">
+                        {% if rec.expected_impact %}
+                        <div class="detail-row">
+                            <span class="detail-label">Expected Impact:</span>
+                            <span class="detail-value impact-value">{{ rec.expected_impact }}</span>
+                        </div>
+                        {% elif rec.revenue_impact_estimate %}
+                        <div class="detail-row">
+                            <span class="detail-label">Revenue Impact:</span>
+                            <span class="detail-value impact-value">${{ "{:,.0f}".format(rec.revenue_impact_estimate) }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if rec.estimated_timeline %}
+                        <div class="detail-row">
+                            <span class="detail-label">Timeline:</span>
+                            <span class="detail-value">{{ rec.estimated_timeline }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if rec.implementation_complexity %}
+                        <div class="detail-row">
+                            <span class="detail-label">Complexity:</span>
+                            <span class="detail-value complexity-{{ rec.implementation_complexity.value if rec.implementation_complexity.value else 'medium' }}">
+                                {{ rec.implementation_complexity.value|title if rec.implementation_complexity.value else 'Medium' }}
+                            </span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if rec.priority_score %}
+                        <div class="detail-row">
+                            <span class="detail-label">Priority Score:</span>
+                            <span class="detail-value priority-score">{{ rec.priority_score }}/100</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if rec.implementation_steps %}
+                    <div class="action-items">
+                        <strong>Implementation Steps:</strong>
+                        <ul class="action-list">
+                            {% for step in rec.implementation_steps[:5] %}
+                            <li>{{ step }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% elif rec.specific_actions %}
+                    <div class="action-items">
+                        <strong>Implementation Actions:</strong>
+                        <ul class="action-list">
+                            {% for action in rec.specific_actions[:3] %}
+                            <li>{{ action }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if rec.confidence_level or rec.roi_timeline %}
+                <div class="card-footer">
+                    {% if rec.confidence_level %}
+                    <div class="confidence-indicator">
+                        <span class="confidence-label">Confidence:</span>
+                        <span class="confidence-value confidence-{{ rec.confidence_level }}">{{ rec.confidence_level|title }}</span>
+                    </div>
+                    {% endif %}
+                    {% if rec.roi_timeline %}
+                    <div class="roi-timeline">ROI Expected: {{ rec.roi_timeline }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Tier 2: High Impact (30-90 days) -->
+    {% if recommendations.tier_2_high_impact %}
+    <div class="recommendations-tier tier-high-impact">
+        <div class="tier-header">
+            <div class="tier-badge high-impact">TIER 2: HIGH IMPACT</div>
+            <div class="tier-meta">
+                <span class="timeline">30-90 Days</span>
+                <span class="count">{{ recommendations.tier_2_high_impact|length }} Initiatives</span>
+            </div>
+        </div>
+        
+        <div class="recommendations-grid">
+            {% for rec in recommendations.tier_2_high_impact %}
+            <div class="recommendation-card high-impact-card">
+                <div class="card-header">
+                    <div class="rec-title">{{ rec.title if rec.title else 'High Impact Recommendation' }}</div>
+                    <div class="rec-category">{{ rec.category.replace('_', ' ')|title if rec.category else 'HIGH IMPACT' }}</div>
+                </div>
+                
+                <div class="card-summary">
+                    {% if rec.description %}
+                    <p><strong>Strategic Opportunity:</strong> {{ rec.description }}</p>
+                    {% elif rec.strategic_rationale %}
+                    <p><strong>Strategic Opportunity:</strong> {{ rec.strategic_rationale }}</p>
+                    {% endif %}
+                    
+                    {% if rec.rationale %}
+                    <p><em>Why:</em> {{ rec.rationale }}</p>
+                    {% endif %}
+                    
+                    <div class="impact-metrics">
+                        {% if rec.expected_impact %}
+                        <span class="revenue-impact">{{ rec.expected_impact }}</span>
+                        {% elif rec.revenue_impact_estimate %}
+                        <span class="revenue-impact">${{ "{:,.0f}".format(rec.revenue_impact_estimate) }} potential</span>
+                        {% endif %}
+                        
+                        {% if rec.estimated_timeline %}
+                        <span class="timeline-estimate">{{ rec.estimated_timeline }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if rec.implementation_steps %}
+                    <div class="action-items" style="margin-top: 1rem;">
+                        <strong>Implementation Steps:</strong>
+                        <ul class="action-list">
+                            {% for step in rec.implementation_steps[:3] %}
+                            <li>{{ step }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Tier 3: Strategic (90+ days) -->
+    {% if recommendations.tier_3_strategic %}
+    <div class="recommendations-tier tier-strategic">
+        <div class="tier-header">
+            <div class="tier-badge strategic">TIER 3: STRATEGIC</div>
+            <div class="tier-meta">
+                <span class="timeline">90+ Days</span>
+                <span class="count">{{ recommendations.tier_3_strategic|length }} Initiatives</span>
+            </div>
+        </div>
+        
+        <div class="strategic-initiatives-summary">
+            {% for rec in recommendations.tier_3_strategic %}
+            <div class="strategic-item">
+                <div class="item-title">{{ rec.title if rec.title else 'Strategic Recommendation' }}</div>
+                <div class="item-impact">
+                    {% if rec.expected_impact %}
+                        {{ rec.expected_impact }}
+                    {% elif rec.revenue_impact_estimate %}
+                        ${{ "{:,.0f}".format(rec.revenue_impact_estimate) }} long-term potential
+                    {% else %}
+                        Long-term strategic value
+                    {% endif %}
+                </div>
+            </div>
+            {% if rec.description or rec.rationale %}
+            <div style="padding-left: 1rem; margin-bottom: 0.5rem; color: #6B7280; font-size: 0.9rem;">
+                {% if rec.description %}{{ rec.description }}{% elif rec.rationale %}{{ rec.rationale }}{% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Quick Wins Section -->
+    {% if strategic_recommendations_data.strategic_recommendations.quick_wins %}
+    <div class="quick-wins-section">
+        <h3 class="section-subtitle">🚀 Immediate Quick Wins</h3>
+        <div class="quick-wins-grid">
+            {% for win in strategic_recommendations_data.strategic_recommendations.quick_wins %}
+            <div class="quick-win-card">
+                <div class="win-title">{{ win.title if win.title else 'Quick Win' }}</div>
+                {% if win.impact %}
+                <div class="win-impact">{{ win.impact }}</div>
+                {% elif win.revenue_impact_estimate %}
+                <div class="win-impact">${{ "{:,.0f}".format(win.revenue_impact_estimate) }}</div>
+                {% endif %}
+                {% if win.description %}
+                <div style="font-size: 0.85rem; color: #6B7280; margin: 0.5rem 0;">{{ win.description }}</div>
+                {% endif %}
+                {% if win.timeline %}
+                <div class="win-timeline">{{ win.timeline }}</div>
+                {% elif win.estimated_timeline %}
+                <div class="win-timeline">{{ win.estimated_timeline }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% endif %}
+    
+    <!-- Multi-Agent Analysis Insights -->
+    {% if strategic_recommendations_data.multi_agent_analysis and not strategic_recommendations_data.multi_agent_analysis.error %}
+    {% set ma_data = strategic_recommendations_data.multi_agent_analysis %}
+    <div class="multi-agent-insights">
+        <h3 class="section-subtitle">🤖 Advanced Intelligence Analysis</h3>
+        
+        <div class="agent-results-grid">
+            {% if ma_data.agent_results %}
+            {% for agent_name, result in ma_data.agent_results.items() %}
+            <div class="agent-result-card">
+                <div class="agent-header">
+                    <div class="agent-name">{{ result.agent_name }}</div>
+                    <div class="agent-confidence">{{ (result.confidence_level * 100)|round(0) }}% confidence</div>
+                </div>
+                
+                {% if result.insights %}
+                <div class="agent-insights">
+                    {% for insight in result.insights[:2] %}
+                    <p class="insight-item">{{ insight }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+        
+        {% if ma_data.synthesis and ma_data.synthesis.key_insights %}
+        <div class="synthesis-section">
+            <h4>Synthesized Strategic Insights</h4>
+            <ul class="synthesis-insights">
+                {% for insight in ma_data.synthesis.key_insights[:3] %}
+                <li>{{ insight }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- Implementation Roadmap -->
+    {% if strategic_recommendations_data.strategic_recommendations.implementation_roadmap %}
+    <div class="implementation-roadmap">
+        <h3 class="section-subtitle">📋 Strategic Implementation Roadmap</h3>
+        <div class="roadmap-timeline">
+            {% for phase in strategic_recommendations_data.strategic_recommendations.implementation_roadmap[:6] %}
+            <div class="roadmap-phase">
+                <div class="phase-number">{{ loop.index }}</div>
+                <div class="phase-content">
+                    <div class="phase-title">{{ phase.initiative or phase.title }}</div>
+                    <div class="phase-timeline">{{ phase.timeline or phase.week }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</section>
+
+{% else %}
+<!-- Fallback: Basic Recommendations Section (when LLM data is not available) -->
+<section class="section page" data-page="19">
+    <h1 class="section-title">STRATEGIC RECOMMENDATIONS</h1>
+    
+    <div class="basic-recommendations">
+        {% if strategic_recommendations_data and strategic_recommendations_data.strategic_recommendations %}
+        {% set sr_data = strategic_recommendations_data.strategic_recommendations %}
+        
+        {% if sr_data.executive_summary %}
+        <div class="executive-summary-fallback">
+            <h3>Executive Summary</h3>
+            <p>{{ sr_data.executive_summary }}</p>
+        </div>
+        {% endif %}
+        
+        {% if sr_data.recommendations %}
+        <div class="recommendations-fallback">
+            {% if sr_data.recommendations.tier_1_critical %}
+            <h4>Critical Recommendations (0-30 Days)</h4>
+            <ul>
+                {% for rec in sr_data.recommendations.tier_1_critical %}
+                <li>
+                    <strong>{{ rec.title if rec.title else rec.get('description', '')[:50] }}</strong>
+                    {% if rec.description %}<p>{{ rec.description }}</p>{% endif %}
+                    {% if rec.rationale %}<p><em>Why:</em> {{ rec.rationale }}</p>{% endif %}
+                    {% if rec.implementation_steps %}
+                    <ul>
+                        {% for step in rec.implementation_steps %}
+                        <li>{{ step }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            
+            {% if sr_data.recommendations.tier_2_high_impact %}
+            <h4>High Impact Recommendations (30-90 Days)</h4>
+            <ul>
+                {% for rec in sr_data.recommendations.tier_2_high_impact %}
+                <li>
+                    <strong>{{ rec.title if rec.title else rec.get('description', '')[:50] }}</strong>
+                    {% if rec.description %}<p>{{ rec.description }}</p>{% endif %}
+                    {% if rec.rationale %}<p><em>Why:</em> {{ rec.rationale }}</p>{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            
+            {% if sr_data.recommendations.tier_3_strategic %}
+            <h4>Strategic Recommendations (90+ Days)</h4>
+            <ul>
+                {% for rec in sr_data.recommendations.tier_3_strategic %}
+                <li>
+                    <strong>{{ rec.title if rec.title else rec.get('description', '')[:50] }}</strong>
+                    {% if rec.description %}<p>{{ rec.description }}</p>{% endif %}
+                    {% if rec.rationale %}<p><em>Why:</em> {{ rec.rationale }}</p>{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if sr_data.quick_wins %}
+        <div class="quick-wins-fallback">
+            <h4>Quick Wins</h4>
+            <ul>
+                {% for win in sr_data.quick_wins %}
+                <li>
+                    <strong>{{ win.title }}</strong>
+                    {% if win.description %}<p>{{ win.description }}</p>{% endif %}
+                    {% if win.impact %}<p><em>Impact:</em> {{ win.impact }}</p>{% endif %}
+                    {% if win.timeline %}<p><em>Timeline:</em> {{ win.timeline }}</p>{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        {% if sr_data.next_steps %}
+        <div class="next-steps-fallback">
+            <h4>Next Steps</h4>
+            <ul>
+                {% for step in sr_data.next_steps %}
+                <li>{{ step }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <p>Strategic recommendations are being generated based on the comprehensive audit findings.</p>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+
+<style>
+/* Strategic Recommendations Enhanced Styles */
+
+.strategic-recommendations {
+    background: #FFFFFF;
+}
+
+.strategic-executive-summary {
+    background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2.5rem;
+}
+
+.summary-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.summary-icon {
+    font-size: 3rem;
+    opacity: 0.9;
+}
+
+.summary-content h3 {
+    margin: 0 0 1rem 0;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 0.05em;
+}
+
+.executive-narrative {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin: 0;
+    opacity: 0.95;
+}
+
+.summary-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.metric-card {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 1.5rem;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+}
+
+.metric-card .metric-value {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.metric-card .metric-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    font-weight: 600;
+}
+
+.recommendations-tier {
+    margin-bottom: 3rem;
+}
+
+.tier-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #F1F5F9;
+}
+
+.tier-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    padding: 0.5rem 1.5rem;
+    border-radius: 25px;
+    letter-spacing: 0.05em;
+}
+
+.tier-badge.critical {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.tier-badge.high-impact {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.tier-badge.strategic {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.tier-meta {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.tier-meta .timeline {
+    font-weight: 600;
+    color: #374151;
+}
+
+.tier-meta .count {
+    background: #F3F4F6;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    color: #6B7280;
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+.recommendation-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #E5E7EB;
+}
+
+.critical-card {
+    border-left: 5px solid #DC2626;
+}
+
+.high-impact-card {
+    border-left: 5px solid #F59E0B;
+}
+
+.card-header {
+    background: #F9FAFB;
+    padding: 1.25rem;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.rec-title {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #262626;
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+}
+
+.rec-category {
+    font-size: 0.85rem;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.card-content {
+    padding: 1.25rem;
+}
+
+.problem-statement,
+.business-impact {
+    margin-bottom: 1.5rem;
+}
+
+.problem-statement strong,
+.business-impact strong {
+    color: #374151;
+    font-size: 0.9rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.problem-statement p,
+.business-impact p {
+    margin: 0;
+    color: #6B7280;
+    line-height: 1.5;
+    font-size: 0.9rem;
+}
+
+.implementation-details {
+    background: #F8FAFC;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.detail-row:last-child {
+    margin-bottom: 0;
+}
+
+.detail-label {
+    font-size: 0.85rem;
+    color: #6B7280;
+    font-weight: 600;
+}
+
+.detail-value {
+    font-weight: 600;
+    color: #374151;
+}
+
+.impact-value {
+    color: #10B981;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+}
+
+.complexity-low { color: #10B981; }
+.complexity-medium { color: #F59E0B; }
+.complexity-high { color: #EF4444; }
+
+.priority-score {
+    color: #6366F1;
+    font-family: 'Space Mono', monospace;
+}
+
+.action-items strong {
+    color: #374151;
+    font-size: 0.9rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.action-list {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.action-list li {
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+    color: #6B7280;
+    line-height: 1.4;
+}
+
+.card-footer {
+    background: #F9FAFB;
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #E5E7EB;
+    font-size: 0.85rem;
+}
+
+.confidence-value.confidence-high { color: #10B981; }
+.confidence-value.confidence-medium { color: #F59E0B; }
+.confidence-value.confidence-low { color: #EF4444; }
+
+.roi-timeline {
+    color: #6B7280;
+    font-weight: 600;
+}
+
+.card-summary {
+    padding: 1.25rem;
+}
+
+.card-summary p {
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #374151;
+}
+
+.impact-metrics {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.revenue-impact {
+    background: #DCFCE7;
+    color: #166534;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.timeline-estimate {
+    color: #6B7280;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.strategic-initiatives-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.strategic-item {
+    background: #F0F9FF;
+    padding: 1rem;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.item-title {
+    font-weight: 600;
+    color: #374151;
+}
+
+.item-impact {
+    color: #1D4ED8;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.section-subtitle {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #262626;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.quick-wins-section {
+    background: #F0FDF4;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.quick-wins-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.quick-win-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid #D1FAE5;
+    text-align: center;
+}
+
+.win-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.win-impact {
+    color: #10B981;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    margin-bottom: 0.25rem;
+}
+
+.win-timeline {
+    font-size: 0.8rem;
+    color: #6B7280;
+}
+
+.multi-agent-insights {
+    background: #F8FAFC;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.agent-results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.agent-result-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid #E5E7EB;
+}
+
+.agent-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.agent-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.agent-confidence {
+    font-size: 0.8rem;
+    color: #6B7280;
+}
+
+.agent-insights .insight-item {
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    color: #6B7280;
+    line-height: 1.4;
+}
+
+.synthesis-section h4 {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 1rem;
+}
+
+.synthesis-insights {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.synthesis-insights li {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #6B7280;
+    line-height: 1.5;
+}
+
+.implementation-roadmap {
+    background: #FFFFFF;
+    border: 2px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.roadmap-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.roadmap-phase {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #F9FAFB;
+    padding: 1rem;
+    border-radius: 6px;
+    min-width: 250px;
+}
+
+.phase-number {
+    width: 32px;
+    height: 32px;
+    background: #65DA4F;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.phase-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 0.25rem;
+}
+
+.phase-timeline {
+    font-size: 0.8rem;
+    color: #6B7280;
+}
+
+.basic-recommendations {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.contact-info {
+    background: #F0FDF4;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-top: 2rem;
+    text-align: left;
+}
+
+.contact-info ul {
+    margin-top: 1rem;
+}
+
+@media print {
+    .strategic-executive-summary {
+        background: #667EEA !important;
+        -webkit-print-color-adjust: exact;
+    }
+    
+    .recommendations-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .roadmap-timeline {
+        flex-direction: column;
+    }
+}
+</style>

@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klaviyo Audit Report - {{ client_name }}</title>
+    <style>
+        /* Professional Audit Report Styling */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+        }
+        
+        /* Cover Page */
+        .cover-page {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            page-break-after: always;
+        }
+        
+        .cover-content h1 {
+            font-size: 3rem;
+            margin: 2rem 0;
+        }
+        
+        .cover-content h2 {
+            font-size: 2rem;
+            margin: 1rem 0;
+            opacity: 0.9;
+        }
+        
+        .cover-content .audit-date,
+        .cover-content .auditor {
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+        
+        /* Section Styling */
+        section {
+            padding: 3rem 4rem;
+            page-break-inside: avoid;
+        }
+        
+        section h1 {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 2rem;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+        
+        section h2 {
+            font-size: 1.8rem;
+            color: #764ba2;
+            margin: 2rem 0 1rem 0;
+        }
+        
+        section h3 {
+            font-size: 1.3rem;
+            color: #555;
+            margin: 1rem 0 0.5rem 0;
+        }
+        
+        /* Executive Summary */
+        .executive-summary {
+            background: linear-gradient(to bottom, #f8f9ff 0%, white 100%);
+        }
+        
+        .summary-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        
+        .metric-card.highlight {
+            border-left: 4px solid #f59e0b;
+            background: linear-gradient(135deg, #fef3c7 0%, white 100%);
+        }
+        
+        .metric-card h3 {
+            color: #666;
+            font-size: 1rem;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .metric-value.large {
+            font-size: 3rem;
+            color: #f59e0b;
+        }
+        
+        .health-score {
+            display: inline-block;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(#10b981 calc(var(--score) * 1%), #e5e7eb 0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            position: relative;
+        }
+        
+        .health-score::before {
+            content: '';
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            background: white;
+            border-radius: 50%;
+        }
+        
+        .health-score span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .summary-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            margin: 3rem 0;
+        }
+        
+        .strengths, .opportunities {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .strengths {
+            border-left: 4px solid #10b981;
+        }
+        
+        .opportunities {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .strengths h2 {
+            color: #10b981;
+        }
+        
+        .opportunities h2 {
+            color: #f59e0b;
+        }
+        
+        .strengths ol, .opportunities ol {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+        
+        .strengths li, .opportunities li {
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+        
+        /* Data Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        tr:hover {
+            background: #f9fafb;
+        }
+        
+        /* Benchmark Comparison */
+        .benchmark-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            align-items: center;
+        }
+        
+        .benchmark-row:hover {
+            background: #f9fafb;
+        }
+        
+        .benchmark-header {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .status-excellent {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-good {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-critical {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status-neutral {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 24px;
+            background: #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+        
+        .progress-label {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: white;
+            mix-blend-mode: difference;
+        }
+        
+        /* Flow Cards */
+        .flow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .flow-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+        
+        .flow-card.missing {
+            border-left: 4px solid #ef4444;
+            opacity: 0.6;
+        }
+        
+        .flow-card.underperforming {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .flow-card h3 {
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .flow-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .flow-metric {
+            text-align: center;
+            padding: 0.5rem;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        
+        .flow-metric-label {
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+        }
+        
+        .flow-metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        /* Recommendations */
+        .recommendation-tier {
+            margin: 3rem 0;
+        }
+        
+        .recommendation-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .tier-critical .recommendation-card {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .tier-high .recommendation-card {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .tier-strategic .recommendation-card {
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .recommendation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .recommendation-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .recommendation-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .badge-critical {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-high {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-strategic {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .recommendation-meta {
+            display: flex;
+            gap: 2rem;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+            color: #666;
+        }
+        
+        /* Red Flags */
+        .red-flag {
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+        }
+        
+        .red-flag h4 {
+            color: #991b1b;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Charts */
+        .chart-container {
+            margin: 2rem 0;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Utilities */
+        .pill {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .pill-live {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .pill-draft {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .pill-manual {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        /* Print Styles */
+        @media print {
+            .cover-page {
+                page-break-after: always;
+            }
+            
+            section {
+                page-break-inside: avoid;
+            }
+            
+            .flow-card, .recommendation-card {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Cover Page -->
+        <section class="cover-page">
+            <div class="cover-content">
+                <h1>Klaviyo Audit Report</h1>
+                <h2>{{ client_name }}</h2>
+                <p class="audit-date">Audit Date: {{ audit_date }}</p>
+                <p class="auditor">Prepared by: {{ auditor_name }}</p>
+            </div>
+        </section>
+        
+        <!-- Executive Summary -->
+        <section class="executive-summary">
+            <h1>Executive Summary</h1>
+            
+            <div class="summary-metrics">
+                <div class="metric-card highlight">
+                    <h3>Account Health Score</h3>
+                    <div class="health-score" style="--score: {{ executive_summary.overall_health_score|default(50) }}">
+                        <span>{{ executive_summary.overall_health_score|default(50)|int }}/100</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <h3>KAV Percentage</h3>
+                    <p class="metric-value">{{ executive_summary.kav_percentage|default(0)|round(1) }}%</p>
+                    <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem;">Target: 30%</p>
+                </div>
+                
+                <div class="metric-card">
+                    <h3>Performance Tier</h3>
+                    <p class="metric-value" style="font-size: 1.5rem;">{{ executive_summary.performance_tier|default("Average") }}</p>
+                </div>
+            </div>
+            
+            <div class="summary-content">
+                <div class="strengths">
+                    <h2>Top 3 Strengths</h2>
+                    <ol>
+                        {% for strength in executive_summary.top_strengths|default([]) %}
+                        <li>{{ strength }}</li>
+                        {% else %}
+                        <li>No strengths identified</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+                
+                <div class="opportunities">
+                    <h2>Top 3 Opportunities</h2>
+                    <ol>
+                        {% for opportunity in executive_summary.top_opportunities|default([]) %}
+                        <li>{{ opportunity }}</li>
+                        {% else %}
+                        <li>No opportunities identified</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
+            
+            {% if executive_summary.key_insight %}
+            <div style="background: white; padding: 2rem; border-radius: 12px; margin-top: 2rem; border-left: 4px solid #667eea;">
+                <h2>Key Insight</h2>
+                <p style="font-size: 1.1rem; line-height: 1.8;">{{ executive_summary.key_insight }}</p>
+            </div>
+            {% endif %}
+        </section>
+        
+        <!-- Data Snapshot -->
+        <section>
+            <h1>Data Snapshot</h1>
+            <div class="summary-metrics">
+                <div class="metric-card">
+                    <h3>Total Revenue</h3>
+                    <p class="metric-value">${{ data_snapshot.total_revenue|default(0)|round(2)|format_number }}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Klaviyo Revenue</h3>
+                    <p class="metric-value">${{ data_snapshot.klaviyo_revenue|default(0)|round(2)|format_number }}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Total Campaigns</h3>
+                    <p class="metric-value">{{ data_snapshot.total_campaigns|default(0) }}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Total Flows</h3>
+                    <p class="metric-value">{{ data_snapshot.total_flows|default(0) }}</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Revenue Analysis -->
+        <section>
+            <h1>Revenue Analysis</h1>
+            
+            <h2>Revenue Breakdown</h2>
+            <div class="summary-metrics">
+                <div class="metric-card">
+                    <h3>Campaign Revenue</h3>
+                    <p class="metric-value">${{ revenue_analysis.totals.campaign_revenue|default(0)|round(2)|format_number }}</p>
+                    <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem;">
+                        {{ revenue_analysis.campaign_flow_split.campaign|default(0)|round(1) }}% of Klaviyo revenue
+                    </p>
+                </div>
+                <div class="metric-card">
+                    <h3>Flow Revenue</h3>
+                    <p class="metric-value">${{ revenue_analysis.totals.flow_revenue|default(0)|round(2)|format_number }}</p>
+                    <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem;">
+                        {{ revenue_analysis.campaign_flow_split.flow|default(0)|round(1) }}% of Klaviyo revenue
+                    </p>
+                </div>
+            </div>
+            
+            <h2>Campaign vs Flow Split</h2>
+            <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Campaigns: {{ revenue_analysis.campaign_flow_split.campaign|default(0)|round(1) }}%</span>
+                        <span>Target: 50%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ revenue_analysis.campaign_flow_split.campaign|default(0) }}%"></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Flows: {{ revenue_analysis.campaign_flow_split.flow|default(0)|round(1) }}%</span>
+                        <span>Target: 50%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ revenue_analysis.campaign_flow_split.flow|default(0) }}%; background: linear-gradient(90deg, #10b981 0%, #059669 100%);"></div>
+                    </div>
+                </div>
+                
+                <p style="margin-top: 1.5rem; font-style: italic; color: #666;">
+                    Ideal split: 50% campaigns, 50% flows. Significant imbalance indicates over-reliance on one channel.
+                </p>
+            </div>
+            
+            {% if revenue_analysis.insights %}
+            <h2>Revenue Insights</h2>
+            <ul>
+                {% for insight in revenue_analysis.insights %}
+                <li style="margin: 1rem 0; line-height: 1.8;">{{ insight }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </section>
+        
+        <!-- Campaign Analysis -->
+        <section>
+            <h1>Campaign Performance Analysis</h1>
+            
+            <h2>Campaign Metrics Overview</h2>
+            <div class="summary-metrics">
+                <div class="metric-card">
+                    <h3>Total Campaigns</h3>
+                    <p class="metric-value">{{ campaign_analysis.overview.total_sent|default(0) }}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Avg Open Rate</h3>
+                    <p class="metric-value">{{ campaign_analysis.overview.avg_open_rate|default(0)|round(1) }}%</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Avg Click Rate</h3>
+                    <p class="metric-value">{{ campaign_analysis.overview.avg_click_rate|default(0)|round(2) }}%</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Avg Conversion</h3>
+                    <p class="metric-value">{{ campaign_analysis.overview.avg_conversion_rate|default(0)|round(2) }}%</p>
+                </div>
+            </div>
+            
+            <h2>Benchmark Comparison</h2>
+            <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div class="benchmark-row benchmark-header">
+                    <div>Metric</div>
+                    <div>Your Value</div>
+                    <div>Industry Avg</div>
+                    <div>Top 10%</div>
+                    <div>Status</div>
+                </div>
+                {% for comparison in campaign_analysis.benchmark_comparisons|default([]) %}
+                <div class="benchmark-row">
+                    <div><strong>{{ comparison.metric }}</strong></div>
+                    <div>{{ comparison.client_value|round(2) }}%</div>
+                    <div>{{ comparison.average|round(2) }}%</div>
+                    <div>{{ comparison.top_10|round(2) }}%</div>
+                    <div><span class="status-badge {{ comparison.status_class }}">{{ comparison.status|replace('_', ' ')|title }}</span></div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        
+        <!-- Flow Analysis -->
+        <section>
+            <h1>Flow Performance Analysis</h1>
+            
+            {% if flow_analysis.missing_flows %}
+            <div class="red-flag">
+                <h4>⚠️ Missing Critical Flows</h4>
+                <p>The following core flows are missing or inactive:</p>
+                <ul>
+                    {% for flow in flow_analysis.missing_flows %}
+                    <li>{{ flow }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            <h2>Core Flows Performance</h2>
+            <div class="flow-grid">
+                {% for flow_name, flow_data in flow_analysis.core_flows.items() %}
+                <div class="flow-card {% if flow_data.status == 'missing' %}missing{% elif flow_data.health_status == 'needs_attention' %}underperforming{% endif %}">
+                    <h3>
+                        {{ flow_data.name }}
+                        <span class="pill {% if flow_data.status == 'live' %}pill-live{% elif flow_data.status == 'draft' %}pill-draft{% else %}pill-manual{% endif %}">
+                            {{ flow_data.status|default("unknown") }}
+                        </span>
+                    </h3>
+                    
+                    {% if flow_data.status != 'missing' %}
+                    <p style="color: #666; margin-bottom: 1rem;">{{ flow_data.messages }} message(s)</p>
+                    
+                    <div class="flow-metrics">
+                        <div class="flow-metric">
+                            <div class="flow-metric-label">Open Rate</div>
+                            <div class="flow-metric-value">{{ flow_data.metrics.open_rate|default(0)|round(1) }}%</div>
+                        </div>
+                        <div class="flow-metric">
+                            <div class="flow-metric-label">Click Rate</div>
+                            <div class="flow-metric-value">{{ flow_data.metrics.click_rate|default(0)|round(2) }}%</div>
+                        </div>
+                    </div>
+                    
+                    {% if flow_data.recommendations %}
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                        <strong style="color: #667eea;">Recommendations:</strong>
+                        <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                            {% for rec in flow_data.recommendations[:2] %}
+                            <li style="font-size: 0.875rem; margin: 0.5rem 0;">{{ rec }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <p style="color: #ef4444; font-weight: 600;">This critical flow is not active.</p>
+                    <p style="font-size: 0.875rem; margin-top: 0.5rem;">
+                        Recommended: Activate immediately to capture revenue.
+                    </p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        
+        <!-- Patterns & Red Flags -->
+        {% if patterns.red_flags %}
+        <section>
+            <h1>Patterns & Red Flags</h1>
+            
+            {% for flag in patterns.red_flags %}
+            <div class="red-flag">
+                <h4>{{ flag.severity|upper }}: {{ flag.issue }}</h4>
+                <p><strong>Impact:</strong> {{ flag.impact }}</p>
+                <p><strong>Category:</strong> {{ flag.category }}</p>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+        
+        <!-- Strategic Recommendations -->
+        <section>
+            <h1>Strategic Recommendations</h1>
+            
+            <!-- Tier 1: Critical -->
+            <div class="recommendation-tier tier-critical">
+                <h2 style="color: #ef4444;">Tier 1: Critical (0-30 Days)</h2>
+                <p style="margin-bottom: 1rem;">Implement immediately - high ROI, critical gaps</p>
+                
+                {% for rec in recommendations.tier_1_critical|default([]) %}
+                <div class="recommendation-card">
+                    <div class="recommendation-header">
+                        <div class="recommendation-title">{{ rec.title }}</div>
+                        <span class="recommendation-badge badge-critical">CRITICAL</span>
+                    </div>
+                    <p style="line-height: 1.8; margin: 1rem 0;">{{ rec.description }}</p>
+                    <div class="recommendation-meta">
+                        <div><strong>Expected Impact:</strong> {{ rec.expected_impact }}</div>
+                        <div><strong>Effort:</strong> {{ rec.effort }}</div>
+                        <div><strong>Timeline:</strong> {{ rec.timeframe }}</div>
+                    </div>
+                </div>
+                {% else %}
+                <p style="color: #10b981; font-style: italic;">No critical issues identified.</p>
+                {% endfor %}
+            </div>
+            
+            <!-- Tier 2: High Impact -->
+            <div class="recommendation-tier tier-high">
+                <h2 style="color: #f59e0b;">Tier 2: High Impact (30-90 Days)</h2>
+                <p style="margin-bottom: 1rem;">Implement next - major optimization opportunities</p>
+                
+                {% for rec in recommendations.tier_2_high_impact|default([]) %}
+                <div class="recommendation-card">
+                    <div class="recommendation-header">
+                        <div class="recommendation-title">{{ rec.title }}</div>
+                        <span class="recommendation-badge badge-high">HIGH IMPACT</span>
+                    </div>
+                    <p style="line-height: 1.8; margin: 1rem 0;">{{ rec.description }}</p>
+                    <div class="recommendation-meta">
+                        <div><strong>Expected Impact:</strong> {{ rec.expected_impact }}</div>
+                        <div><strong>Effort:</strong> {{ rec.effort }}</div>
+                        <div><strong>Timeline:</strong> {{ rec.timeframe }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Tier 3: Strategic -->
+            <div class="recommendation-tier tier-strategic">
+                <h2 style="color: #3b82f6;">Tier 3: Strategic (90+ Days)</h2>
+                <p style="margin-bottom: 1rem;">Long-term initiatives for sustained growth</p>
+                
+                {% for rec in recommendations.tier_3_strategic|default([]) %}
+                <div class="recommendation-card">
+                    <div class="recommendation-header">
+                        <div class="recommendation-title">{{ rec.title }}</div>
+                        <span class="recommendation-badge badge-strategic">STRATEGIC</span>
+                    </div>
+                    <p style="line-height: 1.8; margin: 1rem 0;">{{ rec.description }}</p>
+                    <div class="recommendation-meta">
+                        <div><strong>Expected Impact:</strong> {{ rec.expected_impact }}</div>
+                        <div><strong>Effort:</strong> {{ rec.effort }}</div>
+                        <div><strong>Timeline:</strong> {{ rec.timeframe }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        
+        <!-- Appendix: Detailed Benchmarks -->
+        <section>
+            <h1>Appendix: Detailed Benchmark Data</h1>
+            
+            <h2>Flow Benchmarks</h2>
+            {% for flow_name, metrics in benchmark_details.flow_metrics.items() %}
+            <h3>{{ flow_name|replace('_', ' ')|title }}</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Your Value</th>
+                        <th>Industry Average</th>
+                        <th>Gap</th>
+                        <th>Percentile</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for metric in metrics %}
+                    <tr>
+                        <td>{{ metric.metric }}</td>
+                        <td>{{ metric.value|round(2) }}%</td>
+                        <td>{{ metric.benchmark|round(2) }}%</td>
+                        <td style="color: {% if metric.gap > 0 %}#10b981{% else %}#ef4444{% endif %};">
+                            {{ metric.gap|round(2) }}pp
+                        </td>
+                        <td>{{ metric.percentile|int }}th</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endfor %}
+        </section>
+    </div>
+    
+    <script>
+        // Add format_number filter simulation for template
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+    </script>
+</body>
+</html>

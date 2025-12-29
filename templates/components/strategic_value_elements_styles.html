@@ -1,0 +1,340 @@
+{# Shared CSS styles for strategic value elements #}
+<style>
+/* Root Cause Analysis Styling */
+.root-cause-analysis {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.diagnosis-section {
+    margin-bottom: 1.5rem;
+}
+
+.diagnosis-text {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    line-height: 1.7;
+    color: #000000;
+    padding: 1rem;
+    background: #F9FAFB;
+    border-left: 4px solid #3B82F6;
+    border-radius: 4px;
+}
+
+.drivers-section, .correlations-section {
+    margin-top: 1.5rem;
+}
+
+.drivers-title, .correlations-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 0.75rem;
+}
+
+.drivers-list, .correlations-list {
+    list-style-type: disc;
+    padding-left: 2rem;
+    margin: 0;
+}
+
+.drivers-list li, .correlations-list li {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    line-height: 1.7;
+    color: #000000;
+    margin-bottom: 0.5rem;
+}
+
+/* Risk Flags Styling */
+.risk-flags-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.risk-flags-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.risk-flag {
+    border-radius: 8px;
+    padding: 1rem;
+    border-left: 4px solid;
+}
+
+.risk-flag.risk-critical {
+    background: #FEF2F2;
+    border-left-color: #DC2626;
+}
+
+.risk-flag.risk-high {
+    background: #FFF7ED;
+    border-left-color: #F59E0B;
+}
+
+.risk-flag.risk-medium {
+    background: #FFFBEB;
+    border-left-color: #FCD34D;
+}
+
+.risk-flag.risk-low {
+    background: #F0F9FF;
+    border-left-color: #3B82F6;
+}
+
+.risk-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.risk-severity-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.severity-critical {
+    background: #DC2626;
+    color: white;
+}
+
+.severity-high {
+    background: #F59E0B;
+    color: white;
+}
+
+.severity-medium {
+    background: #FCD34D;
+    color: #000000;
+}
+
+.severity-low {
+    background: #3B82F6;
+    color: white;
+}
+
+.risk-icon {
+    font-size: 1.25rem;
+}
+
+.risk-content h5 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    font-weight: 700;
+    color: #000000;
+    margin: 0 0 0.5rem 0;
+}
+
+.risk-impact, .risk-urgency, .risk-action {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #000000;
+    margin: 0.25rem 0;
+}
+
+/* Quick Wins Styling */
+.quick-wins-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.quick-wins-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.quick-win-card {
+    background: #F0FDF4;
+    border: 2px solid #65DA4F;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.quick-win-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.quick-win-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    font-weight: 700;
+    color: #000000;
+    margin: 0;
+    flex: 1;
+}
+
+.roi-badge {
+    background: #65DA4F;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+    margin-left: 1rem;
+}
+
+.quick-win-description {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #000000;
+    margin-bottom: 1rem;
+}
+
+.quick-win-metrics {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.quick-win-metrics .metric {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    color: #000000;
+}
+
+.quick-win-steps {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    color: #000000;
+}
+
+.quick-win-steps ol {
+    margin: 0.5rem 0 0 1.5rem;
+    padding: 0;
+}
+
+.quick-win-steps li {
+    margin-bottom: 0.25rem;
+}
+
+/* Enhanced Recommendations Styling */
+.recommendations-enhanced {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.recommendations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.recommendation-item {
+    margin-bottom: 0;
+}
+
+.recommendation-card {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.recommendation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.recommendation-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    font-weight: 700;
+    color: #000000;
+    margin: 0;
+    flex: 1;
+}
+
+.recommendation-description {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #000000;
+    margin-bottom: 1rem;
+}
+
+.recommendation-impact {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #065F46;
+    margin-bottom: 0.75rem;
+}
+
+.recommendation-metrics {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.recommendation-metrics .metric {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    color: #000000;
+}
+
+.recommendation-steps {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    color: #000000;
+}
+
+.recommendation-steps ol {
+    margin: 0.5rem 0 0 1.5rem;
+    padding: 0;
+}
+
+.recommendation-steps li {
+    margin-bottom: 0.25rem;
+}
+
+.recommendation-item-simple {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    line-height: 1.7;
+    color: #000000;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.recommendation-item-simple::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #65DA4F;
+    font-weight: bold;
+}
+
+@media print {
+    .quick-wins-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .risk-flags-container {
+        page-break-inside: avoid;
+    }
+}
+</style>
+

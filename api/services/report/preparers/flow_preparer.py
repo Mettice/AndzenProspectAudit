@@ -1,0 +1,128 @@
+"""
+Flow data preparer.
+"""
+from typing import Dict, Any, Optional
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+async def prepare_flow_data(
+    flow_raw: Dict[str, Any],
+    flow_type: str,
+    benchmarks: Dict[str, Any],
+    client_name: str = "the client",
+    account_context: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Prepare individual flow data with benchmark comparisons and LLM-generated insights."""
+    if not flow_raw:
+        return {}
+    
+    # Get account context
+    account_context = account_context or {}
+    currency = account_context.get("currency", "USD")
+    
+    # Try to use LLM service for insights
+    try:
+        from ...llm import LLMService
+        from ...llm.formatter import LLMDataFormatter
+        
+        # Initialize LLM service with config from account_context if available
+        llm_config = account_context.get("llm_config", {}) if account_context else {}
+        default_provider = llm_config.get("provider", "claude")
+        llm_service = LLMService(
+            default_provider=default_provider,
+            anthropic_api_key=llm_config.get("anthropic_api_key"),
+            openai_api_key=llm_config.get("openai_api_key"),
+            gemini_api_key=llm_config.get("gemini_api_key"),
+            claude_model=llm_config.get("claude_model"),
+            openai_model=llm_config.get("openai_model"),
+            gemini_model=llm_config.get("gemini_model"),
+            llm_config=llm_config if llm_config else None
+        )
+        
+        # Get industry from account_context
+        industry = account_context.get("industry", "retail") if account_context else "retail"
+        
+        # Get benchmark for this flow type to include in LLM data
+        flow_benchmarks = benchmarks.get("flows", {}).get(flow_type, {})
+        benchmark = {
+            "open_rate": flow_benchmarks.get("open_rate", {}).get("average", 0),
+            "click_rate": flow_benchmarks.get("click_rate", {}).get("average", 0),
+            "conversion_rate": flow_benchmarks.get("conversion_rate", {}).get("average", 0),
+            "revenue_per_recipient": flow_benchmarks.get("revenue_per_recipient", {}).get("average", 0)
+        }
+        
+        # Prepare flow data structure for LLM (match what format_for_flow_analysis expects)
+        flow_perf = flow_raw.get("performance", {})
+        flow_data_for_llm = {
+            "flow_name": flow_raw.get("flow_name", flow_type.replace("_", " ").title()),
+            "metrics": {
+                "open_rate": flow_perf.get("open_rate", 0),
+                "click_rate": flow_perf.get("click_rate", 0),
+                "conversion_rate": flow_perf.get("conversion_rate", flow_perf.get("placed_order_rate", 0)),
+                "revenue": flow_perf.get("revenue", 0),
+                "revenue_per_recipient": flow_perf.get("revenue_per_recipient", 0),
+                "conversions": flow_perf.get("conversions", 0)
+            },
+            "benchmark": benchmark
+        }
+        
+        # Format data for LLM
+        formatted_data = LLMDataFormatter.format_for_flow_analysis(
+            flow_data=flow_data_for_llm,
+            client_context={
+                "client_name": client_name,
+                "industry": industry,
+                "currency": currency
+            }
+        )
+        
+        # Generate insights using LLM
+        strategic_insights = await llm_service.generate_insights(
+            section="flow_performance",
+            data=formatted_data,
+            context=formatted_data.get("context", {})
+        )
+        
+        narrative = strategic_insights.get("primary", "")
+        secondary_narrative = strategic_insights.get("secondary", "")
+        performance_status = strategic_insights.get("performance_status", "needs_improvement")
+        areas_of_opportunity = strategic_insights.get("areas_of_opportunity", [])
+        
+    except Exception as e:
+        # Fallback - log error but still try to provide minimal analysis
+        logger.error(f"LLM service unavailable for flow analysis: {e}", exc_info=True)
+        # Provide minimal data-driven fallback instead of empty
+        flow_perf = flow_raw.get("performance", {})
+        open_rate = flow_perf.get("open_rate", 0)
+        click_rate = flow_perf.get("click_rate", 0)
+        narrative = f"<p>Your {flow_raw.get('flow_name', 'flow')} flow demonstrates {open_rate:.1f}% open rate and {click_rate:.1f}% click rate. Review the metrics above to identify optimization opportunities.</p>"
+        secondary_narrative = ""
+        performance_status = "needs_improvement"
+        areas_of_opportunity = []
+    
+    # Get benchmark for this flow type
+    flow_benchmarks = benchmarks.get("flows", {}).get(flow_type, {})
+    
+    benchmark = {
+        "open_rate": flow_benchmarks.get("open_rate", {}).get("average", 0),
+        "click_rate": flow_benchmarks.get("click_rate", {}).get("average", 0),
+        "conversion_rate": flow_benchmarks.get("conversion_rate", {}).get("average", 0),
+        "revenue_per_recipient": flow_benchmarks.get("revenue_per_recipient", {}).get("average", 0)
+    }
+    
+    return {
+        "flow_name": flow_raw.get("flow_name", flow_type.replace("_", " ").title()),
+        "status": flow_raw.get("status", "unknown"),
+        "email_count": flow_raw.get("email_count", 0),
+        "performance": flow_raw.get("performance", {}),
+        "benchmark": flow_raw.get("benchmark", benchmark),
+        "industry": flow_raw.get("industry", "Apparel and Accessories"),
+        "analysis": flow_raw.get("analysis", {}),
+        "narrative": narrative,  # LLM-generated narrative
+        "secondary_narrative": secondary_narrative,  # LLM-generated secondary insights
+        "performance_status": performance_status,  # LLM-determined status
+        "areas_of_opportunity": areas_of_opportunity if isinstance(areas_of_opportunity, list) else []  # LLM-generated areas of opportunity table
+    }
+

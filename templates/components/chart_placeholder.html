@@ -1,0 +1,43 @@
+{#
+  Chart Placeholder Component
+  
+  Usage:
+  {% include "components/chart_placeholder.html" with
+      chart_id="revenue_trend_chart"
+      chart_type="bar_line"
+      title="Revenue Trend (90 Days)"
+      height=300
+      data=chart_data
+  %}
+#}
+
+<div class="chart-container" style="height: {{ height|default(300) }}px;">
+    <div class="chart-title">{{ title }}</div>
+    <canvas id="{{ chart_id }}" data-chart-type="{{ chart_type }}" data-chart-config='{{ data|tojson if data else "{}" }}'></canvas>
+    
+    {# Fallback for when JavaScript is not available or chart fails to render #}
+    <noscript>
+        <div class="chart-fallback">
+            <p>Chart data available but JavaScript is required for visualization.</p>
+            {% if data %}
+            <table class="chart-data-table">
+                {% if data.labels %}
+                <tr>
+                    {% for label in data.labels %}
+                    <th>{{ label }}</th>
+                    {% endfor %}
+                </tr>
+                {% endif %}
+                {% if data.get('values') %}
+                <tr>
+                    {% for value in data.get('values', []) %}
+                    <td>{{ value }}</td>
+                    {% endfor %}
+                </tr>
+                {% endif %}
+            </table>
+            {% endif %}
+        </div>
+    </noscript>
+</div>
+

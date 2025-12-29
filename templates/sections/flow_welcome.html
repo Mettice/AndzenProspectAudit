@@ -1,0 +1,204 @@
+{#
+  Welcome Series Deep Dive Section - Page 8
+  
+  Data required:
+  - welcome_flow_data: dict with flow performance and benchmark comparison
+#}
+
+<section class="section page" data-page="8">
+    <h1 class="section-title">NURTURE / WELCOME SERIES</h1>
+    
+    <div class="flow-intro">
+        {% if welcome_flow_data.narrative %}
+            {{ welcome_flow_data.narrative|safe }}
+        {% endif %}
+    </div>
+    
+    <!-- Welcome Flow Performance Table -->
+    <div class="flow-performance-section">
+        <h4 class="subsection-title">Welcome Flow Performance in the last 90 Days</h4>
+        
+        <div class="table-title-bar">EMAIL AUTOMATION</div>
+        
+        <table class="data-table-green">
+            <thead>
+                <tr>
+                    <th>Flow Name</th>
+                    <th>Average Open Rate</th>
+                    <th>Average Click Rate</th>
+                    <th>Average Placed Order Rate</th>
+                    <th>Revenue Per Recipient</th>
+                    <th>Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ welcome_flow_data.flow_name|default('Welcome Series') }}</td>
+                    <td>{{ (welcome_flow_data.performance.open_rate|default(0))|round(2) }}%</td>
+                    <td>{{ (welcome_flow_data.performance.click_rate|default(0))|round(2) }}%</td>
+                    <td>{{ (welcome_flow_data.performance.placed_order_rate|default(welcome_flow_data.performance.conversion_rate|default(0)))|round(2) }}%</td>
+                    <td>${{ "{:,.2f}".format(welcome_flow_data.performance.revenue_per_recipient|default(0)) }}</td>
+                    <td>${{ "{:,.2f}".format(welcome_flow_data.performance.revenue|default(0)) }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Benchmark Comparison -->
+    <div class="benchmark-section">
+        <h4 class="benchmark-question">
+            <em>What does "good" look like for a welcome series 
+            (<u>{{ welcome_flow_data.industry|default('Apparel and Accessories') }}</u>)?</em>
+        </h4>
+        
+        <table class="data-table-green benchmark-table">
+            <thead>
+                <tr>
+                    <th>Flow Name</th>
+                    <th>Open Rate</th>
+                    <th>Click Rate</th>
+                    <th>Conversion Rate</th>
+                    <th>Revenue Per Recipient</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Welcome Series</td>
+                    <td>{{ welcome_flow_data.benchmark.open_rate }}%</td>
+                    <td>{{ welcome_flow_data.benchmark.click_rate }}%</td>
+                    <td>{{ welcome_flow_data.benchmark.conversion_rate }}%</td>
+                    <td>${{ welcome_flow_data.benchmark.revenue_per_recipient }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Performance Analysis -->
+    {% if welcome_flow_data.secondary_narrative %}
+    <div class="flow-analysis">
+        {{ welcome_flow_data.secondary_narrative|safe }}
+    </div>
+    {% endif %}
+    
+    {% if welcome_flow_data.areas_of_opportunity %}
+    <div class="areas-of-opportunity-section">
+        <h4 class="subsection-title">Areas of Opportunity</h4>
+        <table class="opportunity-table">
+            <thead>
+                <tr>
+                    <th>Opportunity</th>
+                    <th>Recommended Action</th>
+                    <th>Why it Matters</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for opp in welcome_flow_data.areas_of_opportunity %}
+                <tr>
+                    <td>{{ opp.opportunity }}</td>
+                    <td>{{ opp.recommended_action }}</td>
+                    <td>{{ opp.why_it_matters }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</section>
+
+<style>
+.flow-intro p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin-bottom: 2rem;
+}
+
+.flow-performance-section {
+    margin: 2rem 0;
+}
+
+.subsection-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Reduced from 2.17rem - was too large */
+    font-weight: 700;
+    color: #000000; /* Match sample: pure black */
+    margin-bottom: 1rem;
+    margin-top: 1.5rem;
+    line-height: 1.3;
+}
+
+.benchmark-section {
+    margin: 2rem 0;
+}
+
+.benchmark-question {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.benchmark-table {
+    margin-top: 0;
+}
+
+.flow-analysis {
+    background: #FFFFFF;
+    padding: 1.5rem;
+    border-left: 4px solid #65DA4F;
+    margin-top: 2rem;
+}
+
+.flow-analysis p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Match sample: 1.166667em */
+    line-height: 1.7;
+    margin: 0 0 1rem 0;
+    color: #000000; /* Pure black */
+}
+
+.flow-analysis p:last-child {
+    margin-bottom: 0;
+}
+
+.areas-of-opportunity-section {
+    margin: 2rem 0;
+}
+
+.opportunity-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.opportunity-table thead {
+    background-color: #65DA4F;
+    color: #000;
+}
+
+.opportunity-table th {
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: 1px solid #4CAF50;
+}
+
+.opportunity-table td {
+    padding: 0.75rem;
+    border: 1px solid #E0E0E0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    vertical-align: top;
+}
+
+.opportunity-table tbody tr:nth-child(even) {
+    background-color: #F9F9F9;
+}
+
+.opportunity-table tbody tr:hover {
+    background-color: #F0F8F0;
+}
+</style>
+

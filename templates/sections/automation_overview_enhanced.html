@@ -1,0 +1,778 @@
+{#
+  Enhanced Automation Performance Overview with Advanced Flow Intelligence
+  
+  Data required:
+  - automation_overview_data: dict with period_days, flows, summary, chart_data, narrative
+  - flow_lifecycle_analysis: advanced flow analysis from FlowLifecycleAnalyzer
+  - segmentation_analysis: segmentation insights from SegmentationAnalyzer
+#}
+
+<section class="section page" data-page="7">
+    <h1 class="section-title">OVERALL AUTOMATION PERFORMANCE ({{ automation_overview_data.period_days }} DAYS)</h1>
+    
+    <!-- Strategic Flow Analysis Header -->
+    <div class="flow-intelligence-header">
+        <div class="intelligence-summary">
+            <div class="intelligence-metric">
+                <span class="metric-value">${{ "{:,.0f}".format(automation_overview_data.summary.total_conversion_value / 1000) }}K</span>
+                <span class="metric-label">Flow Revenue</span>
+            </div>
+            <div class="intelligence-metric">
+                <span class="metric-value">{{ automation_overview_data.flows|length }}</span>
+                <span class="metric-label">Active Flows</span>
+            </div>
+            <div class="intelligence-metric">
+                {% if flow_lifecycle_analysis and flow_lifecycle_analysis.optimization_priority_matrix %}
+                <span class="metric-value">{{ flow_lifecycle_analysis.optimization_priority_matrix.prioritized_flows|length }}</span>
+                <span class="metric-label">Optimization Opportunities</span>
+                {% else %}
+                <span class="metric-value">-</span>
+                <span class="metric-label">Active Flows</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if flow_lifecycle_analysis and flow_lifecycle_analysis.optimization_priority_matrix.top_priority %}
+        <div class="priority-alert">
+            <div class="alert-header">
+                <span class="alert-icon">🎯</span>
+                <span class="alert-title">Top Priority Optimization</span>
+            </div>
+            <div class="alert-content">
+                <strong>{{ flow_lifecycle_analysis.optimization_priority_matrix.top_priority.flow_name }}</strong>
+                <span class="optimization-focus">{{ flow_lifecycle_analysis.optimization_priority_matrix.top_priority.key_optimization }}</span>
+                <span class="revenue-impact">Potential: ${{ "{:,.0f}".format(flow_lifecycle_analysis.optimization_priority_matrix.top_priority.estimated_revenue_impact) }}</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Enhanced Flow Performance Table -->
+    <div class="automation-table-section">
+        <div class="table-title-bar">
+            EMAIL AUTOMATION PERFORMANCE
+            <span class="table-subtitle">with Strategic Intelligence</span>
+        </div>
+        
+        <table class="data-table-green enhanced-flow-table">
+            <thead>
+                <tr>
+                    <th>Flow Name</th>
+                    <th>Performance Tier</th>
+                    <th>Open Rate</th>
+                    <th>Click Rate</th>
+                    <th>Conversion Rate</th>
+                    <th>Revenue</th>
+                    <th>Strategic Focus</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for flow in automation_overview_data.flows %}
+                {% set flow_analysis = flow_lifecycle_analysis.individual_flows.get(flow.name.lower().replace(' ', '_'), {}) if flow_lifecycle_analysis and flow_lifecycle_analysis.individual_flows else {} %}
+                <tr class="flow-row">
+                    <td class="flow-name">
+                        <div class="flow-name-content">
+                            <span class="name">{{ flow.name }}</span>
+                            {% if flow_analysis and flow_analysis.get('optimization_priority') %}
+                            <span class="priority-badge priority-{{ flow_analysis.optimization_priority }}">
+                                {{ flow_analysis.optimization_priority|title }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if flow_analysis and flow_analysis.get('benchmark_comparison') and flow_analysis.benchmark_comparison.get('overall_performance') %}
+                        <span class="performance-tier tier-{{ flow_analysis.benchmark_comparison.overall_performance }}">
+                            {{ flow_analysis.benchmark_comparison.overall_performance|title }}
+                        </span>
+                        {% else %}
+                        <span class="performance-tier tier-unknown">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="metric-with-benchmark">
+                            <span class="metric-value">{{ flow.avg_open_rate|round(2) }}%</span>
+                            {% if flow_analysis and flow_analysis.get('benchmark_comparison') and flow_analysis.benchmark_comparison.get('metrics', {}).get('open_rate') %}
+                            <span class="benchmark-indicator indicator-{{ 'up' if flow_analysis.benchmark_comparison.metrics.open_rate.vs_average > 0 else 'down' }}">
+                                {{ "↗" if flow_analysis.benchmark_comparison.metrics.open_rate.vs_average > 0 else "↘" }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="metric-with-benchmark">
+                            <span class="metric-value">{{ flow.avg_click_rate|round(2) }}%</span>
+                            {% if flow_analysis and flow_analysis.get('benchmark_comparison') and flow_analysis.benchmark_comparison.get('metrics', {}).get('click_rate') %}
+                            <span class="benchmark-indicator indicator-{{ 'up' if flow_analysis.benchmark_comparison.metrics.click_rate.vs_average > 0 else 'down' }}">
+                                {{ "↗" if flow_analysis.benchmark_comparison.metrics.click_rate.vs_average > 0 else "↘" }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="metric-with-benchmark">
+                            <span class="metric-value">{{ flow.avg_placed_order_rate|round(2) }}%</span>
+                            {% if flow_analysis and flow_analysis.get('benchmark_comparison') and flow_analysis.benchmark_comparison.get('metrics', {}).get('placed_order_rate') %}
+                            <span class="benchmark-indicator indicator-{{ 'up' if flow_analysis.benchmark_comparison.metrics.placed_order_rate.vs_average > 0 else 'down' }}">
+                                {{ "↗" if flow_analysis.benchmark_comparison.metrics.placed_order_rate.vs_average > 0 else "↘" }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="revenue-cell">
+                        <span class="revenue-amount">${{ "{:,.0f}".format(flow.revenue) }}</span>
+                        {% if flow_analysis and flow_analysis.get('revenue_impact_estimate') and flow_analysis.revenue_impact_estimate.get('potential_uplift', 0) > 0 %}
+                        <span class="revenue-potential">+${{ "{:,.0f}".format(flow_analysis.revenue_impact_estimate.potential_uplift) }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="strategic-focus">
+                        {% if flow_analysis and flow_analysis.get('strategic_recommendations') and flow_analysis.strategic_recommendations|length > 0 %}
+                        <div class="focus-item">{{ flow_analysis.strategic_recommendations[0][:50] }}...</div>
+                        {% else %}
+                        <span class="focus-placeholder">Optimization analysis</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="no-data">No flow data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Strategic Analysis Panel -->
+    {% if flow_lifecycle_analysis or segmentation_analysis %}
+    <div class="strategic-analysis-panel">
+        <div class="panel-header">
+            <h3 class="panel-title">Advanced Flow Intelligence</h3>
+            <div class="analysis-indicators">
+                {% if flow_lifecycle_analysis %}
+                <span class="indicator active">Flow Optimization</span>
+                {% endif %}
+                {% if segmentation_analysis %}
+                <span class="indicator active">Segmentation Strategy</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="panel-content">
+            <!-- Flow Optimization Insights -->
+            {% if flow_lifecycle_analysis %}
+            <div class="intelligence-section">
+                <h4 class="intelligence-header">Flow Optimization Opportunities</h4>
+                
+                {% if flow_lifecycle_analysis.optimization_priority_matrix.prioritized_flows %}
+                <div class="optimization-list">
+                    {% for priority_flow in flow_lifecycle_analysis.optimization_priority_matrix.prioritized_flows[:3] %}
+                    <div class="optimization-item priority-{{ loop.index }}">
+                        <div class="optimization-header">
+                            <span class="flow-name">{{ priority_flow.flow_name }}</span>
+                            <span class="performance-tier">{{ priority_flow.performance_tier|title }}</span>
+                            <span class="revenue-impact">${{ "{:,.0f}".format(priority_flow.estimated_revenue_impact) }} potential</span>
+                        </div>
+                        <div class="optimization-detail">
+                            <strong>Focus:</strong> {{ priority_flow.key_optimization }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% if flow_lifecycle_analysis.strategic_summary %}
+                <div class="intelligence-narrative">
+                    <p>{{ flow_lifecycle_analysis.strategic_summary }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Segmentation Strategy -->
+            {% if segmentation_analysis and not segmentation_analysis.error %}
+            <div class="intelligence-section">
+                <h4 class="intelligence-header">Segmentation Enhancement Strategy</h4>
+                
+                {% if segmentation_analysis.prioritized_opportunities %}
+                <div class="segmentation-opportunities">
+                    {% for opportunity in segmentation_analysis.prioritized_opportunities[:2] %}
+                    <div class="segmentation-item">
+                        <div class="seg-header">
+                            <span class="seg-type">{{ opportunity.type.replace('_', ' ')|title }}</span>
+                            <span class="seg-impact">{{ opportunity.impact }} Impact</span>
+                        </div>
+                        <div class="seg-description">
+                            {{ opportunity.category.replace('_', ' ')|title }} optimization opportunity
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% if segmentation_analysis.strategic_narrative %}
+                <div class="intelligence-narrative">
+                    <p>{{ segmentation_analysis.strategic_narrative }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Enhanced Flow Performance Chart -->
+    <div class="flow-performance-visualization">
+        <div class="chart-header">
+            <h4 class="chart-title">Flow Performance Trends</h4>
+            <div class="chart-controls">
+                <span class="chart-control active">Revenue</span>
+                <span class="chart-control">Recipients</span>
+                <span class="chart-control">Optimization Potential</span>
+            </div>
+        </div>
+        
+        <div class="summary-chart">
+            {% set chart_id = "enhanced_flow_performance_chart" %}
+            {% set chart_type = "bar_line" %}
+            {% set height = 280 %}
+            {% set data = automation_overview_data.chart_data if automation_overview_data.chart_data else {} %}
+            {% include "components/chart_placeholder.html" %}
+            
+            <div class="chart-legend enhanced-legend">
+                <span class="legend-item"><span class="legend-color" style="background: #65DA4F;"></span> Flow Revenue</span>
+                <span class="legend-item"><span class="legend-color" style="background: #4F9CF9;"></span> Recipients</span>
+                <span class="legend-item"><span class="legend-color" style="background: #F59E0B;"></span> Optimization Potential</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Implementation Roadmap -->
+    {% if flow_lifecycle_analysis and flow_lifecycle_analysis.implementation_roadmap %}
+    <div class="implementation-roadmap">
+        <h4 class="roadmap-title">Strategic Implementation Timeline</h4>
+        <div class="roadmap-timeline">
+            {% for phase in flow_lifecycle_analysis.implementation_roadmap[:3] %}
+            <div class="timeline-phase phase-{{ loop.index }}">
+                <div class="phase-marker">{{ loop.index }}</div>
+                <div class="phase-content">
+                    <div class="phase-title">{{ phase.initiative }}</div>
+                    <div class="phase-timeline">{{ phase.week }}</div>
+                    <div class="phase-focus">{{ phase.focus }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</section>
+
+<style>
+/* Enhanced Automation Overview Styles */
+
+.flow-intelligence-header {
+    background: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    align-items: center;
+}
+
+.intelligence-summary {
+    display: flex;
+    gap: 2rem;
+}
+
+.intelligence-metric {
+    text-align: center;
+}
+
+.intelligence-metric .metric-value {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: #262626;
+    line-height: 1;
+}
+
+.intelligence-metric .metric-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 0.25rem;
+    font-weight: 600;
+}
+
+.priority-alert {
+    background: #FEF9E7;
+    border: 1px solid #F59E0B;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.alert-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.alert-title {
+    font-weight: 700;
+    color: #92400E;
+    font-size: 0.9rem;
+}
+
+.alert-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.alert-content strong {
+    color: #262626;
+    font-size: 0.95rem;
+}
+
+.optimization-focus {
+    color: #92400E;
+    font-size: 0.85rem;
+}
+
+.revenue-impact {
+    color: #65DA4F;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.table-title-bar .table-subtitle {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: rgba(38, 38, 38, 0.7);
+    margin-left: 1rem;
+}
+
+.enhanced-flow-table {
+    font-size: 0.85rem;
+}
+
+.flow-name-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.priority-badge {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.priority-high {
+    background: #FEF2F2;
+    color: #991B1B;
+}
+
+.priority-medium {
+    background: #FFFBEB;
+    color: #92400E;
+}
+
+.priority-low {
+    background: #F0F9FF;
+    color: #1E40AF;
+}
+
+.priority-maintenance {
+    background: #F0FDF4;
+    color: #166534;
+}
+
+.performance-tier {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.tier-excellent {
+    background: #DCFCE7;
+    color: #166534;
+}
+
+.tier-good {
+    background: #DBEAFE;
+    color: #1D4ED8;
+}
+
+.tier-average {
+    background: #FEF3C7;
+    color: #D97706;
+}
+
+.tier-poor {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.tier-unknown {
+    background: #F3F4F6;
+    color: #6B7280;
+}
+
+.metric-with-benchmark {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.benchmark-indicator {
+    font-size: 0.8rem;
+}
+
+.indicator-up {
+    color: #10B981;
+}
+
+.indicator-down {
+    color: #EF4444;
+}
+
+.revenue-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.revenue-potential {
+    font-size: 0.75rem;
+    color: #10B981;
+    font-weight: 600;
+}
+
+.strategic-focus {
+    max-width: 200px;
+}
+
+.focus-item {
+    font-size: 0.8rem;
+    color: #374151;
+    line-height: 1.3;
+}
+
+.focus-placeholder {
+    color: #9CA3AF;
+    font-style: italic;
+    font-size: 0.8rem;
+}
+
+.strategic-analysis-panel {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    margin-top: 2rem;
+    overflow: hidden;
+}
+
+.panel-header {
+    background: #1F2937;
+    color: white;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    margin: 0;
+    letter-spacing: 0.05em;
+}
+
+.analysis-indicators {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.indicator {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.indicator.active {
+    background: #10B981;
+    border-color: #10B981;
+}
+
+.panel-content {
+    padding: 1.5rem;
+}
+
+.intelligence-section {
+    margin-bottom: 2rem;
+}
+
+.intelligence-section:last-child {
+    margin-bottom: 0;
+}
+
+.intelligence-header {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #262626;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #F1F5F9;
+}
+
+.optimization-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.optimization-item {
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.optimization-item.priority-1 {
+    background: #FEF2F2;
+    border-left-color: #DC2626;
+}
+
+.optimization-item.priority-2 {
+    background: #FFFBEB;
+    border-left-color: #F59E0B;
+}
+
+.optimization-item.priority-3 {
+    background: #F0F9FF;
+    border-left-color: #3B82F6;
+}
+
+.optimization-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.optimization-header .flow-name {
+    font-weight: 600;
+    color: #262626;
+}
+
+.optimization-header .performance-tier {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+}
+
+.optimization-detail {
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.segmentation-opportunities {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.segmentation-item {
+    padding: 1rem;
+    background: #F9FAFB;
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+}
+
+.seg-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.seg-type {
+    font-weight: 600;
+    color: #262626;
+    font-size: 0.9rem;
+}
+
+.seg-impact {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    background: #DBEAFE;
+    color: #1D4ED8;
+    border-radius: 12px;
+}
+
+.seg-description {
+    font-size: 0.85rem;
+    color: #6B7280;
+}
+
+.intelligence-narrative {
+    background: #F8FAFC;
+    padding: 1rem;
+    border-radius: 6px;
+    border-left: 4px solid #65DA4F;
+}
+
+.intelligence-narrative p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #374151;
+}
+
+.flow-performance-visualization {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.chart-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #262626;
+    margin: 0;
+}
+
+.chart-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.chart-control {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    background: #F3F4F6;
+    color: #6B7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chart-control.active {
+    background: #65DA4F;
+    color: white;
+}
+
+.enhanced-legend {
+    justify-content: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #F1F5F9;
+}
+
+.implementation-roadmap {
+    background: #F8FAFC;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.roadmap-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #262626;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.roadmap-timeline {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+}
+
+.timeline-phase {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 200px;
+}
+
+.phase-marker {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #65DA4F;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.phase-content {
+    text-align: center;
+}
+
+.phase-title {
+    font-weight: 600;
+    color: #262626;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.phase-timeline {
+    font-size: 0.8rem;
+    color: #65DA4F;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.phase-focus {
+    font-size: 0.8rem;
+    color: #6B7280;
+}
+
+@media print {
+    .flow-intelligence-header {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .strategic-analysis-panel {
+        page-break-inside: avoid;
+    }
+    
+    .roadmap-timeline {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+</style>

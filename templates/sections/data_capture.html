@@ -1,0 +1,267 @@
+{#
+  Data Capture Section - Pages 5-6
+  
+  Data required:
+  - data_capture_data: dict with forms, analysis, advanced_targeting, etc.
+#}
+
+<section class="section page" data-page="5-6">
+    <h1 class="section-title">DATA CAPTURE</h1>
+    
+    <div class="data-capture-intro">
+        {% if data_capture_data.analysis_text %}
+            {{ data_capture_data.analysis_text|safe }}
+        {% else %}
+            <p>
+                <em>Data capture analysis unavailable. Review the form performance metrics above to identify optimization opportunities.</em>
+            </p>
+        {% endif %}
+    </div>
+    
+    <!-- Form Performance Table -->
+    <div class="form-performance-section">
+        <h4 class="subsection-title">Data Capture Form Performance in the last 90 Days</h4>
+        
+        <table class="data-table-green">
+            <thead>
+                <tr>
+                    <th>Name of Form</th>
+                    <th>Type</th>
+                    <th>Impressions</th>
+                    <th>Total Submitted</th>
+                    <th>Submit Rate</th>
+                    <th>Standing</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for form in data_capture_data.forms %}
+                <tr>
+                    <td>{{ form.name }}</td>
+                    <td>{{ form.type if form.type != "Unknown" else "Embed" }}</td>
+                    <td>{{ form.impressions_fmt }}</td>
+                    <td>{{ form.submitted_fmt }}</td>
+                    <td>{{ form.submit_rate_fmt if form.submit_rate_fmt else (form.submit_rate|round(2)) ~ "%" }}</td>
+                    <td>
+                        <span class="standing standing-{{ form.standing|lower }}">{{ form.standing }}</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="no-data">No form data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if data_capture_data.areas_of_opportunity %}
+    <div class="areas-of-opportunity-section">
+        <h4 class="subsection-title">Areas of Opportunity</h4>
+        <table class="opportunity-table">
+            <thead>
+                <tr>
+                    <th>Opportunity</th>
+                    <th>Recommended Action</th>
+                    <th>Why it Matters</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for opp in data_capture_data.areas_of_opportunity %}
+                <tr>
+                    <td>{{ opp.opportunity }}</td>
+                    <td>{{ opp.recommended_action }}</td>
+                    <td>{{ opp.why_it_matters }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    {# Strategic Value Elements #}
+    {% from "components/strategic_value_elements.html" import root_cause_analysis, risk_flags, quick_wins, enhanced_recommendations %}
+    
+    {% if data_capture_data.root_cause_analysis %}
+    {{ root_cause_analysis(data_capture_data.root_cause_analysis) }}
+    {% endif %}
+    
+    {% if data_capture_data.risk_flags %}
+    {{ risk_flags(data_capture_data.risk_flags) }}
+    {% endif %}
+    
+    {% if data_capture_data.quick_wins %}
+    {{ quick_wins(data_capture_data.quick_wins) }}
+    {% endif %}
+    
+    {% if data_capture_data.recommendations %}
+    {{ enhanced_recommendations(data_capture_data.recommendations) }}
+    {% endif %}
+    
+    <!-- Advanced Targeting Section -->
+    {% if data_capture_data.advanced_targeting or data_capture_data.progressive_profiling or data_capture_data.flyout_forms %}
+    <div class="advanced-section">
+        {% if data_capture_data.advanced_targeting %}
+        <div class="tactics-section">
+            <h4>Advanced Targeting</h4>
+            <ul class="tactics-list">
+                {% for tactic in data_capture_data.advanced_targeting %}
+                <li>{{ tactic }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        {% if data_capture_data.progressive_profiling %}
+        <div class="tactics-section">
+            <h4>Progressive Profiling</h4>
+            <ul class="tactics-list">
+                {% for item in data_capture_data.progressive_profiling %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        {% if data_capture_data.flyout_forms %}
+        <div class="tactics-section">
+            <h4>Flyout Forms</h4>
+            <ul class="tactics-list">
+                {% for item in data_capture_data.flyout_forms %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+
+<style>
+.data-capture-intro p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Match sample: 1.166667em for body text */
+    line-height: 1.6; /* Match sample line height */
+    color: #000000; /* Match sample: pure black */
+    margin-bottom: 2rem;
+}
+
+.form-performance-section {
+    margin: 2rem 0;
+}
+
+.subsection-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Reduced from 2.17rem - was too large */
+    font-weight: 700;
+    color: #000000; /* Match sample: pure black */
+    margin-bottom: 1rem;
+    margin-top: 1.5rem;
+    line-height: 1.3;
+}
+
+/* Standing badges */
+.standing {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 0;
+}
+
+.standing-excellent {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.standing-good {
+    background: #65DA4F;
+    color: #262626;
+}
+
+.standing-average {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.standing-poor {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.form-analysis {
+    margin: 2rem 0;
+}
+
+.form-analysis p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+.recommendations-list {
+    margin: 1rem 0 1rem 1.5rem;
+}
+
+.recommendations-list li {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+.recommendations-list ul {
+    margin-top: 0.5rem;
+    margin-left: 1.5rem;
+}
+
+.advanced-section {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.advanced-section p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+.tactics-section {
+    margin: 1.5rem 0;
+}
+
+.tactics-section h4 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: #262626;
+}
+
+.tactics-list {
+    margin: 0 0 0 1.5rem;
+    padding: 0;
+}
+
+.tactics-list li {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+}
+
+@media print {
+    .data-capture-intro,
+    .form-analysis,
+    .advanced-section {
+        page-break-inside: avoid;
+    }
+}
+</style>
+
+{# Include strategic value elements styles #}
+{% include "components/strategic_value_elements_styles.html" %}
+

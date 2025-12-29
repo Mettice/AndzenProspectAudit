@@ -1,0 +1,174 @@
+{# Reusable components for displaying strategic value elements #}
+
+{# Root Cause Analysis Component #}
+{% macro root_cause_analysis(root_cause_data) %}
+{% if root_cause_data and (root_cause_data.get('performance_drivers') or root_cause_data.get('correlations') or root_cause_data.get('diagnosis')) %}
+<div class="root-cause-analysis">
+    <h4 class="subsection-title">Root Cause Analysis</h4>
+    
+    {% if root_cause_data.get('diagnosis') %}
+    <div class="diagnosis-section">
+        <p class="diagnosis-text">{{ root_cause_data.diagnosis }}</p>
+    </div>
+    {% endif %}
+    
+    {% if root_cause_data.get('performance_drivers') %}
+    <div class="drivers-section">
+        <h5 class="drivers-title">Performance Drivers</h5>
+        <ul class="drivers-list">
+            {% for driver in root_cause_data.performance_drivers %}
+            <li>{{ driver }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    {% if root_cause_data.get('correlations') %}
+    <div class="correlations-section">
+        <h5 class="correlations-title">Key Correlations</h5>
+        <ul class="correlations-list">
+            {% for correlation in root_cause_data.correlations %}
+            <li>{{ correlation }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{# Risk Flags Component #}
+{% macro risk_flags(risk_flags_list) %}
+{% if risk_flags_list and risk_flags_list|length > 0 %}
+<div class="risk-flags-section">
+    <h4 class="subsection-title">Risk Flags & Urgent Actions</h4>
+    <div class="risk-flags-container">
+        {% for risk in risk_flags_list %}
+        <div class="risk-flag risk-{{ risk.get('severity', 'medium') }}">
+            <div class="risk-header">
+                <span class="risk-severity-badge severity-{{ risk.get('severity', 'medium') }}">
+                    {{ risk.get('severity', 'medium').upper() }}
+                </span>
+                <span class="risk-icon">
+                    {% if risk.get('severity') == 'critical' %}🚨
+                    {% elif risk.get('severity') == 'high' %}⚠️
+                    {% else %}ℹ️
+                    {% endif %}
+                </span>
+            </div>
+            <div class="risk-content">
+                <h5 class="risk-issue">{{ risk.get('issue', 'Unknown Issue') }}</h5>
+                {% if risk.get('impact') %}
+                <p class="risk-impact"><strong>Impact:</strong> {{ risk.impact }}</p>
+                {% endif %}
+                {% if risk.get('urgency') %}
+                <p class="risk-urgency"><strong>Urgency:</strong> {{ risk.urgency }}</p>
+                {% endif %}
+                {% if risk.get('recommended_action') %}
+                <p class="risk-action"><strong>Action:</strong> {{ risk.recommended_action }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{# Quick Wins Component #}
+{% macro quick_wins(quick_wins_list) %}
+{% if quick_wins_list and quick_wins_list|length > 0 %}
+<div class="quick-wins-section">
+    <h4 class="subsection-title">Quick Wins</h4>
+    <div class="quick-wins-container">
+        {% for win in quick_wins_list %}
+        <div class="quick-win-card">
+            <div class="quick-win-header">
+                <h5 class="quick-win-title">{{ win.get('title', 'Quick Win') }}</h5>
+                {% if win.get('roi') %}
+                <span class="roi-badge">{{ win.roi }} ROI</span>
+                {% endif %}
+            </div>
+            <p class="quick-win-description">{{ win.get('description', '') }}</p>
+            <div class="quick-win-metrics">
+                {% if win.get('effort') %}
+                <span class="metric effort">
+                    <strong>Effort:</strong> {{ win.effort }}
+                </span>
+                {% endif %}
+                {% if win.get('impact') %}
+                <span class="metric impact">
+                    <strong>Impact:</strong> {{ win.impact }}
+                </span>
+                {% endif %}
+            </div>
+            {% if win.get('steps') and win.steps|length > 0 %}
+            <div class="quick-win-steps">
+                <strong>Steps:</strong>
+                <ol>
+                    {% for step in win.steps %}
+                    <li>{{ step }}</li>
+                    {% endfor %}
+                </ol>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{# Enhanced Recommendations Component #}
+{% macro enhanced_recommendations(recommendations_list) %}
+{% if recommendations_list and recommendations_list|length > 0 %}
+<div class="recommendations-enhanced">
+    <h4 class="subsection-title">Recommendations</h4>
+    <div class="recommendations-list">
+        {% for rec in recommendations_list %}
+        <div class="recommendation-item">
+            {% if rec is mapping %}
+            {# Enhanced recommendation with structured data #}
+            <div class="recommendation-card">
+                <div class="recommendation-header">
+                    <h5 class="recommendation-title">{{ rec.get('title', 'Recommendation') }}</h5>
+                    {% if rec.get('roi') %}
+                    <span class="roi-badge">{{ rec.roi }} ROI</span>
+                    {% endif %}
+                </div>
+                <p class="recommendation-description">{{ rec.get('description', '') }}</p>
+                {% if rec.get('revenue_impact') %}
+                <p class="recommendation-impact"><strong>Revenue Impact:</strong> {{ rec.revenue_impact }}</p>
+                {% endif %}
+                <div class="recommendation-metrics">
+                    {% if rec.get('effort_hours') %}
+                    <span class="metric"><strong>Effort:</strong> {{ rec.effort_hours }} hours</span>
+                    {% endif %}
+                    {% if rec.get('payback_period') %}
+                    <span class="metric"><strong>Payback:</strong> {{ rec.payback_period }}</span>
+                    {% endif %}
+                </div>
+                {% if rec.get('implementation_steps') and rec.implementation_steps|length > 0 %}
+                <div class="recommendation-steps">
+                    <strong>Implementation Steps:</strong>
+                    <ol>
+                        {% for step in rec.implementation_steps %}
+                        <li>{{ step }}</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            {# Legacy string-based recommendation #}
+            <div class="recommendation-item-simple">
+                <p>{{ rec }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endmacro %}
+

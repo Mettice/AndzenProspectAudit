@@ -1,0 +1,72 @@
+{#
+  Flow Summary Card Component
+  
+  Usage:
+  {% include "components/flow_card.html" with
+      flow={
+          "name": "Welcome Series",
+          "status": "live",
+          "email_count": 4,
+          "open_rate": 71.19,
+          "click_rate": 21.20,
+          "revenue": 73866.58,
+          "revenue_per_recipient": 39.35
+      }
+      show_recommendations=true
+      recommendations=["Add more emails", "Test subject lines"]
+  %}
+#}
+
+<div class="flow-card {% if flow.status == 'missing' %}missing{% elif flow.status == 'draft' %}draft{% endif %}">
+    <div class="flow-card__header">
+        <h3>{{ flow.name }}</h3>
+        <span class="pill pill-{{ flow.status|default('unknown') }}">
+            {{ flow.status|default('Unknown')|upper }}
+        </span>
+    </div>
+    
+    {% if flow.status != 'missing' %}
+    <p class="flow-card__meta">{{ flow.email_count|default(0) }} email(s) in flow</p>
+    
+    <div class="flow-metrics">
+        <div class="flow-metric">
+            <div class="flow-metric-label">Open Rate</div>
+            <div class="flow-metric-value">{{ flow.open_rate|default(0)|round(1) }}%</div>
+        </div>
+        <div class="flow-metric">
+            <div class="flow-metric-label">Click Rate</div>
+            <div class="flow-metric-value">{{ flow.click_rate|default(0)|round(2) }}%</div>
+        </div>
+        {% if flow.revenue %}
+        <div class="flow-metric">
+            <div class="flow-metric-label">Revenue</div>
+            <div class="flow-metric-value">${{ "{:,.0f}".format(flow.revenue) }}</div>
+        </div>
+        {% endif %}
+        {% if flow.revenue_per_recipient %}
+        <div class="flow-metric">
+            <div class="flow-metric-label">Rev/Recipient</div>
+            <div class="flow-metric-value">${{ flow.revenue_per_recipient|round(2) }}</div>
+        </div>
+        {% endif %}
+    </div>
+    
+    {% if show_recommendations and recommendations %}
+    <div class="flow-card__recommendations">
+        <strong>Recommendations:</strong>
+        <ul>
+            {% for rec in recommendations[:3] %}
+            <li>{{ rec }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <p class="flow-card__missing">This critical flow is not active.</p>
+    <p class="flow-card__missing-note">
+        <strong>Recommended:</strong> Activate immediately to capture revenue.
+    </p>
+    {% endif %}
+</div>
+

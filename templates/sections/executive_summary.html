@@ -1,0 +1,41 @@
+<section class="section executive-summary">
+    <h1>Executive Summary</h1>
+    
+    <div class="summary-metrics">
+        <div class="metric-card highlight">
+            <h3>KAV Percentage</h3>
+            <p class="metric-value large">{{ "%.1f"|format(sections.executive_summary.kav_percentage) }}%</p>
+        </div>
+        
+        <div class="metric-card">
+            <h3>Campaign Revenue</h3>
+            <p class="metric-value">{{ "%.1f"|format(sections.executive_summary.campaign_vs_flow_split.campaign) }}%</p>
+        </div>
+        
+        <div class="metric-card">
+            <h3>Flow Revenue</h3>
+            <p class="metric-value">{{ "%.1f"|format(sections.executive_summary.campaign_vs_flow_split.flow) }}%</p>
+        </div>
+    </div>
+    
+    <div class="summary-content">
+        <div class="strengths">
+            <h2>Top 3 Strengths</h2>
+            <ol>
+                {% for strength in sections.executive_summary.strengths %}
+                <li>{{ strength }}</li>
+                {% endfor %}
+            </ol>
+        </div>
+        
+        <div class="opportunities">
+            <h2>Top 3 Opportunities</h2>
+            <ol>
+                {% for opportunity in sections.executive_summary.opportunities %}
+                <li>{{ opportunity }}</li>
+                {% endfor %}
+            </ol>
+        </div>
+    </div>
+</section>
+

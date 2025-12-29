@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klaviyo Audit Report - {{ client_name }}</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Cover Page -->
+        <section class="cover-page">
+            <div class="cover-content">
+                <h1>Klaviyo Audit Report</h1>
+                <h2>{{ client_name }}</h2>
+                <p class="audit-date">Audit Date: {{ audit_date }}</p>
+                <p class="auditor">Prepared by: {{ auditor_name }}</p>
+            </div>
+        </section>
+        
+        <!-- Executive Summary -->
+        <section class="executive-summary">
+            <h1>Executive Summary</h1>
+            
+            <div class="summary-metrics">
+                <div class="metric-card highlight">
+                    <h3>Account Health Score</h3>
+                    <div class="health-score" style="--score: {{ executive_summary.overall_health_score|default(50) }}">
+                        <span>{{ executive_summary.overall_health_score|default(50)|int }}/100</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <h3>KAV Percentage</h3>
+                    <p class="metric-value">{{ executive_summary.kav_percentage|default(0)|round(1) }}%</p>
+                    <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem;">Target: 30%</p>
+                </div>
+                
+                <div class="metric-card">
+                    <h3>Performance Tier</h3>
+                    <p class="metric-value" style="font-size: 1.5rem;">{{ executive_summary.performance_tier|default("Average") }}</p>
+                </div>
+            </div>
+            
+            <div class="summary-content">
+                <div class="strengths">
+                    <h2>Top 3 Strengths</h2>
+                    <ol>
+                        {% for strength in executive_summary.top_strengths|default([]) %}
+                        <li>{{ strength }}</li>
+                        {% else %}
+                        <li>No strengths identified</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+                
+                <div class="opportunities">
+                    <h2>Top 3 Opportunities</h2>
+                    <ol>
+                        {% for opportunity in executive_summary.top_opportunities|default([]) %}
+                        <li>{{ opportunity }}</li>
+                        {% else %}
+                        <li>No opportunities identified</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
+            
+            {% if executive_summary.key_insight %}
+            <div style="background: white; padding: 2rem; border-radius: 12px; margin-top: 2rem; border-left: 4px solid #667eea;">
+                <h2>Key Insight</h2>
+                <p style="font-size: 1.1rem; line-height: 1.8;">{{ executive_summary.key_insight }}</p>
+            </div>
+            {% endif %}
+        </section>
+        
+        <!-- Data Snapshot -->
+        <section>
+            <h1>Data Snapshot</h1>
+            <div class="summary-metrics">
+                <div class="metric-card">
+                    <h3>Total Revenue</h3>
+                    <p class="metric-value">${{ data_snapshot.total_revenue|default(0)|round(2)|format_number }}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Klaviyo Revenue</h3>
+                    <p class="metric-value">${{ data_snapshot.klaviyo_revenue|default(0)|round(2)|format_number }}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Total Campaigns</h3>
+                    <p class="metric-value">{{ data_snapshot.total_campaigns|default(0) }}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Total Flows</h3>
+                    <p class="metric-value">{{ data_snapshot.total_flows|default(0) }}</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Revenue Analysis -->
+        <section>
+            <h1>Revenue Analysis</h1>
+            
+            <h2>Revenue Breakdown</h2>
+            <div class="summary-metrics">
+                <div class="metric-card">
+                    <h3>Campaign Revenue</h3>
+                    <p class="metric-value">${{ revenue_analysis.totals.campaign_revenue|default(0)|round(2)|format_number }}</p>
+                    <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem;">
+                        {{ revenue_analysis.campaign_flow_split.campaign|default(0)|round(1) }}% of Klaviyo revenue
+                    </p>
+                </div>
+                <div class="metric-card">
+                    <h3>Flow Revenue</h3>
+                    <p class="metric-value">${{ revenue_analysis.totals.flow_revenue|default(0)|round(2)|format_number }}</p>
+                    <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem;">
+                        {{ revenue_analysis.campaign_flow_split.flow|default(0)|round(1) }}% of Klaviyo revenue
+                    </p>
+                </div>
+            </div>
+            
+            <h2>Campaign vs Flow Split</h2>
+            <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Campaigns: {{ revenue_analysis.campaign_flow_split.campaign|default(0)|round(1) }}%</span>
+                        <span>Target: 50%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" data-width="{{ revenue_analysis.campaign_flow_split.campaign|default(0) }}"></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Flows: {{ revenue_analysis.campaign_flow_split.flow|default(0)|round(1) }}%</span>
+                        <span>Target: 50%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill progress-fill-flow" data-width="{{ revenue_analysis.campaign_flow_split.flow|default(0) }}"></div>
+                    </div>
+                </div>
+                
+                <p style="margin-top: 1.5rem; font-style: italic; color: #666;">
+                    Ideal split: 50% campaigns, 50% flows. Significant imbalance indicates over-reliance on one channel.
+                </p>
+            </div>
+            
+            {% if revenue_analysis.insights %}
+            <h2>Revenue Insights</h2>
+            <ul>
+                {% for insight in revenue_analysis.insights %}
+                <li style="margin: 1rem 0; line-height: 1.8;">{{ insight }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </section>
+        
+        <!-- Campaign Analysis -->
+        <section>
+            <h1>Campaign Performance Analysis</h1>
+            
+            <h2>Campaign Metrics Overview</h2>
+            <div class="summary-metrics">
+                <div class="metric-card">
+                    <h3>Total Campaigns</h3>
+                    <p class="metric-value">{{ campaign_analysis.overview.total_sent|default(0) }}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Avg Open Rate</h3>
+                    <p class="metric-value">{{ campaign_analysis.overview.avg_open_rate|default(0)|round(1) }}%</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Avg Click Rate</h3>
+                    <p class="metric-value">{{ campaign_analysis.overview.avg_click_rate|default(0)|round(2) }}%</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Avg Conversion</h3>
+                    <p class="metric-value">{{ campaign_analysis.overview.avg_conversion_rate|default(0)|round(2) }}%</p>
+                </div>
+            </div>
+            
+            <h2>Benchmark Comparison</h2>
+            <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div class="benchmark-row benchmark-header">
+                    <div>Metric</div>
+                    <div>Your Value</div>
+                    <div>Industry Avg</div>
+                    <div>Top 10%</div>
+                    <div>Status</div>
+                </div>
+                {% for comparison in campaign_analysis.benchmark_comparisons|default([]) %}
+                <div class="benchmark-row">
+                    <div><strong>{{ comparison.metric }}</strong></div>
+                    <div>{{ comparison.client_value|round(2) }}%</div>
+                    <div>{{ comparison.average|round(2) }}%</div>
+                    <div>{{ comparison.top_10|round(2) }}%</div>
+                    <div><span class="status-badge {{ comparison.status_class }}">{{ comparison.status|replace('_', ' ')|title }}</span></div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        
+        <!-- Flow Analysis -->
+        <section>
+            <h1>Flow Performance Analysis</h1>
+            
+            {% if flow_analysis.missing_flows %}
+            <div class="red-flag">
+                <h4>⚠️ Missing Critical Flows</h4>
+                <p>The following core flows are missing or inactive:</p>
+                <ul>
+                    {% for flow in flow_analysis.missing_flows %}
+                    <li>{{ flow }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            <h2>Core Flows Performance</h2>
+            <div class="flow-grid">
+                {% for flow_name, flow_data in flow_analysis.core_flows.items() %}
+                <div class="flow-card {% if flow_data.status == 'missing' %}missing{% elif flow_data.health_status == 'needs_attention' %}underperforming{% endif %}">
+                    <h3>
+                        {{ flow_data.name }}
+                        <span class="pill {% if flow_data.status == 'live' %}pill-live{% elif flow_data.status == 'draft' %}pill-draft{% else %}pill-manual{% endif %}">
+                            {{ flow_data.status|default("unknown") }}
+                        </span>
+                    </h3>
+                    
+                    {% if flow_data.status != 'missing' %}
+                    <p style="color: #666; margin-bottom: 1rem;">{{ flow_data.messages }} message(s)</p>
+                    
+                    <div class="flow-metrics">
+                        <div class="flow-metric">
+                            <div class="flow-metric-label">Open Rate</div>
+                            <div class="flow-metric-value">{{ flow_data.metrics.open_rate|default(0)|round(1) }}%</div>
+                        </div>
+                        <div class="flow-metric">
+                            <div class="flow-metric-label">Click Rate</div>
+                            <div class="flow-metric-value">{{ flow_data.metrics.click_rate|default(0)|round(2) }}%</div>
+                        </div>
+                    </div>
+                    
+                    {% if flow_data.recommendations %}
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                        <strong style="color: #667eea;">Recommendations:</strong>
+                        <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                            {% for rec in flow_data.recommendations[:2] %}
+                            <li style="font-size: 0.875rem; margin: 0.5rem 0;">{{ rec }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <p style="color: #ef4444; font-weight: 600;">This critical flow is not active.</p>
+                    <p style="font-size: 0.875rem; margin-top: 0.5rem;">
+                        Recommended: Activate immediately to capture revenue.
+                    </p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        
+        <!-- Patterns & Red Flags -->
+        {% if patterns.red_flags %}
+        <section>
+            <h1>Patterns & Red Flags</h1>
+            
+            {% for flag in patterns.red_flags %}
+            <div class="red-flag">
+                <h4>{{ flag.severity|upper }}: {{ flag.issue }}</h4>
+                <p><strong>Impact:</strong> {{ flag.impact }}</p>
+                <p><strong>Category:</strong> {{ flag.category }}</p>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+        
+        <!-- Strategic Recommendations -->
+        <section>
+            <h1>Strategic Recommendations</h1>
+            
+            <!-- Tier 1: Critical -->
+            <div class="recommendation-tier tier-critical">
+                <h2 style="color: #ef4444;">Tier 1: Critical (0-30 Days)</h2>
+                <p style="margin-bottom: 1rem;">Implement immediately - high ROI, critical gaps</p>
+                
+                {% for rec in recommendations.tier_1_critical|default([]) %}
+                <div class="recommendation-card">
+                    <div class="recommendation-header">
+                        <div class="recommendation-title">{{ rec.title }}</div>
+                        <span class="recommendation-badge badge-critical">CRITICAL</span>
+                    </div>
+                    <p style="line-height: 1.8; margin: 1rem 0;">{{ rec.description }}</p>
+                    <div class="recommendation-meta">
+                        <div><strong>Expected Impact:</strong> {{ rec.expected_impact }}</div>
+                        <div><strong>Effort:</strong> {{ rec.effort }}</div>
+                        <div><strong>Timeline:</strong> {{ rec.timeframe }}</div>
+                    </div>
+                </div>
+                {% else %}
+                <p style="color: #10b981; font-style: italic;">No critical issues identified.</p>
+                {% endfor %}
+            </div>
+            
+            <!-- Tier 2: High Impact -->
+            <div class="recommendation-tier tier-high">
+                <h2 style="color: #f59e0b;">Tier 2: High Impact (30-90 Days)</h2>
+                <p style="margin-bottom: 1rem;">Implement next - major optimization opportunities</p>
+                
+                {% for rec in recommendations.tier_2_high_impact|default([]) %}
+                <div class="recommendation-card">
+                    <div class="recommendation-header">
+                        <div class="recommendation-title">{{ rec.title }}</div>
+                        <span class="recommendation-badge badge-high">HIGH IMPACT</span>
+                    </div>
+                    <p style="line-height: 1.8; margin: 1rem 0;">{{ rec.description }}</p>
+                    <div class="recommendation-meta">
+                        <div><strong>Expected Impact:</strong> {{ rec.expected_impact }}</div>
+                        <div><strong>Effort:</strong> {{ rec.effort }}</div>
+                        <div><strong>Timeline:</strong> {{ rec.timeframe }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Tier 3: Strategic -->
+            <div class="recommendation-tier tier-strategic">
+                <h2 style="color: #3b82f6;">Tier 3: Strategic (90+ Days)</h2>
+                <p style="margin-bottom: 1rem;">Long-term initiatives for sustained growth</p>
+                
+                {% for rec in recommendations.tier_3_strategic|default([]) %}
+                <div class="recommendation-card">
+                    <div class="recommendation-header">
+                        <div class="recommendation-title">{{ rec.title }}</div>
+                        <span class="recommendation-badge badge-strategic">STRATEGIC</span>
+                    </div>
+                    <p style="line-height: 1.8; margin: 1rem 0;">{{ rec.description }}</p>
+                    <div class="recommendation-meta">
+                        <div><strong>Expected Impact:</strong> {{ rec.expected_impact }}</div>
+                        <div><strong>Effort:</strong> {{ rec.effort }}</div>
+                        <div><strong>Timeline:</strong> {{ rec.timeframe }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        
+        <!-- Appendix: Detailed Benchmarks -->
+        <section>
+            <h1>Appendix: Detailed Benchmark Data</h1>
+            
+            <h2>Flow Benchmarks</h2>
+            {% for flow_name, metrics in benchmark_details.flow_metrics.items() %}
+            <h3>{{ flow_name|replace('_', ' ')|title }}</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Your Value</th>
+                        <th>Industry Average</th>
+                        <th>Gap</th>
+                        <th>Percentile</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for metric in metrics %}
+                    <tr>
+                        <td>{{ metric.metric }}</td>
+                        <td>{{ metric.value|round(2) }}%</td>
+                        <td>{{ metric.benchmark|round(2) }}%</td>
+                        <td class="{% if metric.gap > 0 %}gap-positive{% else %}gap-negative{% endif %}">
+                            {{ metric.gap|round(2) }}pp
+                        </td>
+                        <td>{{ metric.percentile|int }}th</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endfor %}
+        </section>
+    </div>
+    <script>
+        // Set progress bar widths from data attributes
+        document.querySelectorAll('.progress-fill[data-width]').forEach(function(el) {
+            el.style.width = el.getAttribute('data-width') + '%';
+        });
+    </script>
+</body>
+</html>
+

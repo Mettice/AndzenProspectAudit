@@ -1,0 +1,434 @@
+{
+  "metadata": {
+    "industry": "Toys & Collectibles", 
+    "source": "Klaviyo 2025 Email Marketing Benchmarks",
+    "last_updated": "2025-12-27",
+    "currency": "USD",
+    "note": "Template - Update with actual 2025 Klaviyo benchmark data for Toys & Collectibles industry"
+  },
+
+  "campaigns": {
+    "open_rate": {
+      "average": 42.35,
+      "top_10_percent": 55.00,
+      "top_25_percent": 50.00,
+      "bottom_25_percent": 30.00,
+      "description": "Campaign email open rate percentage (affected by Apple Mail Privacy Protection)"
+    },
+    "click_rate": {
+      "average": 2.00,
+      "top_10_percent": 4.00,
+      "top_25_percent": 3.00,
+      "bottom_25_percent": 1.00,
+      "description": "Campaign email click rate percentage (2025 focus metric)"
+    },
+    "conversion_rate": {
+      "average": 0.10,
+      "top_10_percent": 0.30,
+      "top_25_percent": 0.20,
+      "bottom_25_percent": 0.03,
+      "description": "Campaign conversion rate percentage"
+    },
+    "revenue_per_recipient": {
+      "average": 0.12,
+      "top_10_percent": 0.45,
+      "top_25_percent": 0.25,
+      "bottom_25_percent": 0.04,
+      "description": "Revenue per campaign recipient (USD)"
+    },
+    "unsubscribe_rate": {
+      "average": 0.15,
+      "top_10_percent": 0.05,
+      "top_25_percent": 0.08,
+      "bottom_25_percent": 0.30,
+      "description": "Campaign unsubscribe rate (lower is better)"
+    },
+    "bounce_rate": {
+      "average": 0.50,
+      "top_10_percent": 0.20,
+      "top_25_percent": 0.30,
+      "bottom_25_percent": 1.00,
+      "description": "Campaign bounce rate (lower is better)"
+    },
+    "spam_complaint_rate": {
+      "average": 0.02,
+      "top_10_percent": 0.005,
+      "top_25_percent": 0.01,
+      "bottom_25_percent": 0.05,
+      "description": "Spam complaint rate (lower is better)"
+    }
+  },
+
+  "flows": {
+    "welcome_series": {
+      "display_name": "Welcome Series",
+      "open_rate": {
+        "average": 61.00,
+        "top_10_percent": 75.00,
+        "top_25_percent": 68.00,
+        "bottom_25_percent": 50.00
+      },
+      "click_rate": {
+        "average": 6.20,
+        "top_10_percent": 13.00,
+        "top_25_percent": 9.00,
+        "bottom_25_percent": 3.50
+      },
+      "conversion_rate": {
+        "average": 2.75,
+        "top_10_percent": 6.50,
+        "top_25_percent": 4.50,
+        "bottom_25_percent": 1.20
+      },
+      "revenue_per_recipient": {
+        "average": 3.45,
+        "top_10_percent": 9.20,
+        "top_25_percent": 6.00,
+        "bottom_25_percent": 1.35
+      },
+      "recommended_emails": 4,
+      "recommended_timing": ["Immediate", "Day 1", "Day 3", "Day 7"],
+      "revenue_contribution": {
+        "average": 15,
+        "top_10_percent": 25,
+        "description": "Percentage of total email revenue"
+      }
+    },
+
+    "abandoned_cart": {
+      "display_name": "Abandoned Cart",
+      "open_rate": {
+        "average": 56.50,
+        "top_10_percent": 70.00,
+        "top_25_percent": 64.00,
+        "bottom_25_percent": 44.00
+      },
+      "click_rate": {
+        "average": 6.80,
+        "top_10_percent": 15.00,
+        "top_25_percent": 11.00,
+        "bottom_25_percent": 4.00
+      },
+      "conversion_rate": {
+        "average": 3.60,
+        "top_10_percent": 8.50,
+        "top_25_percent": 6.00,
+        "bottom_25_percent": 1.75
+      },
+      "revenue_per_recipient": {
+        "average": 4.10,
+        "top_10_percent": 13.00,
+        "top_25_percent": 8.00,
+        "bottom_25_percent": 1.65
+      },
+      "recommended_emails": 3,
+      "recommended_timing": ["1 hour", "24 hours", "72 hours"],
+      "revenue_contribution": {
+        "average": 20,
+        "top_10_percent": 35,
+        "description": "Percentage of total email revenue"
+      }
+    },
+
+    "abandoned_checkout": {
+      "display_name": "Abandoned Checkout",
+      "open_rate": {
+        "average": 58.00,
+        "top_10_percent": 70.00,
+        "top_25_percent": 65.00,
+        "bottom_25_percent": 45.00
+      },
+      "click_rate": {
+        "average": 8.50,
+        "top_10_percent": 18.00,
+        "top_25_percent": 13.00,
+        "bottom_25_percent": 4.50
+      },
+      "conversion_rate": {
+        "average": 4.50,
+        "top_10_percent": 10.00,
+        "top_25_percent": 7.00,
+        "bottom_25_percent": 2.00
+      },
+      "revenue_per_recipient": {
+        "average": 5.20,
+        "top_10_percent": 15.00,
+        "top_25_percent": 10.00,
+        "bottom_25_percent": 2.00
+      },
+      "recommended_emails": 3,
+      "recommended_timing": ["1 hour", "24 hours", "48 hours"]
+    },
+
+    "browse_abandonment": {
+      "display_name": "Browse Abandonment",
+      "open_rate": {
+        "average": 45.00,
+        "top_10_percent": 58.00,
+        "top_25_percent": 52.00,
+        "bottom_25_percent": 35.00
+      },
+      "click_rate": {
+        "average": 4.50,
+        "top_10_percent": 9.00,
+        "top_25_percent": 7.00,
+        "bottom_25_percent": 2.50
+      },
+      "conversion_rate": {
+        "average": 1.20,
+        "top_10_percent": 3.50,
+        "top_25_percent": 2.20,
+        "bottom_25_percent": 0.50
+      },
+      "revenue_per_recipient": {
+        "average": 1.50,
+        "top_10_percent": 5.00,
+        "top_25_percent": 3.00,
+        "bottom_25_percent": 0.50
+      },
+      "recommended_emails": 2,
+      "recommended_timing": ["4 hours", "24 hours"],
+      "revenue_contribution": {
+        "average": 8,
+        "top_10_percent": 15,
+        "description": "Percentage of total email revenue"
+      }
+    },
+
+    "post_purchase": {
+      "display_name": "Post Purchase",
+      "open_rate": {
+        "average": 52.00,
+        "top_10_percent": 65.00,
+        "top_25_percent": 59.00,
+        "bottom_25_percent": 40.00
+      },
+      "click_rate": {
+        "average": 3.80,
+        "top_10_percent": 8.00,
+        "top_25_percent": 6.00,
+        "bottom_25_percent": 2.00
+      },
+      "conversion_rate": {
+        "average": 0.80,
+        "top_10_percent": 2.50,
+        "top_25_percent": 1.50,
+        "bottom_25_percent": 0.30
+      },
+      "revenue_per_recipient": {
+        "average": 1.20,
+        "top_10_percent": 4.00,
+        "top_25_percent": 2.50,
+        "bottom_25_percent": 0.40
+      },
+      "recommended_emails": 3,
+      "recommended_timing": ["Order confirmation", "Shipping update", "Review request (7-14 days)"]
+    },
+
+    "back_in_stock": {
+      "display_name": "Back In Stock",
+      "open_rate": {
+        "average": 65.00,
+        "top_10_percent": 78.00,
+        "top_25_percent": 72.00,
+        "bottom_25_percent": 52.00
+      },
+      "click_rate": {
+        "average": 18.00,
+        "top_10_percent": 35.00,
+        "top_25_percent": 28.00,
+        "bottom_25_percent": 10.00
+      },
+      "conversion_rate": {
+        "average": 8.00,
+        "top_10_percent": 18.00,
+        "top_25_percent": 14.00,
+        "bottom_25_percent": 4.00
+      },
+      "revenue_per_recipient": {
+        "average": 12.00,
+        "top_10_percent": 30.00,
+        "top_25_percent": 22.00,
+        "bottom_25_percent": 5.00
+      },
+      "recommended_emails": 1,
+      "recommended_timing": ["Immediate on restock"]
+    },
+
+    "winback": {
+      "display_name": "Customer Winback",
+      "open_rate": {
+        "average": 28.00,
+        "top_10_percent": 42.00,
+        "top_25_percent": 35.00,
+        "bottom_25_percent": 18.00
+      },
+      "click_rate": {
+        "average": 2.50,
+        "top_10_percent": 6.00,
+        "top_25_percent": 4.00,
+        "bottom_25_percent": 1.00
+      },
+      "conversion_rate": {
+        "average": 0.50,
+        "top_10_percent": 1.80,
+        "top_25_percent": 1.00,
+        "bottom_25_percent": 0.15
+      },
+      "revenue_per_recipient": {
+        "average": 0.80,
+        "top_10_percent": 3.00,
+        "top_25_percent": 1.80,
+        "bottom_25_percent": 0.25
+      },
+      "recommended_emails": 3,
+      "recommended_timing": ["60 days", "90 days", "120 days"]
+    }
+  },
+
+  "list_health": {
+    "growth_rate_monthly": {
+      "average": 3.0,
+      "top_10_percent": 8.0,
+      "top_25_percent": 5.5,
+      "bottom_25_percent": 1.0,
+      "description": "Monthly list growth rate percentage"
+    },
+    "churn_rate_monthly": {
+      "average": 2.5,
+      "top_10_percent": 1.0,
+      "top_25_percent": 1.5,
+      "bottom_25_percent": 5.0,
+      "description": "Monthly churn rate (lower is better)"
+    },
+    "engagement_rate_30_day": {
+      "average": 25.0,
+      "top_10_percent": 45.0,
+      "top_25_percent": 35.0,
+      "bottom_25_percent": 15.0,
+      "description": "30-day engagement rate percentage"
+    },
+    "engagement_rate_90_day": {
+      "average": 35.0,
+      "top_10_percent": 55.0,
+      "top_25_percent": 45.0,
+      "bottom_25_percent": 22.0,
+      "description": "90-day engagement rate percentage"
+    }
+  },
+
+  "forms": {
+    "popup": {
+      "submit_rate": {
+        "average": 3.0,
+        "top_10_percent": 8.0,
+        "top_25_percent": 5.5,
+        "bottom_25_percent": 1.0
+      },
+      "standing_thresholds": {
+        "excellent": 8.0,
+        "good": 3.0,
+        "average": 1.0,
+        "poor": 0
+      }
+    },
+    "embed": {
+      "submit_rate": {
+        "average": 0.5,
+        "top_10_percent": 2.0,
+        "top_25_percent": 1.2,
+        "bottom_25_percent": 0.1
+      },
+      "standing_thresholds": {
+        "excellent": 2.0,
+        "good": 0.5,
+        "average": 0.1,
+        "poor": 0
+      }
+    },
+    "flyout": {
+      "submit_rate": {
+        "average": 4.0,
+        "top_10_percent": 10.0,
+        "top_25_percent": 7.0,
+        "bottom_25_percent": 1.5
+      }
+    }
+  },
+
+  "kav": {
+    "percentage": {
+      "average": 25.0,
+      "top_10_percent": 40.0,
+      "top_25_percent": 33.0,
+      "bottom_25_percent": 15.0,
+      "target": 30.0,
+      "description": "Klaviyo Attributed Value as percentage of total revenue"
+    },
+    "flow_campaign_split": {
+      "ideal_flow": 50,
+      "ideal_campaign": 50,
+      "acceptable_variance": 15,
+      "description": "Ideal revenue split between flows and campaigns"
+    }
+  },
+
+  "retention": {
+    "month_0": {
+      "average": 5.0,
+      "top_10_percent": 12.0,
+      "description": "Repeat purchase rate in same month"
+    },
+    "month_1": {
+      "average": 9.0,
+      "top_10_percent": 18.0,
+      "description": "Repeat purchase rate in month 1"
+    },
+    "month_2": {
+      "average": 8.0,
+      "top_10_percent": 15.0,
+      "description": "Repeat purchase rate in month 2"
+    },
+    "month_3": {
+      "average": 8.0,
+      "top_10_percent": 14.0,
+      "description": "Repeat purchase rate in month 3"
+    }
+  },
+
+  "segmentation": {
+    "tracks": [
+      {
+        "name": "Track A: Highly Engaged",
+        "criteria": "Opened or clicked in last 30 days",
+        "recommended_cadence": "Daily",
+        "typical_percentage": 15
+      },
+      {
+        "name": "Track B: Moderately Engaged",
+        "criteria": "Opened or clicked in last 60 days (not in Track A)",
+        "recommended_cadence": "2-3x/week",
+        "typical_percentage": 25
+      },
+      {
+        "name": "Track C: Broad Engaged",
+        "criteria": "Opened or clicked in last 90 days (not in A or B)",
+        "recommended_cadence": "1x/week",
+        "typical_percentage": 20
+      },
+      {
+        "name": "Track D: Unengaged",
+        "criteria": "No engagement in 90+ days",
+        "recommended_cadence": "Goes through Sunset Flow then suppressed if remains unengaged in a few days",
+        "typical_percentage": 30
+      },
+      {
+        "name": "Track E: For Suppression",
+        "criteria": "Hard bounces, spam complaints, unsubscribes",
+        "recommended_cadence": "Do not send. Needs to be suppressed",
+        "typical_percentage": 10
+      }
+    ]
+  }
+}
+

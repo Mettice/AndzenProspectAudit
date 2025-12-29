@@ -1,0 +1,306 @@
+{#
+  Advanced Reviews Section - Page 13
+  
+  Data required:
+  - reviews_data: dict with enabled status, integration, review_flows, recommendations
+#}
+
+<section class="section page" data-page="13">
+    <h1 class="section-title">ADVANCED: REVIEWS & SOCIAL PROOF</h1>
+    
+    <div class="advanced-intro">
+        <p>
+            Customer reviews and social proof are powerful tools for building trust and driving conversions. 
+            Automated review collection flows can significantly increase the volume of reviews while ensuring 
+            you capture feedback at the optimal moment when customer satisfaction is highest. This section 
+            analyzes your current review collection strategy and opportunities for improvement.
+        </p>
+    </div>
+    
+    <!-- Current Implementation Status -->
+    <div class="implementation-status">
+        <div class="status-grid">
+            <div class="status-item">
+                <div class="status-header">Review Collection</div>
+                <div class="status-value {{ 'enabled' if reviews_data.enabled else 'disabled' }}">
+                    {{ 'ENABLED' if reviews_data.enabled else 'NOT IMPLEMENTED' }}
+                </div>
+                <div class="status-description">
+                    {% if reviews_data.enabled %}
+                    Active review collection system detected
+                    {% else %}
+                    No automated review collection found
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="status-item">
+                <div class="status-header">Integration Platform</div>
+                <div class="status-value">{{ reviews_data.integration|default('NONE') }}</div>
+                <div class="status-description">
+                    {% if reviews_data.integration and reviews_data.integration != 'None' %}
+                    Connected review platform
+                    {% else %}
+                    No review platform integration
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Review Flow Performance -->
+    {% if reviews_data.review_flows %}
+    <div class="review-flows-section">
+        <h4 class="subsection-title">Review Collection Flow Performance</h4>
+        
+        <table class="data-table-green">
+            <thead>
+                <tr>
+                    <th>Flow Name</th>
+                    <th>Open Rate</th>
+                    <th>Click Rate</th>
+                    <th>Response Rate</th>
+                    <th>Recipients (90 days)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for flow in reviews_data.review_flows %}
+                <tr>
+                    <td>{{ flow.name }}</td>
+                    <td>{{ (flow.open_rate|default(0))|round(2) }}%</td>
+                    <td>{{ (flow.click_rate|default(0))|round(2) }}%</td>
+                    <td>{{ (flow.response_rate|default(0))|round(2) }}%</td>
+                    <td>{{ "{:,}".format(flow.recipients|default(0)) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    <!-- Strategy Recommendations -->
+    <div class="strategy-section">
+        <h4 class="strategy-title">Review Collection Strategy</h4>
+        
+        {% if not reviews_data.enabled %}
+        <div class="opportunity-callout">
+            <div class="callout-header">🌟 MAJOR OPPORTUNITY</div>
+            <p>
+                Implementing an automated review collection system could significantly boost your social proof 
+                and conversion rates. Studies show that products with reviews convert 18% better than those without.
+            </p>
+        </div>
+        {% endif %}
+        
+        <div class="strategy-grid">
+            <div class="strategy-item">
+                <h5>Optimal Timing</h5>
+                <p>Send review requests 7-14 days after delivery when satisfaction is highest but the experience is still fresh.</p>
+            </div>
+            
+            <div class="strategy-item">
+                <h5>Multi-Channel Approach</h5>
+                <p>Use email and SMS to maximize response rates, with personalized messaging based on purchase history.</p>
+            </div>
+            
+            <div class="strategy-item">
+                <h5>Incentive Strategy</h5>
+                <p>Consider offering small incentives for reviews while maintaining compliance with platform policies.</p>
+            </div>
+            
+            <div class="strategy-item">
+                <h5>Response Management</h5>
+                <p>Implement automated follow-up for negative feedback to address issues privately before public reviews.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recommendations -->
+    <div class="recommendations-section">
+        <div class="recommendations">
+            <h5>Implementation Recommendations:</h5>
+            <ul>
+                {% if reviews_data.recommendations %}
+                    {% for rec in reviews_data.recommendations %}
+                    <li>{{ rec }}</li>
+                    {% endfor %}
+                {% else %}
+                <li>Integrate with a review platform (Yotpo, Okendo, Judge.me)</li>
+                <li>Set up automated review request flows 7-14 days post-purchase</li>
+                <li>Create segmented messaging for different product categories</li>
+                <li>Implement photo review incentives for visual products</li>
+                <li>Set up review reminder sequences for non-responders</li>
+                <li>Create flows to showcase new reviews in email campaigns</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</section>
+
+<style>
+.advanced-intro p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin-bottom: 2rem;
+}
+
+.implementation-status {
+    background: #F9FAFB;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 2rem 0;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.status-item {
+    text-align: center;
+}
+
+.status-header {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.status-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.status-value.enabled {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-value.disabled {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.status-description {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.review-flows-section {
+    margin: 2rem 0;
+}
+
+.subsection-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Reduced from 2.17rem - was too large */
+    font-weight: 700;
+    color: #000000; /* Match sample: pure black */
+    margin-bottom: 1rem;
+    margin-top: 1.5rem;
+    line-height: 1.3;
+}
+
+.strategy-section {
+    margin: 2rem 0;
+}
+
+.strategy-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.opportunity-callout {
+    background: #FEF3C7;
+    border-left: 4px solid #F59E0B;
+    padding: 1rem 1.5rem;
+    margin: 1rem 0 2rem 0;
+}
+
+.callout-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    color: #92400E;
+    margin-bottom: 0.5rem;
+}
+
+.opportunity-callout p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #92400E;
+    margin: 0;
+}
+
+.strategy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.strategy-item {
+    background: #FFFFFF;
+    padding: 1rem;
+    border-left: 3px solid #65DA4F;
+}
+
+.strategy-item h5 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #262626;
+}
+
+.strategy-item p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    margin: 0;
+    color: #4B5563;
+}
+
+.recommendations-section {
+    background: #FFFFFF;
+    padding: 1.5rem;
+    border-left: 4px solid #65DA4F;
+    margin-top: 2rem;
+}
+
+.recommendations h5 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #262626;
+}
+
+.recommendations ul {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.recommendations li {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+    color: #374151;
+}
+
+@media print {
+    .status-grid, .strategy-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+</style>

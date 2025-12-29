@@ -1,0 +1,51 @@
+{#
+  Recommendation Card Component
+  
+  Usage:
+  {% include "components/recommendation_card.html" with
+      recommendation={
+          "title": "Implement Abandoned Cart Flow",
+          "description": "Create a 3-email sequence...",
+          "expected_impact": "15-25% of total email revenue",
+          "effort": "12-16 hours",
+          "timeframe": "0-30 days"
+      }
+      tier="critical"
+  %}
+#}
+
+<div class="recommendation-card">
+    <div class="recommendation-header">
+        <div class="recommendation-title">{{ recommendation.title }}</div>
+        <span class="recommendation-badge badge-{{ tier|default('strategic') }}">
+            {% if tier == 'critical' %}
+                CRITICAL
+            {% elif tier == 'high' %}
+                HIGH IMPACT
+            {% else %}
+                STRATEGIC
+            {% endif %}
+        </span>
+    </div>
+    
+    <p class="recommendation-description">{{ recommendation.description }}</p>
+    
+    <div class="recommendation-meta">
+        {% if recommendation.expected_impact %}
+        <div class="meta-item">
+            <strong>Expected Impact:</strong> {{ recommendation.expected_impact }}
+        </div>
+        {% endif %}
+        {% if recommendation.effort %}
+        <div class="meta-item">
+            <strong>Effort:</strong> {{ recommendation.effort }}
+        </div>
+        {% endif %}
+        {% if recommendation.timeframe %}
+        <div class="meta-item">
+            <strong>Timeline:</strong> {{ recommendation.timeframe }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+

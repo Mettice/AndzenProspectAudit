@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klaviyo Audit Report - {{ client_name }}</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+    <!-- Cover Page -->
+    {% include "sections/cover.html" %}
+    
+    <!-- Executive Summary -->
+    {% include "sections/executive_summary.html" %}
+    
+    <!-- Data Snapshot -->
+    <section class="section">
+        <h1>Data Snapshot</h1>
+        <div class="summary-grid">
+            <div class="stat-card">
+                <p class="label">Date Range</p>
+                <p class="value">
+                    {{ klaviyo_data.date_range.start if klaviyo_data and klaviyo_data.date_range is defined else 'N/A' }}
+                    &nbsp;→&nbsp;
+                    {{ klaviyo_data.date_range.end if klaviyo_data and klaviyo_data.date_range is defined else 'N/A' }}
+                </p>
+            </div>
+            <div class="stat-card">
+                <p class="label">Campaigns</p>
+                <p class="value">
+                    {{ (klaviyo_data.campaigns | length) if klaviyo_data and (klaviyo_data.campaigns is defined) else 0 }}
+                </p>
+            </div>
+            <div class="stat-card">
+                <p class="label">Flows</p>
+                <p class="value">
+                    {{ (klaviyo_data.flows | length) if klaviyo_data and (klaviyo_data.flows is defined) else 0 }}
+                </p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- KAV Analysis -->
+    <section class="section">
+        <h1>KAV Analysis</h1>
+        <div class="kav-analysis">
+            <div class="metric-card">
+                <h3>Total Revenue</h3>
+                <p class="metric-value">${{ "%.2f"|format(sections.kav_analysis.total_revenue) }}</p>
+            </div>
+            <div class="metric-card">
+                <h3>Klaviyo Revenue</h3>
+                <p class="metric-value">${{ "%.2f"|format(sections.kav_analysis.klaviyo_revenue) }}</p>
+            </div>
+            <div class="metric-card">
+                <h3>KAV Percentage</h3>
+                <p class="metric-value">{{ "%.1f"|format(sections.kav_analysis.kav_percentage) }}%</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Flow Analysis -->
+    <section class="section">
+        <h1>Flow Analysis</h1>
+        {% if sections.flow_analysis.welcome_series %}
+        <div class="flow-detail">
+            <h2>Welcome Series</h2>
+            <p>Flow ID: {{ sections.flow_analysis.welcome_series.flow.id }}</p>
+            <p>Status: {{ sections.flow_analysis.welcome_series.flow.status }}</p>
+        </div>
+        {% endif %}
+        
+        <div class="card-list">
+            {% for flow_item in sections.flow_analysis.flows[:6] %}
+            {% set f = flow_item.get('flow', flow_item) %}
+            <div class="flow-card">
+                <div class="flow-card__header">
+                    <h3>
+                        {{ f.attributes.name if f.attributes is defined and f.attributes.name is defined else f.name if f.name is defined else 'Flow' }}
+                    </h3>
+                    <span class="pill">
+                        {{ f.attributes.status if f.attributes is defined and f.attributes.status is defined else f.status if f.status is defined else 'unknown' }}
+                    </span>
+                </div>
+                <p class="meta">
+                    Created: {{ f.attributes.created_at if f.attributes is defined and f.attributes.created_at is defined else f.created_at if f.created_at is defined else '—' }}
+                </p>
+                <p class="meta">Messages: {{ flow_item.messages | length if flow_item.messages is defined else 0 }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    
+    <!-- AI Analysis -->
+    <section class="section">
+        <h1>AI Analysis & Recommendations</h1>
+        <div class="analysis-section">
+            <h2>Strengths</h2>
+            <ul>
+                {% for strength in analysis.strengths %}
+                <li>{{ strength }}</li>
+                {% endfor %}
+            </ul>
+            
+            <h2>Opportunities</h2>
+            <ul>
+                {% for opportunity in analysis.opportunities %}
+                <li>{{ opportunity }}</li>
+                {% endfor %}
+            </ul>
+            
+            <h2>Insights</h2>
+            <p>{{ analysis.insights }}</p>
+            
+            <h2>Recommendations</h2>
+            <ul>
+                {% for recommendation in analysis.recommendations %}
+                <li>{{ recommendation }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </section>
+</body>
+</html>
+

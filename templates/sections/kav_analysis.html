@@ -1,0 +1,984 @@
+{#
+  KAV Analysis Section - Pages 2-3
+  
+  Data required:
+  - kav_data: dict with period, revenue, chart_data, narrative
+#}
+
+<section class="section page" data-page="2-3">
+    <h1 class="section-title">KAV: YOUR KLAVIYO TOTAL REVENUE ({{ kav_data.period.days }} DAYS)</h1>
+    
+    <div class="section-subtitle">
+        <strong>Total Website Revenue in the {{ kav_data.period.days }} Days</strong><br>
+        ({{ kav_data.period.start_date }} - {{ kav_data.period.end_date }})
+    </div>
+    
+    <!-- Tabs Navigation -->
+    <div class="kav-tabs">
+        <button class="kav-tab active" onclick="switchKAVTab('conversion')">Conversion Summary</button>
+        <button class="kav-tab" onclick="switchKAVTab('message-type')">Message Type Breakdown</button>
+        <button class="kav-tab" onclick="switchKAVTab('channel')">Channel Breakdown</button>
+    </div>
+    
+    <!-- Conversion Summary Tab -->
+    <div id="kav-tab-conversion" class="kav-tab-content active">
+    <!-- Growth Overview -->
+    <div class="kav-overview">
+        <div class="kav-summary">
+            <div class="kav-total">
+                <span class="kav-amount">{{ kav_data.revenue.total_website_formatted }}</span>
+                <span class="kav-label">Total revenue</span>
+                {% if kav_data.revenue.vs_previous_period %}
+                <span class="kav-trend trend-{{ 'up' if kav_data.revenue.vs_previous_period > 0 else 'down' }}">
+                    {{ '↗' if kav_data.revenue.vs_previous_period > 0 else '↘' }} {{ kav_data.revenue.vs_previous_period|abs|round(1) }}% vs. previous {{ kav_data.period.days }} days
+                </span>
+                {% endif %}
+            </div>
+            
+            <div class="kav-attributed">
+                <div class="kav-stat">
+                    <span class="stat-value">${{ "{:,.0f}".format(kav_data.revenue.attributed / 1000) }}K</span>
+                    <span class="stat-label">Attributed revenue</span>
+                    <span class="stat-percent">{{ kav_data.revenue.attributed_percentage|round(2) }}%</span>
+                </div>
+                {% if kav_data.revenue.attributed_vs_previous %}
+                <span class="kav-trend trend-{{ 'up' if kav_data.revenue.attributed_vs_previous > 0 else 'down' }}">
+                    {{ '↗' if kav_data.revenue.attributed_vs_previous > 0 else '↘' }} {{ kav_data.revenue.attributed_vs_previous|abs|round(1) }}%
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Revenue Chart Placeholder -->
+        <div class="kav-chart">
+            {% set chart_id = 'kav_revenue_chart' %}
+            {% set chart_type = 'bar_line' %}
+            {% set title = 'Revenue & Recipients Over Time' %}
+            {% set height = 280 %}
+            {% set data = kav_data.chart_data if kav_data.chart_data else {} %}
+            {% include "components/chart_placeholder.html" %}
+            <div class="chart-legend">
+                <span class="legend-item"><span class="legend-color" style="background: #3B82F6;"></span> Attributed revenue</span>
+                <span class="legend-item"><span class="legend-color" style="background: #65DA4F;"></span> Unattributed revenue</span>
+                <span class="legend-item"><span class="legend-color legend-line" style="background: #FCD34D;"></span> Total Recipients</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Revenue Breakdown Table -->
+    <div class="kav-table-section">
+        <table class="data-table-green">
+            <thead>
+                <tr>
+                    <th>Total Website Revenue</th>
+                    <th>Total Klaviyo-Attributed Revenue</th>
+                    <th>Total Flow-Attributed Revenue</th>
+                    <th>Total Campaign-Attributed Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>${{ "{:,.2f}".format(kav_data.revenue.total_website) }}</td>
+                    <td>${{ "{:,.0f}".format(kav_data.revenue.attributed / 1000) }}k</td>
+                    <td>${{ "{:,.2f}".format(kav_data.revenue.flow_attributed) }}</td>
+                    <td>${{ "{:,.2f}".format(kav_data.revenue.campaign_attributed) }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    </div>
+    <!-- End Conversion Summary Tab -->
+    
+    <!-- Message Type Breakdown Tab -->
+    <div id="kav-tab-message-type" class="kav-tab-content">
+        <div class="kav-overview">
+            <div class="kav-summary">
+                <div class="kav-total">
+                    <span class="kav-amount">${{ "{:,.0f}".format(kav_data.message_type_breakdown.total_attributed / 1000) }}K</span>
+                    <span class="kav-label">Attributed revenue</span>
+                    {% if kav_data.revenue.attributed_vs_previous %}
+                    <span class="kav-trend trend-{{ 'up' if kav_data.revenue.attributed_vs_previous > 0 else 'down' }}">
+                        {{ '↗' if kav_data.revenue.attributed_vs_previous > 0 else '↘' }} {{ kav_data.revenue.attributed_vs_previous|abs|round(1) }}% vs. previous {{ kav_data.period.days }} days
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="kav-attributed">
+                    <div class="kav-stat">
+                        <span class="stat-value">${{ "{:,.0f}".format(kav_data.message_type_breakdown.campaigns.revenue / 1000) }}K</span>
+                        <span class="stat-label">Campaigns</span>
+                        <span class="stat-percent">{{ kav_data.message_type_breakdown.campaigns.percentage|round(2) }}%</span>
+                        {% if kav_data.message_type_breakdown.campaigns.growth %}
+                        <span class="kav-trend trend-{{ 'up' if kav_data.message_type_breakdown.campaigns.growth > 0 else 'down' }}">
+                            {{ '↗' if kav_data.message_type_breakdown.campaigns.growth > 0 else '↘' }} {{ kav_data.message_type_breakdown.campaigns.growth|abs|round(1) }}%
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="kav-stat">
+                        <span class="stat-value">${{ "{:,.0f}".format(kav_data.message_type_breakdown.flows.revenue / 1000) }}K</span>
+                        <span class="stat-label">Flows</span>
+                        <span class="stat-percent">{{ kav_data.message_type_breakdown.flows.percentage|round(2) }}%</span>
+                        {% if kav_data.message_type_breakdown.flows.growth %}
+                        <span class="kav-trend trend-{{ 'up' if kav_data.message_type_breakdown.flows.growth > 0 else 'down' }}">
+                            {{ '↗' if kav_data.message_type_breakdown.flows.growth > 0 else '↘' }} {{ kav_data.message_type_breakdown.flows.growth|abs|round(1) }}%
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Message Type Chart Placeholder -->
+            <div class="kav-chart">
+                {% set chart_id = 'kav_message_type_chart' %}
+                {% set chart_type = 'bar' %}
+                {% set title = 'Campaigns vs Flows Revenue Over Time' %}
+                {% set height = 280 %}
+                {% set data = kav_data.chart_data if kav_data.chart_data else {} %}
+                {% include "components/chart_placeholder.html" %}
+                <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-color" style="background: #3B82F6;"></span> Campaigns</span>
+                    <span class="legend-item"><span class="legend-color" style="background: #65DA4F;"></span> Flows</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Message Type Breakdown Tab -->
+    
+    <!-- Channel Breakdown Tab -->
+    <div id="kav-tab-channel" class="kav-tab-content">
+        <div class="kav-overview">
+            <div class="kav-summary">
+                <div class="kav-total">
+                    <span class="kav-amount">${{ "{:,.0f}".format(kav_data.channel_breakdown.total_attributed / 1000) }}K</span>
+                    <span class="kav-label">Attributed revenue</span>
+                    {% if kav_data.revenue.attributed_vs_previous %}
+                    <span class="kav-trend trend-{{ 'up' if kav_data.revenue.attributed_vs_previous > 0 else 'down' }}">
+                        {{ '↗' if kav_data.revenue.attributed_vs_previous > 0 else '↘' }} {{ kav_data.revenue.attributed_vs_previous|abs|round(1) }}% vs. previous {{ kav_data.period.days }} days
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="kav-attributed">
+                    <div class="kav-stat">
+                        <span class="stat-value">${{ "{:,.0f}".format(kav_data.channel_breakdown.email.revenue / 1000) }}K</span>
+                        <span class="stat-label">Email</span>
+                        <span class="stat-percent">{{ kav_data.channel_breakdown.email.percentage|round(2) }}%</span>
+                        {% if kav_data.channel_breakdown.email.growth %}
+                        <span class="kav-trend trend-{{ 'up' if kav_data.channel_breakdown.email.growth > 0 else 'down' }}">
+                            {{ '↗' if kav_data.channel_breakdown.email.growth > 0 else '↘' }} {{ kav_data.channel_breakdown.email.growth|abs|round(1) }}%
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if kav_data.channel_breakdown.sms.revenue > 0 %}
+                    <div class="kav-stat">
+                        <span class="stat-value">${{ "{:,.0f}".format(kav_data.channel_breakdown.sms.revenue / 1000) }}K</span>
+                        <span class="stat-label">SMS</span>
+                        <span class="stat-percent">{{ kav_data.channel_breakdown.sms.percentage|round(2) }}%</span>
+                        {% if kav_data.channel_breakdown.sms.growth %}
+                        <span class="kav-trend trend-{{ 'up' if kav_data.channel_breakdown.sms.growth > 0 else 'down' }}">
+                            {{ '↗' if kav_data.channel_breakdown.sms.growth > 0 else '↘' }} {{ kav_data.channel_breakdown.sms.growth|abs|round(1) }}%
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% if kav_data.channel_breakdown.push.revenue > 0 %}
+                    <div class="kav-stat">
+                        <span class="stat-value">${{ "{:,.0f}".format(kav_data.channel_breakdown.push.revenue / 1000) }}K</span>
+                        <span class="stat-label">Push</span>
+                        <span class="stat-percent">{{ kav_data.channel_breakdown.push.percentage|round(2) }}%</span>
+                        {% if kav_data.channel_breakdown.push.growth %}
+                        <span class="kav-trend trend-{{ 'up' if kav_data.channel_breakdown.push.growth > 0 else 'down' }}">
+                            {{ '↗' if kav_data.channel_breakdown.push.growth > 0 else '↘' }} {{ kav_data.channel_breakdown.push.growth|abs|round(1) }}%
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Channel Chart Placeholder -->
+            <div class="kav-chart">
+                {% set chart_id = 'kav_channel_chart' %}
+                {% set chart_type = 'bar' %}
+                {% set title = 'Email vs SMS vs Push Revenue Over Time' %}
+                {% set height = 280 %}
+                {% set data = kav_data.chart_data if kav_data.chart_data else {} %}
+                {% include "components/chart_placeholder.html" %}
+                <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-color" style="background: #3B82F6;"></span> Email</span>
+                    {% if kav_data.channel_breakdown.sms.revenue > 0 %}
+                    <span class="legend-item"><span class="legend-color" style="background: #65DA4F;"></span> SMS</span>
+                    {% endif %}
+                    {% if kav_data.channel_breakdown.push.revenue > 0 %}
+                    <span class="legend-item"><span class="legend-color" style="background: #FCD34D;"></span> Push</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Channel Breakdown Tab -->
+    
+    <!-- Strategic Analysis -->
+    <div class="strategic-analysis">
+        <div class="analysis-header">
+            <h3 class="analysis-title">Strategic Analysis</h3>
+            {% if kav_data.strategic_focus and kav_data.strategic_focus != "optimization" %}
+            <span class="strategic-priority priority-{{ kav_data.strategic_focus.replace('_', '-') }}">
+                {{ kav_data.strategic_focus.replace('_', ' ').title() }}
+            </span>
+            {% endif %}
+        </div>
+        
+        <div class="analysis-content">
+            <div class="narrative-section">
+                <h4 class="narrative-header">Performance Overview</h4>
+                <div class="narrative-text">{{ kav_data.narrative|safe }}</div>
+            </div>
+            
+            {% if kav_data.secondary_narrative %}
+            <div class="narrative-section">
+                <h4 class="narrative-header">Strategic Implications</h4>
+                <div class="narrative-text">{{ kav_data.secondary_narrative|safe }}</div>
+            </div>
+            {% endif %}
+            
+            {% if kav_data.business_context %}
+            <div class="context-indicators">
+                {% if kav_data.business_context.has_campaign_gap %}
+                <div class="context-indicator critical">
+                    <span class="indicator-icon">⚠️</span>
+                    <span class="indicator-text">Campaign Activity Gap Identified</span>
+                </div>
+                {% endif %}
+                
+                {% if kav_data.business_context.flow_dominant %}
+                <div class="context-indicator warning">
+                    <span class="indicator-icon">📈</span>
+                    <span class="indicator-text">Flow-Dominant Attribution</span>
+                </div>
+                {% endif %}
+                
+                {% if kav_data.business_context.list_underutilized %}
+                <div class="context-indicator opportunity">
+                    <span class="indicator-icon">💎</span>
+                    <span class="indicator-text">Untapped List Potential</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {# Strategic Value Elements #}
+            {% from "components/strategic_value_elements.html" import root_cause_analysis, risk_flags, quick_wins, enhanced_recommendations %}
+            
+            {% if kav_data.root_cause_analysis %}
+            {{ root_cause_analysis(kav_data.root_cause_analysis) }}
+            {% endif %}
+            
+            {% if kav_data.risk_flags %}
+            {{ risk_flags(kav_data.risk_flags) }}
+            {% endif %}
+            
+            {% if kav_data.quick_wins %}
+            {{ quick_wins(kav_data.quick_wins) }}
+            {% endif %}
+            
+            {% if kav_data.recommendations %}
+            {{ enhanced_recommendations(kav_data.recommendations) }}
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<style>
+.kav-overview {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 2.5rem; /* Increased gap to match sample spacing */
+    margin: 2.5rem 0; /* Increased margin */
+    align-items: start;
+}
+
+.kav-summary {
+    background: #F9FAFB;
+    padding: 1.5rem;
+    border-radius: 0;
+    border-left: 4px solid #65DA4F;
+}
+
+.kav-total {
+    margin-bottom: 1.5rem;
+}
+
+.kav-amount {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    color: #000000; /* Match sample: pure black */
+    letter-spacing: 0.02em;
+}
+
+.kav-label {
+    display: block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.833rem; /* Match sample: 0.833333em */
+    color: #717171; /* Match sample: gray for labels */
+    margin-bottom: 0.25rem;
+}
+
+.kav-trend {
+    display: inline-block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.kav-trend.trend-up {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.kav-trend.trend-down {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.kav-attributed {
+    padding-top: 1rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.kav-stat .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    color: #000000; /* Match sample: pure black */
+}
+
+.kav-stat .stat-label {
+    display: block;
+    font-size: 0.833rem; /* Match sample: 0.833333em */
+    color: #717171; /* Match sample: gray for labels */
+}
+
+.kav-stat .stat-percent {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.875rem;
+    color: #65DA4F;
+}
+
+.kav-chart {
+    background: white;
+    padding: 1rem;
+    border: 1px solid #E5E7EB;
+}
+
+.chart-legend {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-top: 1rem;
+    font-size: 0.833rem; /* Match sample: 0.833333em */
+    color: #000000; /* Match sample: pure black */
+    font-family: 'Montserrat', sans-serif;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-color {
+    width: 16px;
+    height: 12px;
+    display: inline-block;
+}
+
+.legend-color.legend-line {
+    height: 2px;
+    background: #262626;
+}
+
+.kav-table-section {
+    margin: 2.5rem 0; /* Increased spacing to match sample */
+}
+
+.kav-narrative {
+    background: #FFFFFF;
+    padding: 1.5rem;
+    border-left: 4px solid #65DA4F;
+    margin-top: 2rem;
+}
+
+.kav-narrative p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin: 0 0 1rem 0;
+    color: #262626;
+}
+
+.kav-narrative p:last-child {
+    margin-bottom: 0;
+}
+
+/* Section Subtitle */
+.section-subtitle {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Match sample: 1.166667em */
+    color: #717171; /* Match sample: gray for subtitles */
+    margin-bottom: 2rem;
+    margin-top: 0.5rem;
+    line-height: 1.5;
+}
+
+.section-subtitle strong {
+    color: #000000; /* Pure black for emphasis */
+    font-weight: 700;
+}
+
+/* Strategic Analysis Styling */
+.strategic-analysis {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    margin-top: 2.5rem; /* Increased spacing to match sample */
+    overflow: hidden;
+}
+
+.analysis-header {
+    background: linear-gradient(135deg, #65DA4F 0%, #4CAF50 100%);
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.analysis-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Reduced from 1.5rem */
+    font-weight: 700;
+    color: white;
+    margin: 0;
+    letter-spacing: 0.05em;
+}
+
+.strategic-priority {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.priority-campaign-reintroduction {
+    background: rgba(220, 53, 69, 0.9);
+}
+
+.priority-kav-growth {
+    background: rgba(255, 193, 7, 0.9);
+}
+
+.priority-flow-optimization {
+    background: rgba(13, 110, 253, 0.9);
+}
+
+.priority-optimization-refinement {
+    background: rgba(25, 135, 84, 0.9);
+}
+
+.analysis-content {
+    padding: 1.5rem;
+}
+
+.narrative-section {
+    margin-bottom: 1.5rem;
+}
+
+.narrative-section:last-of-type {
+    margin-bottom: 1rem;
+}
+
+.narrative-header {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.33rem; /* Match sample: 1.333333em for narrative headers */
+    font-weight: 700;
+    color: #000000; /* Match sample: pure black */
+    margin: 0 0 0.75rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #F1F5F9;
+    line-height: 1.4;
+}
+
+.narrative-text {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Match sample: 1.166667em for body text */
+    line-height: 1.6; /* Match sample: ~1.3-1.6em line height */
+    color: #000000; /* Match sample: pure black for body text */
+    margin: 0 0 1rem 0;
+    text-align: left; /* Sample uses left-aligned, not justified */
+}
+
+.context-indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #F1F5F9;
+}
+
+.context-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.context-indicator.critical {
+    background: #FEF2F2;
+    color: #991B1B;
+    border: 1px solid #FECACA;
+}
+
+.context-indicator.warning {
+    background: #FFFBEB;
+    color: #92400E;
+    border: 1px solid #FDE68A;
+}
+
+.context-indicator.opportunity {
+    background: #ECFDF5;
+    color: #065F46;
+    border: 1px solid #BBF7D0;
+}
+
+.indicator-icon {
+    font-size: 1rem;
+}
+
+.indicator-text {
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* Tabs Styling */
+.kav-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #E5E7EB;
+}
+
+.kav-tab {
+    background: none;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #717171;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+
+.kav-tab:hover {
+    color: #000000;
+}
+
+.kav-tab.active {
+    color: #65DA4F;
+    border-bottom-color: #65DA4F;
+}
+
+.kav-tab-content {
+    display: none;
+}
+
+.kav-tab-content.active {
+    display: block;
+}
+
+/* Strategic Value Elements Styling */
+.root-cause-analysis {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.diagnosis-section {
+    margin-bottom: 1.5rem;
+}
+
+.diagnosis-text {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    line-height: 1.7;
+    color: #000000;
+    padding: 1rem;
+    background: #F9FAFB;
+    border-left: 4px solid #3B82F6;
+    border-radius: 4px;
+}
+
+.drivers-section, .correlations-section {
+    margin-top: 1.5rem;
+}
+
+.drivers-title, .correlations-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 0.75rem;
+}
+
+.drivers-list, .correlations-list {
+    list-style-type: disc;
+    padding-left: 2rem;
+    margin: 0;
+}
+
+.drivers-list li, .correlations-list li {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    line-height: 1.7;
+    color: #000000;
+    margin-bottom: 0.5rem;
+}
+
+/* Risk Flags Styling */
+.risk-flags-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.risk-flags-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.risk-flag {
+    border-radius: 8px;
+    padding: 1rem;
+    border-left: 4px solid;
+}
+
+.risk-flag.risk-critical {
+    background: #FEF2F2;
+    border-left-color: #DC2626;
+}
+
+.risk-flag.risk-high {
+    background: #FFF7ED;
+    border-left-color: #F59E0B;
+}
+
+.risk-flag.risk-medium {
+    background: #FFFBEB;
+    border-left-color: #FCD34D;
+}
+
+.risk-flag.risk-low {
+    background: #F0F9FF;
+    border-left-color: #3B82F6;
+}
+
+.risk-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.risk-severity-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.severity-critical {
+    background: #DC2626;
+    color: white;
+}
+
+.severity-high {
+    background: #F59E0B;
+    color: white;
+}
+
+.severity-medium {
+    background: #FCD34D;
+    color: #000000;
+}
+
+.severity-low {
+    background: #3B82F6;
+    color: white;
+}
+
+.risk-icon {
+    font-size: 1.25rem;
+}
+
+.risk-content h5 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    font-weight: 700;
+    color: #000000;
+    margin: 0 0 0.5rem 0;
+}
+
+.risk-impact, .risk-urgency, .risk-action {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #000000;
+    margin: 0.25rem 0;
+}
+
+/* Quick Wins Styling */
+.quick-wins-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.quick-wins-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.quick-win-card {
+    background: #F0FDF4;
+    border: 2px solid #65DA4F;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.quick-win-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.quick-win-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    font-weight: 700;
+    color: #000000;
+    margin: 0;
+    flex: 1;
+}
+
+.roi-badge {
+    background: #65DA4F;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+    margin-left: 1rem;
+}
+
+.quick-win-description {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #000000;
+    margin-bottom: 1rem;
+}
+
+.quick-win-metrics {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.quick-win-metrics .metric {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    color: #000000;
+}
+
+.quick-win-steps {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    color: #000000;
+}
+
+.quick-win-steps ol {
+    margin: 0.5rem 0 0 1.5rem;
+    padding: 0;
+}
+
+.quick-win-steps li {
+    margin-bottom: 0.25rem;
+}
+
+/* Enhanced Recommendations Styling */
+.recommendations-enhanced {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.recommendations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.recommendation-item {
+    margin-bottom: 0;
+}
+
+.recommendation-card {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.recommendation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.recommendation-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    font-weight: 700;
+    color: #000000;
+    margin: 0;
+    flex: 1;
+}
+
+.recommendation-description {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #000000;
+    margin-bottom: 1rem;
+}
+
+.recommendation-impact {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #065F46;
+    margin-bottom: 0.75rem;
+}
+
+.recommendation-metrics {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.recommendation-metrics .metric {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    color: #000000;
+}
+
+.recommendation-steps {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    color: #000000;
+}
+
+.recommendation-steps ol {
+    margin: 0.5rem 0 0 1.5rem;
+    padding: 0;
+}
+
+.recommendation-steps li {
+    margin-bottom: 0.25rem;
+}
+
+.recommendation-item-simple {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    line-height: 1.7;
+    color: #000000;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.recommendation-item-simple::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #65DA4F;
+    font-weight: bold;
+}
+
+@media print {
+    .kav-tabs {
+        display: none;
+    }
+    
+    .kav-tab-content {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+    
+    .kav-overview {
+        grid-template-columns: 1fr;
+    }
+    
+    .strategic-analysis {
+        page-break-inside: avoid;
+    }
+    
+    .quick-wins-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .risk-flags-container {
+        page-break-inside: avoid;
+    }
+}
+</style>
+
+<script>
+function switchKAVTab(tabName) {
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll('.kav-tab-content');
+    tabContents.forEach(content => content.classList.remove('active'));
+    
+    // Remove active class from all tabs
+    const tabs = document.querySelectorAll('.kav-tab');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    
+    // Show selected tab content
+    const selectedContent = document.getElementById(`kav-tab-${tabName}`);
+    if (selectedContent) {
+        selectedContent.classList.add('active');
+    }
+    
+    // Add active class to clicked tab
+    event.target.classList.add('active');
+}
+</script>
+

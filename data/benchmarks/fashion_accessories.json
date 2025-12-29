@@ -1,0 +1,43 @@
+{
+  "open_rate": {
+    "average": 18.5,
+    "top_10_percent": 28.0,
+    "description": "Email open rate percentage"
+  },
+  "click_rate": {
+    "average": 2.3,
+    "top_10_percent": 4.5,
+    "description": "Email click rate percentage"
+  },
+  "click_to_open_rate": {
+    "average": 12.4,
+    "top_10_percent": 18.0,
+    "description": "Click-to-open rate percentage"
+  },
+  "conversion_rate": {
+    "average": 0.8,
+    "top_10_percent": 2.1,
+    "description": "Email conversion rate percentage"
+  },
+  "revenue_per_email": {
+    "average": 0.15,
+    "top_10_percent": 0.45,
+    "description": "Revenue per email sent (USD)"
+  },
+  "kav_percentage": {
+    "average": 25.0,
+    "top_10_percent": 40.0,
+    "description": "Klaviyo Attributed Value as percentage of total revenue"
+  },
+  "campaign_frequency": {
+    "average": 4.2,
+    "top_10_percent": 6.5,
+    "description": "Average campaigns per month"
+  },
+  "flow_engagement": {
+    "average": 35.0,
+    "top_10_percent": 55.0,
+    "description": "Flow engagement rate percentage"
+  }
+}
+

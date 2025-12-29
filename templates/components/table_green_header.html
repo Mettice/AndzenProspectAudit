@@ -1,0 +1,62 @@
+{# 
+  Green Header Data Table Component
+  
+  Usage:
+  {% include "components/table_green_header.html" with 
+      title="Email Automation"
+      headers=["Flow Name", "Open Rate", "Click Rate", "Revenue"]
+      rows=flow_data
+      columns=["name", "open_rate", "click_rate", "revenue"]
+      formatters={"open_rate": "percent", "revenue": "currency"}
+  %}
+#}
+
+{% if title %}
+<div class="table-section">
+    <div class="table-title-bar">
+        {{ title }}
+    </div>
+{% endif %}
+
+<table class="data-table-green">
+    <thead>
+        <tr>
+            {% for header in headers %}
+            <th>{{ header }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            {% for col in columns %}
+            <td>
+                {% set value = row[col] if row[col] is defined else row.get(col, '') %}
+                {% set formatter = formatters[col] if formatters and col in formatters else 'default' %}
+                
+                {% if formatter == 'percent' %}
+                    {{ value|round(2) }}%
+                {% elif formatter == 'currency' %}
+                    ${{ "{:,.2f}".format(value) }}
+                {% elif formatter == 'number' %}
+                    {{ "{:,}".format(value|int) }}
+                {% elif formatter == 'standing' %}
+                    <span class="standing standing-{{ value|lower }}">{{ value }}</span>
+                {% else %}
+                    {{ value }}
+                {% endif %}
+            </td>
+            {% endfor %}
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="{{ headers|length }}" class="no-data">No data available</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if title %}
+</div>
+{% endif %}
+

@@ -1,0 +1,92 @@
+{#
+  Benchmark Comparison Table Component
+  
+  Usage:
+  {% include "components/benchmark_comparison.html" with
+      title="What does 'good' look like for a welcome series (Apparel and Accessories)?"
+      metrics=[
+          {"name": "Open Rate", "client": 71.19, "benchmark": 59.07, "format": "percent"},
+          {"name": "Click Rate", "client": 21.20, "benchmark": 5.70, "format": "percent"}
+      ]
+      show_status=true
+  %}
+#}
+
+{% if title %}
+<div class="benchmark-section">
+    <h4 class="benchmark-title">{{ title }}</h4>
+{% endif %}
+
+<table class="data-table-green benchmark-table">
+    <thead>
+        <tr>
+            <th>{{ metric_label|default('Metric') }}</th>
+            <th>{{ client_label|default('Your Value') }}</th>
+            <th>{{ benchmark_label|default('Industry Avg') }}</th>
+            {% if show_top10 %}
+            <th>Top 10%</th>
+            {% endif %}
+            {% if show_gap %}
+            <th>Gap</th>
+            {% endif %}
+            {% if show_status %}
+            <th>Status</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for metric in metrics %}
+        <tr>
+            <td><strong>{{ metric.name }}</strong></td>
+            <td>
+                {% if metric.format == 'percent' %}
+                    {{ metric.client|round(2) }}%
+                {% elif metric.format == 'currency' %}
+                    ${{ "{:,.2f}".format(metric.client) }}
+                {% else %}
+                    {{ metric.client }}
+                {% endif %}
+            </td>
+            <td>
+                {% if metric.format == 'percent' %}
+                    {{ metric.benchmark|round(2) }}%
+                {% elif metric.format == 'currency' %}
+                    ${{ "{:,.2f}".format(metric.benchmark) }}
+                {% else %}
+                    {{ metric.benchmark }}
+                {% endif %}
+            </td>
+            {% if show_top10 %}
+            <td>
+                {% if metric.format == 'percent' %}
+                    {{ metric.top10|round(2) }}%
+                {% elif metric.format == 'currency' %}
+                    ${{ "{:,.2f}".format(metric.top10) }}
+                {% else %}
+                    {{ metric.top10 }}
+                {% endif %}
+            </td>
+            {% endif %}
+            {% if show_gap %}
+            <td class="{% if metric.client >= metric.benchmark %}gap-positive{% else %}gap-negative{% endif %}">
+                {% set gap = metric.client - metric.benchmark %}
+                {{ "+" if gap >= 0 else "" }}{{ gap|round(2) }}{% if metric.format == 'percent' %}pp{% endif %}
+            </td>
+            {% endif %}
+            {% if show_status %}
+            <td>
+                {% set status = 'exceeds' if metric.client >= metric.benchmark * 1.1 else ('meets' if metric.client >= metric.benchmark * 0.9 else 'below') %}
+                <span class="status-badge status-{{ status }}">
+                    {% if status == 'exceeds' %}Exceeds{% elif status == 'meets' %}Meets{% else %}Below{% endif %}
+                </span>
+            </td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if title %}
+</div>
+{% endif %}
+

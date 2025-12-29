@@ -1,0 +1,142 @@
+"""
+Section-specific prompt templates (list growth, automation, data capture, generic).
+Simplified to use narrative format with embedded strategic elements.
+"""
+from typing import Dict, Any
+from .base import get_currency_symbol, get_strategic_value_instructions
+
+
+def get_list_growth_prompt(data: Dict[str, Any], context: Dict[str, Any]) -> str:
+    """Generate prompt for list growth analysis."""
+    client_name = context.get("client_name", "the client")
+    industry = context.get("industry", "retail")
+    section_data = data.get("data", {})
+    
+    current_total = section_data.get("current_total", 0)
+    growth_subscribers = section_data.get("growth_subscribers", 0) 
+    lost_subscribers = section_data.get("lost_subscribers", 0)
+    churn_rate = section_data.get("churn_rate", 0)
+    period_months = section_data.get("period_months", 6)
+    
+    prompt = f"""You are an expert email marketing strategist analyzing list growth data. Provide clear narrative insights.
+
+CLIENT CONTEXT:
+- Client: {client_name}
+- Industry: {industry}
+- Analysis Period: {period_months} months
+
+LIST GROWTH METRICS:
+- Current Subscribers: {current_total:,}
+- New Subscribers: {growth_subscribers:,}
+- Lost Subscribers: {lost_subscribers:,}
+- Churn Rate: {churn_rate:.2f}%
+
+PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
+
+{{
+    "primary": "List growth overview: Current subscriber count {current_total:,} with {growth_subscribers:,} new subscribers and {lost_subscribers:,} lost over {period_months} months. Churn rate at {churn_rate:.1f}% indicates [assess list health]. **Performance Status:** [Healthy/Concerning/Critical based on growth vs churn]. **Quick Wins:** [2-3 immediate opportunities to reduce churn or increase acquisition]. **Risk Flags:** [Any critical list health issues].",
+    "secondary": "Strategic list growth recommendations: **Growth Optimization:** [Specific strategies to increase acquisition]. **Churn Reduction:** [Tactics to improve retention]. **Expected Impact:** [Estimate subscriber and revenue impact of optimizations]."
+}}
+
+GUIDELINES:
+- Compare growth rate to industry standards 
+- Assess churn rate health (ideal is <2% monthly)
+- Be specific with numbers and percentages
+- Identify key opportunities for improvement
+- Write clear, consultant-style insights
+- Return only the JSON object"""
+
+    return prompt
+
+
+def get_automation_prompt(data: Dict[str, Any], context: Dict[str, Any]) -> str:
+    """Generate prompt for automation overview analysis."""
+    client_name = context.get("client_name", "the client")
+    industry = context.get("industry", "retail")
+    currency_code = context.get("currency", "USD")
+    currency_symbol = get_currency_symbol(currency_code)
+    
+    section_data = data.get("data", {})
+    total_revenue = section_data.get("total_revenue", 0)
+    total_recipients = section_data.get("total_recipients", 0)
+    flows = section_data.get("flows", [])
+    period_days = section_data.get("period_days", 90)
+    
+    prompt = f"""You are an expert email marketing strategist analyzing automation performance. Provide clear narrative insights.
+
+CLIENT CONTEXT:
+- Client: {client_name}
+- Industry: {industry}
+- Currency: {currency_code} ({currency_symbol})
+- Analysis Period: {period_days} days
+- Total Flow Revenue: {currency_symbol}{total_revenue:,.2f}
+- Total Recipients: {total_recipients:,}
+- Number of Flows: {len(flows)}
+
+PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
+
+{{
+    "primary": "Automation overview: Flow ecosystem generated {currency_symbol}{total_revenue:,.0f} in revenue from {total_recipients:,} recipients over {period_days} days. **Performance Highlights:** [Key performing flows and metrics]. **Quick Wins:** [2-3 immediate flow optimization opportunities]. **Missing Flows:** [Identify critical missing automation flows].",
+    "secondary": "Strategic automation recommendations: **Flow Optimization:** [Specific improvements for existing flows]. **New Flow Opportunities:** [Recommended new automations to implement]. **Revenue Impact:** [Estimate potential revenue increase from optimizations]."
+}}
+
+GUIDELINES:
+- Focus on overall flow ecosystem performance
+- Identify missing critical flows (welcome, abandoned cart, etc.)
+- Embed strategic recommendations within narrative text
+- Return only the JSON object"""
+
+    return prompt
+
+
+def get_data_capture_prompt(data: Dict[str, Any], context: Dict[str, Any]) -> str:
+    """Generate prompt for data capture/forms analysis."""
+    client_name = context.get("client_name", "the client")
+    industry = context.get("industry", "retail")
+    
+    prompt = f"""You are an expert email marketing strategist analyzing form performance data. Provide clear narrative insights.
+
+CLIENT CONTEXT:
+- Client: {client_name}
+- Industry: {industry}
+
+PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
+
+{{
+    "primary": "Form performance overview: Analyze form conversion rates, signup sources, and data capture effectiveness. **Performance Highlights:** [Top performing forms with conversion rates]. **Quick Wins:** [2-3 immediate form optimization opportunities]. **Issues:** [Any underperforming forms needing attention].",
+    "secondary": "Strategic form recommendations: **Optimization Priorities:** [Rank form improvements by impact]. **New Opportunities:** [Additional forms or targeting strategies]. **Expected Impact:** [Estimate conversion and list growth improvements]."
+}}
+
+GUIDELINES:
+- Focus on form conversion rates and effectiveness
+- Identify optimization opportunities
+- Embed strategic recommendations within narrative text
+- Return only the JSON object"""
+
+    return prompt
+
+
+def get_generic_prompt(section: str, data: Dict[str, Any], context: Dict[str, Any]) -> str:
+    """Generate generic prompt for any section."""
+    client_name = context.get("client_name", "the client") 
+    
+    prompt = f"""You are an expert email marketing strategist analyzing {section} performance data.
+
+CLIENT CONTEXT:
+- Client: {client_name}
+- Section: {section}
+
+PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
+
+{{
+    "primary": "{section.title()} analysis: Provide overview of performance and key findings. Include specific metrics and insights.",
+    "secondary": "Strategic recommendations: Key optimization opportunities and next steps for {section}."
+}}
+
+GUIDELINES:
+- Professional consultant tone
+- Include specific metrics when available  
+- Focus on actionable insights
+- Return only the JSON object"""
+
+    return prompt

@@ -1,0 +1,27 @@
+{#
+  Metric Card Component
+  
+  Usage:
+  {% include "components/metric_card.html" with
+      label="Total Revenue"
+      value="$1,014,093"
+      subtext="↗ 78.4% vs previous 90 days"
+      highlight=true
+      size="large"
+  %}
+#}
+
+<div class="metric-card {% if highlight %}highlight{% endif %} {% if size %}metric-{{ size }}{% endif %}">
+    <h3 class="metric-label">{{ label }}</h3>
+    <p class="metric-value {% if size == 'large' %}large{% endif %}">{{ value }}</p>
+    {% if subtext %}
+    <p class="metric-subtext">{{ subtext }}</p>
+    {% endif %}
+    {% if trend %}
+    <div class="metric-trend trend-{{ trend.direction }}">
+        {% if trend.direction == 'up' %}↗{% elif trend.direction == 'down' %}↘{% else %}→{% endif %}
+        {{ trend.value }}%
+    </div>
+    {% endif %}
+</div>
+

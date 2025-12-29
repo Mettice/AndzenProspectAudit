@@ -1,0 +1,273 @@
+{#
+  List Growth Section - Page 4
+  
+  Data required:
+  - list_growth_data: dict with list_name, period_months, current_total, etc.
+#}
+
+<section class="section page" data-page="4">
+    <h1 class="section-title">LIST GROWTH</h1>
+    
+    <div class="list-growth-intro">
+        {% if list_growth_data.analysis_text %}
+            {{ list_growth_data.analysis_text|safe }}
+        {% else %}
+            <p>
+                <em>Analysis of list growth data for <strong><u>{{ list_growth_data.list_name }}</u></strong> over the last {{ list_growth_data.period_months }} months.</em>
+            </p>
+        {% endif %}
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="list-growth-charts">
+        <div class="chart-panel">
+            <div class="chart-header">
+                <span class="chart-date-range">{{ list_growth_data.date_range|default('') }}</span>
+                <span class="chart-view">View by: Monthly</span>
+            </div>
+            <div class="chart-subheader">*This report is near real-time. Counts may be delayed by a few minutes.</div>
+            
+            <div class="charts-container">
+                <!-- List Size Chart -->
+                <div class="chart-box">
+                    <div class="chart-title-small">List size and growth</div>
+                    <div class="chart-metric">
+                        <span class="chart-metric-value">{{ "{:,}".format(list_growth_data.current_total) }}</span>
+                        <span class="chart-metric-label">Total members</span>
+                    </div>
+                    {% set chart_id = "list_size_chart" %}
+                    {% set chart_type = "bar" %}
+                    {% set height = 180 %}
+                    {% set data = list_growth_data.chart_data if list_growth_data.chart_data else {} %}
+                    {% include "components/chart_placeholder.html" %}
+                </div>
+                
+                <!-- Net Change Chart -->
+                <div class="chart-box">
+                    <div class="chart-title-small">Net membership change</div>
+                    <div class="chart-metric">
+                        <span class="chart-metric-value">{{ "{:,}".format(list_growth_data.net_change) }}</span>
+                        <span class="chart-metric-label">Net membership change</span>
+                    </div>
+                    {% set chart_id = "net_change_chart" %}
+                    {% set chart_type = "bar" %}
+                    {% set height = 180 %}
+                    {% set data = list_growth_data.net_change_chart_data if list_growth_data.net_change_chart_data else {} %}
+                    {% include "components/chart_placeholder.html" %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if list_growth_data.areas_of_opportunity %}
+    <div class="areas-of-opportunity-section">
+        <h4 class="subsection-title">Areas of Opportunity</h4>
+        <table class="opportunity-table">
+            <thead>
+                <tr>
+                    <th>Opportunity</th>
+                    <th>Recommended Action</th>
+                    <th>Why it Matters</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for opp in list_growth_data.areas_of_opportunity %}
+                <tr>
+                    <td>{{ opp.opportunity }}</td>
+                    <td>{{ opp.recommended_action }}</td>
+                    <td>{{ opp.why_it_matters }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    {# Strategic Value Elements #}
+    {% from "components/strategic_value_elements.html" import root_cause_analysis, risk_flags, quick_wins, enhanced_recommendations %}
+    
+    {% if list_growth_data.root_cause_analysis %}
+    {{ root_cause_analysis(list_growth_data.root_cause_analysis) }}
+    {% endif %}
+    
+    {% if list_growth_data.risk_flags %}
+    {{ risk_flags(list_growth_data.risk_flags) }}
+    {% endif %}
+    
+    {% if list_growth_data.quick_wins %}
+    {{ quick_wins(list_growth_data.quick_wins) }}
+    {% endif %}
+    
+    {% if list_growth_data.recommendations %}
+    {{ enhanced_recommendations(list_growth_data.recommendations) }}
+    {% endif %}
+</section>
+
+<style>
+.list-growth-intro {
+    margin-bottom: 2rem;
+}
+
+.list-growth-intro p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Match sample: 1.166667em */
+    line-height: 1.7;
+    color: #000000; /* Pure black */
+}
+
+.list-growth-charts {
+    margin: 2rem 0;
+}
+
+.chart-panel {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    padding: 1rem;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #E5E7EB;
+    font-size: 0.8rem;
+}
+
+.chart-date-range {
+    background: #F3F4F6;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #D1D5DB;
+}
+
+.chart-view {
+    color: #666;
+}
+
+.chart-subheader {
+    font-size: 0.7rem;
+    color: #999;
+    margin: 0.5rem 0;
+    font-style: italic;
+}
+
+.charts-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+.chart-box {
+    padding: 1rem;
+}
+
+.chart-title-small {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #262626;
+    margin-bottom: 0.5rem;
+}
+
+.chart-metric {
+    margin-bottom: 1rem;
+}
+
+.chart-metric-value {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: #262626;
+}
+
+.chart-metric-label {
+    display: block;
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.list-growth-analysis {
+    background: #FFFFFF;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.list-growth-analysis p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin: 0 0 1.25rem 0;
+    color: #262626;
+}
+
+.list-growth-analysis p:last-child {
+    margin-bottom: 0;
+}
+
+.list-growth-analysis strong {
+    color: #000;
+}
+
+@media print {
+    .charts-container {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.areas-of-opportunity-section {
+    margin: 2rem 0;
+}
+
+.subsection-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Reduced from 2.17rem - was too large */
+    font-weight: 700;
+    color: #000000; /* Match sample: pure black */
+    margin-bottom: 1rem;
+    margin-top: 1.5rem;
+    line-height: 1.3;
+}
+
+.opportunity-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.opportunity-table thead {
+    background-color: #65DA4F;
+    color: #000;
+}
+
+.opportunity-table th {
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.833rem; /* Match sample: 0.833333em */
+    color: #000000; /* Match sample: pure black */
+    border: 1px solid #4CAF50;
+}
+
+.opportunity-table td {
+    padding: 0.75rem;
+    border: 1px solid #E0E0E0;
+    font-size: 0.833rem; /* Match sample: 0.833333em */
+    color: #000000; /* Match sample: pure black */
+    line-height: 1.5;
+    vertical-align: top;
+}
+
+.opportunity-table tbody tr:nth-child(even) {
+    background-color: #F9F9F9;
+}
+
+.opportunity-table tbody tr:hover {
+    background-color: #F0F8F0;
+}
+</style>
+
+{# Include strategic value elements styles #}
+{% include "components/strategic_value_elements_styles.html" %}
+

@@ -1,0 +1,398 @@
+{#
+  Advanced Wishlist Section - Page 14
+  
+  Data required:
+  - wishlist_data: dict with enabled status, integration, wishlist_flows, recommendations
+#}
+
+<section class="section page" data-page="14">
+    <h1 class="section-title">ADVANCED: WISHLIST & PRICE DROP</h1>
+    
+    <div class="advanced-intro">
+        <p>
+            Wishlist and price drop automations target customers who have shown strong purchase intent by saving 
+            items for later consideration. These flows typically achieve higher conversion rates than general 
+            promotional campaigns because they target customers with demonstrated product interest. This section 
+            evaluates your current wishlist strategy and identifies opportunities to capture additional revenue 
+            from interested prospects.
+        </p>
+    </div>
+    
+    <!-- Current Implementation Status -->
+    <div class="implementation-status">
+        <div class="status-grid">
+            <div class="status-item">
+                <div class="status-header">Wishlist Automation</div>
+                <div class="status-value {{ 'enabled' if wishlist_data.enabled else 'disabled' }}">
+                    {{ 'ENABLED' if wishlist_data.enabled else 'NOT IMPLEMENTED' }}
+                </div>
+                <div class="status-description">
+                    {% if wishlist_data.enabled %}
+                    Active wishlist automation detected
+                    {% else %}
+                    No wishlist automation found
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="status-item">
+                <div class="status-header">Integration Platform</div>
+                <div class="status-value">{{ wishlist_data.integration|default('NONE') }}</div>
+                <div class="status-description">
+                    {% if wishlist_data.integration and wishlist_data.integration != 'None' %}
+                    Connected wishlist platform
+                    {% else %}
+                    No wishlist platform integration
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Wishlist Flow Performance -->
+    {% if wishlist_data.wishlist_flows %}
+    <div class="wishlist-flows-section">
+        <h4 class="subsection-title">Wishlist Flow Performance</h4>
+        
+        <table class="data-table-green">
+            <thead>
+                <tr>
+                    <th>Flow Name</th>
+                    <th>Open Rate</th>
+                    <th>Click Rate</th>
+                    <th>Conversion Rate</th>
+                    <th>Revenue Per Recipient</th>
+                    <th>Recipients (90 days)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for flow in wishlist_data.wishlist_flows %}
+                <tr>
+                    <td>{{ flow.name }}</td>
+                    <td>{{ (flow.open_rate|default(0))|round(2) }}%</td>
+                    <td>{{ (flow.click_rate|default(0))|round(2) }}%</td>
+                    <td>{{ (flow.conversion_rate|default(0))|round(2) }}%</td>
+                    <td>${{ "{:,.2f}".format(flow.revenue_per_recipient|default(0)) }}</td>
+                    <td>{{ "{:,}".format(flow.recipients|default(0)) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    <!-- Strategy Components -->
+    <div class="strategy-section">
+        <h4 class="strategy-title">Wishlist & Price Drop Strategy</h4>
+        
+        {% if not wishlist_data.enabled %}
+        <div class="opportunity-callout">
+            <div class="callout-header">💎 HIGH-VALUE OPPORTUNITY</div>
+            <p>
+                Wishlist automation can capture 5-15% additional revenue from interested customers. These flows 
+                typically achieve 25-40% open rates and 8-15% conversion rates due to high purchase intent.
+            </p>
+        </div>
+        {% endif %}
+        
+        <div class="strategy-grid">
+            <div class="strategy-item">
+                <h5>Wishlist Reminder</h5>
+                <p>Automated emails when items are added to wishlist, featuring personalized product recommendations and scarcity messaging.</p>
+            </div>
+            
+            <div class="strategy-item">
+                <h5>Price Drop Alerts</h5>
+                <p>Instant notifications when wishlisted items go on sale, creating urgency and motivation to complete purchase.</p>
+            </div>
+            
+            <div class="strategy-item">
+                <h5>Stock Alerts</h5>
+                <p>Notifications when low-stock or out-of-stock wishlisted items become available again.</p>
+            </div>
+            
+            <div class="strategy-item">
+                <h5>Wishlist Abandonment</h5>
+                <p>Progressive follow-up series for customers who add items but don't purchase within specific timeframes.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Implementation Framework -->
+    <div class="implementation-framework">
+        <h4 class="framework-title">Implementation Framework</h4>
+        
+        <div class="framework-steps">
+            <div class="framework-step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h5>Platform Integration</h5>
+                    <p>Connect wishlist functionality (native ecommerce or third-party like Swym, Wishlisted)</p>
+                </div>
+            </div>
+            
+            <div class="framework-step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h5>Data Sync Setup</h5>
+                    <p>Configure data flow between wishlist platform and Klaviyo for proper segmentation</p>
+                </div>
+            </div>
+            
+            <div class="framework-step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h5>Flow Creation</h5>
+                    <p>Build automated flows for wishlist reminders, price drops, and stock alerts</p>
+                </div>
+            </div>
+            
+            <div class="framework-step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h5>Testing & Optimization</h5>
+                    <p>A/B test messaging, timing, and incentives to maximize conversion rates</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recommendations -->
+    <div class="recommendations-section">
+        <div class="recommendations">
+            <h5>Strategic Recommendations:</h5>
+            <ul>
+                {% if wishlist_data.recommendations %}
+                    {% for rec in wishlist_data.recommendations %}
+                    <li>{{ rec }}</li>
+                    {% endfor %}
+                {% else %}
+                <li>Implement wishlist functionality on product pages and collection pages</li>
+                <li>Set up immediate confirmation emails when items are wishlisted</li>
+                <li>Create price drop notification flows for sale items</li>
+                <li>Develop stock alert flows for out-of-stock to in-stock transitions</li>
+                <li>Build 3-email wishlist abandonment series (1 day, 7 days, 30 days)</li>
+                <li>Segment wishlist audiences for personalized campaign targeting</li>
+                <li>Implement social proof in wishlist emails (popularity, reviews)</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</section>
+
+<style>
+.advanced-intro p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin-bottom: 2rem;
+}
+
+.implementation-status {
+    background: #F9FAFB;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 2rem 0;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.status-item {
+    text-align: center;
+}
+
+.status-header {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.status-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.status-value.enabled {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-value.disabled {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.status-description {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.wishlist-flows-section {
+    margin: 2rem 0;
+}
+
+.subsection-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Reduced from 2.17rem - was too large */
+    font-weight: 700;
+    color: #000000; /* Match sample: pure black */
+    margin-bottom: 1rem;
+    margin-top: 1.5rem;
+    line-height: 1.3;
+}
+
+.strategy-section {
+    margin: 2rem 0;
+}
+
+.strategy-title, .framework-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.opportunity-callout {
+    background: #EDE9FE;
+    border-left: 4px solid #7C3AED;
+    padding: 1rem 1.5rem;
+    margin: 1rem 0 2rem 0;
+}
+
+.callout-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    color: #5B21B6;
+    margin-bottom: 0.5rem;
+}
+
+.opportunity-callout p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #5B21B6;
+    margin: 0;
+}
+
+.strategy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.strategy-item {
+    background: #FFFFFF;
+    padding: 1rem;
+    border-left: 3px solid #65DA4F;
+}
+
+.strategy-item h5 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #262626;
+}
+
+.strategy-item p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    margin: 0;
+    color: #4B5563;
+}
+
+.implementation-framework {
+    background: #F8FAFC;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 2rem 0;
+}
+
+.framework-steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.framework-step {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.step-number {
+    background: #65DA4F;
+    color: white;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.step-content h5 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: #262626;
+}
+
+.step-content p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0;
+    color: #4B5563;
+}
+
+.recommendations-section {
+    background: #FFFFFF;
+    padding: 1.5rem;
+    border-left: 4px solid #65DA4F;
+    margin-top: 2rem;
+}
+
+.recommendations h5 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #262626;
+}
+
+.recommendations ul {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.recommendations li {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+    color: #374151;
+}
+
+@media print {
+    .status-grid, .strategy-grid, .framework-steps {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+</style>

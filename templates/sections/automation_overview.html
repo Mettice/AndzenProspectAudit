@@ -1,0 +1,307 @@
+{#
+  Automation Performance Overview Section - Page 7
+  
+  Data required:
+  - automation_overview_data: dict with period_days, flows, summary, chart_data, narrative
+#}
+
+<section class="section page" data-page="7">
+    <h1 class="section-title">OVERALL AUTOMATION PERFORMANCE ({{ automation_overview_data.period_days }} DAYS)</h1>
+    
+    <div class="automation-intro">
+        {% if automation_overview_data.narrative %}
+            {{ automation_overview_data.narrative|safe }}
+        {% else %}
+            <p>
+                The purpose of compiling an overview of your flows is to assess whether any metrics are 
+                underperforming and require attention. However, it appears that your flow metrics are generally 
+                healthy and do not raise any significant concerns.
+            </p>
+        {% endif %}
+    </div>
+    
+    <!-- Email Automation Table -->
+    <div class="automation-table-section">
+        <div class="table-title-bar">EMAIL AUTOMATION</div>
+        
+        <table class="data-table-green">
+            <thead>
+                <tr>
+                    <th>Flow Name</th>
+                    <th>Performance Tier</th>
+                    <th>Open Rate</th>
+                    <th>Click Rate</th>
+                    <th>Conversion Rate</th>
+                    <th>Revenue</th>
+                    <th>Strategic Focus</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for flow in automation_overview_data.flows %}
+                <tr>
+                    <td>{{ flow.name }}</td>
+                    <td>
+                        <span class="performance-tier tier-{{ (flow.performance_tier|lower) if flow.performance_tier else 'unknown' }}">
+                            {{ flow.performance_tier if flow.performance_tier else "N/A" }}
+                        </span>
+                    </td>
+                    <td>{{ flow.avg_open_rate|round(2) }}%</td>
+                    <td>{{ flow.avg_click_rate|round(2) }}%</td>
+                    <td>{{ flow.avg_placed_order_rate|round(2) }}%</td>
+                    <td>${{ "{:,.0f}".format(flow.revenue) }}</td>
+                    <td>{{ flow.strategic_focus if flow.strategic_focus else "Optimization Analysis" }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="no-data">No flow data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Performance Analysis -->
+    {% if automation_overview_data.analysis_text %}
+    <div class="automation-analysis">
+        {{ automation_overview_data.analysis_text|safe }}
+    </div>
+    {% endif %}
+    
+    <!-- Flow Performance Summary -->
+    <div class="flow-summary-section">
+        <div class="flow-summary-header">
+            <div class="summary-title">Flow performance summary</div>
+            <div class="summary-tabs">
+                <span class="tab">Overview</span>
+                <span class="tab">Metrics</span>
+                <span class="tab active">Top performing</span>
+            </div>
+        </div>
+        
+        <div class="summary-content">
+            <div class="summary-metrics">
+                <div class="summary-metric">
+                    <span class="metric-big">${{ "{:,.0f}".format(automation_overview_data.summary.total_conversion_value) }}</span>
+                    <span class="metric-label">Flow Revenue</span>
+                    {% if automation_overview_data.summary.vs_previous_period %}
+                    <span class="metric-trend trend-up">
+                        ↗ {{ automation_overview_data.summary.vs_previous_period }}% vs. previous {{ automation_overview_data.period_days }} days
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="summary-metric">
+                    <span class="metric-big">{{ "{:,}".format(automation_overview_data.summary.total_recipients) }}</span>
+                    <span class="metric-label">Total Recipients</span>
+                    {% if automation_overview_data.summary.recipients_vs_previous %}
+                    <span class="metric-trend trend-up">
+                        ↗ {{ automation_overview_data.summary.recipients_vs_previous }}% vs. previous {{ automation_overview_data.period_days }} days
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="summary-metric">
+                    <span class="metric-big">{{ automation_overview_data.flows|length }}</span>
+                    <span class="metric-label">Active Flows</span>
+                </div>
+            </div>
+            
+            <div class="summary-chart">
+                {% set chart_id = "flow_performance_chart" %}
+                {% set chart_type = "bar_line" %}
+                {% set height = 200 %}
+                {% set data = automation_overview_data.chart_data if automation_overview_data.chart_data else {} %}
+                {% include "components/chart_placeholder.html" %}
+                <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-color" style="background: #65DA4F;"></span> Conversion Value</span>
+                    <span class="legend-item"><span class="legend-color legend-line"></span> Total Recipients</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Narrative -->
+    <div class="automation-narrative">
+        {% if automation_overview_data.narrative_text %}
+            {{ automation_overview_data.narrative_text|safe }}
+        {% elif automation_overview_data.summary.vs_previous_period %}
+            <p>
+                In terms of revenue, your revenue from flows has seen a {{ automation_overview_data.summary.vs_previous_period }}% growth 
+                compared to the previous period. This growth can be attributed to an increase in email deliveries 
+                or {{ automation_overview_data.summary.recipients_vs_previous }}% more compared to the previous period.
+            </p>
+        {% else %}
+            <p>
+                Your email flows are performing well. Review the metrics above to identify optimization opportunities.
+            </p>
+        {% endif %}
+    </div>
+</section>
+
+<style>
+.automation-intro p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem; /* Match sample: 1.166667em */
+    line-height: 1.7;
+    margin-bottom: 2rem;
+    color: #000000;
+}
+
+.automation-table-section {
+    margin: 2rem 0;
+}
+
+.table-title-bar {
+    background: #65DA4F;
+    color: #000000;
+    padding: 0.75rem 1rem;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 0.833rem;
+    letter-spacing: 0.05em;
+}
+
+.automation-analysis {
+    margin: 2rem 0;
+}
+
+.automation-analysis p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    line-height: 1.7;
+    color: #000000;
+}
+
+/* Performance Tier Badges */
+.performance-tier {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.performance-tier.tier-excellent {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.performance-tier.tier-good {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.performance-tier.tier-average {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.performance-tier.tier-poor {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.performance-tier.tier-unknown {
+    background: #F3F4F6;
+    color: #6B7280;
+}
+
+.flow-summary-section {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    margin: 2rem 0;
+}
+
+.flow-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.summary-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    font-weight: 700;
+    color: #000000;
+}
+
+.summary-tabs {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tab {
+    padding: 0.5rem 1rem;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.833rem;
+    color: #717171;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+.tab.active {
+    color: #000000;
+    border-bottom-color: #65DA4F;
+}
+
+.summary-content {
+    padding: 1.5rem;
+}
+
+.summary-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.summary-metric {
+    text-align: center;
+    padding: 1rem;
+    background: #F9FAFB;
+    border-radius: 4px;
+}
+
+.metric-big {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: #000000;
+    margin-bottom: 0.5rem;
+}
+
+.metric-label {
+    display: block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.833rem;
+    color: #717171;
+    margin-bottom: 0.5rem;
+}
+
+.metric-trend {
+    display: block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.75rem;
+    color: #065F46;
+}
+
+.summary-chart {
+    margin-top: 1rem;
+}
+
+.automation-narrative {
+    margin-top: 2rem;
+}
+
+.automation-narrative p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    line-height: 1.7;
+    color: #000000;
+}
+</style>
