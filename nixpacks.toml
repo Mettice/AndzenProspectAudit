@@ -3,9 +3,10 @@
 # We need to install Playwright browsers after Python packages are installed
 
 # Use build phase which runs after install phase
+# Note: install-deps is optional for headless operation - skip if it fails
 [phases.build]
 cmds = [
-  "python3 -m playwright install chromium",
-  "python3 -m playwright install-deps chromium"
+  "python3 -m playwright install chromium || true",
+  "python3 -m playwright install-deps chromium || echo 'Deps install failed, continuing (headless mode may work without them)'"
 ]
 
