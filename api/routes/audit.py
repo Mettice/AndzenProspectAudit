@@ -193,24 +193,68 @@ async def generate_audit(request: AuditRequest, background_tasks: BackgroundTask
         try:
             api_key_hash = hashlib.sha256(request.api_key.encode()).hexdigest() if request.api_key else None
             
-            db_report = Report(
-                filename=f"audit_{request.client_name}_pending",
-                client_name=request.client_name,
-                auditor_name=request.auditor_name,
-                client_code=getattr(request, 'client_code', None),
-                industry=request.industry,
-                analysis_period_days=request.days,
-                status=ReportStatus.PROCESSING,
-                klaviyo_api_key_hash=api_key_hash,
-                llm_provider=request.llm_provider,
-                llm_model=request.claude_model or request.openai_model or request.gemini_model,
-                created_by_id=None
-            )
-            db.add(db_report)
-            db.commit()
-            db.refresh(db_report)
-            report_id = db_report.id
-            print(f"✓ Created report record with ID: {report_id}")
+            # Try to create report with created_by_id=None
+            # If it fails due to NOT NULL constraint, try to run migration automatically
+            try:
+                db_report = Report(
+                    filename=f"audit_{request.client_name}_pending",
+                    client_name=request.client_name,
+                    auditor_name=request.auditor_name,
+                    client_code=getattr(request, 'client_code', None),
+                    industry=request.industry,
+                    analysis_period_days=request.days,
+                    status=ReportStatus.PROCESSING,
+                    klaviyo_api_key_hash=api_key_hash,
+                    llm_provider=request.llm_provider,
+                    llm_model=request.claude_model or request.openai_model or request.gemini_model,
+                    created_by_id=None
+                )
+                db.add(db_report)
+                db.commit()
+                db.refresh(db_report)
+                report_id = db_report.id
+                print(f"✓ Created report record with ID: {report_id}")
+            except Exception as db_error:
+                error_str = str(db_error)
+                if "created_by_id" in error_str and "not-null" in error_str.lower():
+                    # Database still has NOT NULL constraint - try to fix it
+                    print("⚠️  Database schema needs migration. Attempting automatic migration...")
+                    try:
+                        from sqlalchemy import text
+                        # Use raw connection for DDL operations
+                        with db.connection() as conn:
+                            conn.execute(text("ALTER TABLE reports ALTER COLUMN created_by_id DROP NOT NULL;"))
+                            conn.commit()
+                        print("✓ Migration applied. Retrying report creation...")
+                        
+                        # Retry creating the report
+                        db_report = Report(
+                            filename=f"audit_{request.client_name}_pending",
+                            client_name=request.client_name,
+                            auditor_name=request.auditor_name,
+                            client_code=getattr(request, 'client_code', None),
+                            industry=request.industry,
+                            analysis_period_days=request.days,
+                            status=ReportStatus.PROCESSING,
+                            klaviyo_api_key_hash=api_key_hash,
+                            llm_provider=request.llm_provider,
+                            llm_model=request.claude_model or request.openai_model or request.gemini_model,
+                            created_by_id=None
+                        )
+                        db.add(db_report)
+                        db.commit()
+                        db.refresh(db_report)
+                        report_id = db_report.id
+                        print(f"✓ Created report record with ID: {report_id}")
+                    except Exception as migrate_error:
+                        db.rollback()
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Database migration required. Please run: python scripts/migrate_reports_created_by_id.py. Error: {str(migrate_error)}"
+                        )
+                else:
+                    # Re-raise if it's a different error
+                    raise
         finally:
             db.close()
         
