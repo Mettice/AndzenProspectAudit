@@ -846,17 +846,6 @@
       }
 
       log('Submitting audit request...');
-      
-      // Safe logging - redact sensitive API keys
-      const safePayload = { ...payload };
-      if (safePayload.api_key) safePayload.api_key = '[REDACTED]';
-      if (safePayload.anthropic_api_key) safePayload.anthropic_api_key = '[REDACTED]';
-      if (safePayload.openai_api_key) safePayload.openai_api_key = '[REDACTED]';
-      if (safePayload.gemini_api_key) safePayload.gemini_api_key = '[REDACTED]';
-      
-      console.log('📤 Payload being sent (API keys redacted):', JSON.stringify(safePayload, null, 2));
-      console.log('📤 date_range:', payload.date_range);
-      console.log('📤 days:', payload.days);
       showProgress();
 
       try {
