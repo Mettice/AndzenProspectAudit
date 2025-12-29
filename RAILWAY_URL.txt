@@ -1,0 +1,7 @@
+Railway Backend URL: https://web-production-2ce0.up.railway.app
+
+Use this URL for:
+1. Vercel environment variable: API_URL
+2. CORS_ORIGINS in Railway (after Vercel deployment)
+3. Testing backend endpoints
+
