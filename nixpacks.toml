@@ -1,10 +1,11 @@
 # Nixpacks configuration for Railway deployment
 # Nixpacks auto-detects Python and installs requirements.txt automatically
-# We just need to add Playwright browser installation after dependencies are installed
+# We need to install Playwright browsers after Python packages are installed
 
-[phases.install]
+# Use build phase which runs after install phase
+[phases.build]
 cmds = [
-  "python -m playwright install chromium",
-  "python -m playwright install-deps chromium"
+  "python3 -m playwright install chromium",
+  "python3 -m playwright install-deps chromium"
 ]
 
