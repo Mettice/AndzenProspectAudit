@@ -246,8 +246,8 @@ class FormsService:
                 "standing": standing
             })
             
-            # Small delay to avoid hammering the API
-            await asyncio.sleep(0.1)
+            # Increased delay to avoid rate limiting
+            await asyncio.sleep(0.5)
         
         return {
             "period_days": days,

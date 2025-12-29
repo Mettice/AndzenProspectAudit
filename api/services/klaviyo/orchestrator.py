@@ -115,6 +115,9 @@ class DataExtractionOrchestrator:
             }
         
         # Validate date_range - ensure end is not in the future
+        # Initialize variables before try block to ensure they're available
+        start_dt = None
+        end_dt = None
         try:
             start_dt = parse_iso_date(date_range["start"])
             end_dt = parse_iso_date(date_range["end"])
@@ -138,6 +141,10 @@ class DataExtractionOrchestrator:
         except Exception as e:
             logger.error(f"❌ Error validating date_range: {e}", exc_info=True)
             raise
+        
+        # Ensure variables are defined (should be if we reach here)
+        if start_dt is None or end_dt is None:
+            raise ValueError("Failed to parse date range")
         
         start = ensure_z_suffix(date_range["start"])
         end = ensure_z_suffix(date_range["end"])
@@ -173,7 +180,7 @@ class DataExtractionOrchestrator:
             days_for_analysis = 90  # Default
             if date_range:
                 try:
-                    from .utils.date_helpers import parse_iso_date
+                    # parse_iso_date is already imported at the top of the file
                     start_dt = parse_iso_date(date_range["start"])
                     end_dt = parse_iso_date(date_range["end"])
                     days_for_analysis = (end_dt - start_dt).days
@@ -270,7 +277,7 @@ class DataExtractionOrchestrator:
         start_dt = None
         end_dt = None
         if date_range:
-            from .utils.date_helpers import parse_iso_date
+            # parse_iso_date is already imported at the top of the file
             start_dt = parse_iso_date(date_range["start"])
             end_dt = parse_iso_date(date_range["end"])
             start_date = start_dt

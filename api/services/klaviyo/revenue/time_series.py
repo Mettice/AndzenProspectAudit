@@ -312,10 +312,18 @@ class RevenueTimeSeriesService:
         # ===== 5. GET RECIPIENT DATA =====
         logger.info("📧 Fetching recipient data for charts...")
         
+        # Only fetch recipient data if we have a reasonable number of IDs to avoid rate limiting
+        max_ids_for_recipients = 20  # Limit recipient queries to avoid rate limiting
+        limited_flow_ids = flow_ids[:max_ids_for_recipients] if len(flow_ids) > max_ids_for_recipients else flow_ids
+        limited_campaign_ids = campaign_ids[:max_ids_for_recipients] if len(campaign_ids) > max_ids_for_recipients else campaign_ids
+        
+        if len(flow_ids) > max_ids_for_recipients or len(campaign_ids) > max_ids_for_recipients:
+            logger.info(f"Limiting recipient queries to {max_ids_for_recipients} flows and {max_ids_for_recipients} campaigns to avoid rate limiting")
+        
         # Get total recipients from campaigns and flows for time series
         total_recipients_data = await self._get_recipients_time_series(
-            flow_ids=flow_ids,
-            campaign_ids=campaign_ids,
+            flow_ids=limited_flow_ids,
+            campaign_ids=limited_campaign_ids,
             days=days,
             interval=interval
         )

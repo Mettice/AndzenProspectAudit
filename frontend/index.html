@@ -7,11 +7,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css" />
+  <!-- CSS path - works for both local (/ui/) and Vercel (/) -->
+  <link rel="stylesheet" href="/ui/style.css" id="main-stylesheet" />
   <!-- API Configuration - Update this script tag with your Railway URL after deployment -->
   <script>
     // Set API URL for production (update this after Railway deployment)
-    window.API_URL = window.API_URL || 'https://your-app.railway.app';
+    window.API_URL = window.API_URL || 'https://web-production-2ce0.up.railway.app';
+    
+    // Fix CSS path for Vercel (where root is /, not /ui/)
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      const stylesheet = document.getElementById('main-stylesheet');
+      if (stylesheet && !stylesheet.href.includes('/ui/')) {
+        stylesheet.href = '/style.css';
+      }
+    }
   </script>
 </head>
 <body>
@@ -806,11 +815,27 @@
         
         log(`Year to Date: ${yearStart.toISOString().split('T')[0]} to ${todayEnd.toISOString().split('T')[0]} (${daysSinceYearStart} days)`);
       } else {
-        // Use days parameter for standard periods
-        payload.days = parseInt(period);
+        // Convert days to date_range for standard periods
+        const days = parseInt(period);
+        const endDate = new Date();
+        endDate.setUTCHours(23, 59, 59, 999);
+        const startDate = new Date(endDate);
+        startDate.setUTCDate(startDate.getUTCDate() - days);
+        startDate.setUTCHours(0, 0, 0, 0);
+        
+        payload.date_range = {
+          start: startDate.toISOString(),
+          end: endDate.toISOString()
+        };
+        payload.days = days; // Keep for backward compatibility
+        
+        log(`${days} days period: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
       }
 
       log('Submitting audit request...');
+      console.log('📤 Payload being sent:', JSON.stringify(payload, null, 2));
+      console.log('📤 date_range:', payload.date_range);
+      console.log('📤 days:', payload.days);
       showProgress();
 
       try {

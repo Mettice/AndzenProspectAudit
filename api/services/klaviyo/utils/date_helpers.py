@@ -25,14 +25,27 @@ def ensure_z_suffix(dt_str: str) -> str:
     """
     Ensure ISO datetime has Z suffix for API.
     
+    Handles both Z and +00:00 timezone formats, converting to Z.
+    
     Args:
         dt_str: ISO datetime string
         
     Returns:
         ISO datetime string with Z suffix
     """
-    dt_str = dt_str.split(".")[0]  # Remove microseconds
-    return dt_str if dt_str.endswith("Z") else f"{dt_str}Z"
+    # Remove microseconds
+    dt_str = dt_str.split(".")[0]
+    
+    # If already ends with Z, return as-is
+    if dt_str.endswith("Z"):
+        return dt_str
+    
+    # If ends with +00:00, replace with Z
+    if dt_str.endswith("+00:00"):
+        return dt_str.replace("+00:00", "Z")
+    
+    # Otherwise, add Z
+    return f"{dt_str}Z"
 
 
 def format_date_range(start: datetime, end: datetime) -> Dict[str, str]:
@@ -57,6 +70,7 @@ def parse_iso_date(date_str: str) -> datetime:
     Parse ISO date string to datetime.
     
     Handles both Z suffix and +00:00 timezone formats.
+    Prevents double-processing of timezone suffixes.
     
     Args:
         date_str: ISO date string
@@ -64,8 +78,23 @@ def parse_iso_date(date_str: str) -> datetime:
     Returns:
         datetime object
     """
-    # Replace Z with +00:00 for consistent parsing
-    normalized = date_str.replace('Z', '+00:00')
+    # Remove any existing +00:00+00:00 (double processing)
+    if '+00:00+00:00' in date_str:
+        date_str = date_str.replace('+00:00+00:00', '+00:00')
+    
+    # Replace Z with +00:00 for consistent parsing, but only if Z exists
+    if date_str.endswith('Z'):
+        normalized = date_str.replace('Z', '+00:00')
+    elif date_str.endswith('+00:00'):
+        # Already has +00:00, use as-is
+        normalized = date_str
+    elif '+' in date_str or date_str.endswith('Z'):
+        # Has timezone info, use as-is
+        normalized = date_str
+    else:
+        # No timezone, assume UTC
+        normalized = f"{date_str}+00:00"
+    
     return datetime.fromisoformat(normalized)
 
 

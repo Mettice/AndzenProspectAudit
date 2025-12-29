@@ -45,15 +45,53 @@ class FlowExtractor:
         
         flow_statistics = {}
         if flows:
-            flow_ids = [f["id"] for f in flows[:50]]
+            # Batch flows to reduce API load - process in smaller chunks
+            all_flow_ids = [f["id"] for f in flows[:50]]
+            batch_size = 10  # Process 10 flows at a time to reduce rate limiting
+            
             if verbose:
-                print(f"  Fetching statistics for {len(flow_ids)} flows...")
-            flow_statistics = await self.flow_stats.get_statistics(
-                flow_ids=flow_ids,
-                timeframe="last_365_days"
-            )
+                print(f"  Fetching statistics for {len(all_flow_ids)} flows in batches of {batch_size}...")
+            
+            # Process flows in batches with delays
+            for i in range(0, len(all_flow_ids), batch_size):
+                batch_ids = all_flow_ids[i:i + batch_size]
+                batch_num = (i // batch_size) + 1
+                total_batches = (len(all_flow_ids) + batch_size - 1) // batch_size
+                
+                if verbose and total_batches > 1:
+                    print(f"    Processing batch {batch_num}/{total_batches} ({len(batch_ids)} flows)...")
+                
+                try:
+                    batch_stats = await self.flow_stats.get_statistics(
+                        flow_ids=batch_ids,
+                        timeframe="last_365_days"
+                    )
+                    
+                    # Merge batch results
+                    if batch_stats:
+                        if not flow_statistics:
+                            flow_statistics = batch_stats
+                        else:
+                            # Merge results if multiple batches
+                            batch_results = batch_stats.get("data", {}).get("attributes", {}).get("results", [])
+                            if batch_results and "data" in flow_statistics:
+                                existing_results = flow_statistics["data"]["attributes"].get("results", [])
+                                existing_results.extend(batch_results)
+                    
+                    # Add delay between batches to avoid rate limiting
+                    if i + batch_size < len(all_flow_ids):
+                        await asyncio.sleep(2.0)  # 2 second delay between batches
+                        
+                except Exception as e:
+                    if verbose:
+                        print(f"    ⚠️ Batch {batch_num} failed: {e}")
+                    continue
+            
             if flow_statistics and verbose:
-                print(f"  ✓ Flow statistics extracted")
+                total_results = 0
+                if "data" in flow_statistics and "attributes" in flow_statistics["data"]:
+                    total_results = len(flow_statistics["data"]["attributes"].get("results", []))
+                print(f"  ✓ Flow statistics extracted for {total_results} flows")
         
         # Detailed flow data
         if verbose:

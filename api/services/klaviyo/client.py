@@ -46,12 +46,12 @@ class KlaviyoClient:
         }
         
         # Initialize rate limiter based on tier (Updated 2025)
-        # Using Small tier by default for safety to avoid rate limiting
+        # Using more reasonable rates to balance speed vs safety
         rate_limits = {
-            "small": (2.5, 50),     # Very conservative for S tier: 3/sec, 60/min
-            "medium": (8.0, 120),   # Conservative for M tier: 10/sec, 150/min
-            "large": (60.0, 600),   # Conservative for L tier: 75/sec, 700/min  
-            "xl": (280.0, 3000)     # Conservative for XL tier: 350/sec, 3500/min
+            "small": (1.5, 30),     # Conservative for S tier: 1.5/sec, 30/min
+            "medium": (4.0, 80),    # Conservative for M tier: 4/sec, 80/min  
+            "large": (15.0, 300),   # Conservative for L tier: 15/sec, 300/min
+            "xl": (50.0, 1000)      # Conservative for XL tier: 50/sec, 1000/min
         }
         
         rps, rpm = rate_limits.get(rate_limit_tier.lower(), rate_limits["small"])

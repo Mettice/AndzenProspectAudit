@@ -28,6 +28,14 @@ async def generate_audit(request: AuditRequest):
     try:
         print(f"🚀 Starting audit generation for {request.client_name}...")
         
+        # DEBUG: Log request parameters
+        print(f"🔍 DEBUG: Request parameters:")
+        print(f"  days: {request.days}")
+        print(f"  date_range: {request.date_range}")
+        if request.date_range:
+            print(f"  date_range.start: {request.date_range.start}")
+            print(f"  date_range.end: {request.date_range.end}")
+        
         # Initialize services
         klaviyo_service = KlaviyoService(api_key=request.api_key)
         benchmark_service = BenchmarkService()
@@ -43,6 +51,19 @@ async def generate_audit(request: AuditRequest):
                 "start": request.date_range.start,
                 "end": request.date_range.end
             }
+            print(f"✅ Using date_range: {date_range_dict['start']} to {date_range_dict['end']}")
+        elif request.days:
+            # Fallback: convert days to date_range if date_range not provided
+            from datetime import datetime, timedelta, timezone
+            end_date = datetime.now(timezone.utc)
+            start_date = end_date - timedelta(days=request.days)
+            date_range_dict = {
+                "start": start_date.isoformat(),
+                "end": end_date.isoformat()
+            }
+            print(f"⚠️  No date_range provided, converting days={request.days} to date_range: {date_range_dict['start']} to {date_range_dict['end']}")
+        else:
+            print("⚠️  No date_range or days provided, will use default (365 days)")
         
         klaviyo_data = await klaviyo_service.extract_all_data(
             date_range=date_range_dict
@@ -72,7 +93,10 @@ async def generate_audit(request: AuditRequest):
         
         # Step 4: Convert analysis results to audit data format
         print("🔄 Converting analysis results to audit data format...")
-        audit_data = await klaviyo_service.format_audit_data(days=90, verbose=False)
+        audit_data = await klaviyo_service.format_audit_data(
+            date_range=date_range_dict,
+            verbose=False
+        )
         
         # Step 5: Generate audit report  
         print("📝 Generating audit report...")

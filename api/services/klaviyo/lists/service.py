@@ -124,10 +124,6 @@ class ListsService:
         months: int = 6,
         date_range: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
-        self,
-        list_id: Optional[str] = None,
-        months: int = 6
-    ) -> Dict[str, Any]:
         """
         Get list growth data over time.
         

@@ -67,6 +67,15 @@ async def serve_ui():
         return FileResponse(index_path)
     return {"error": "Frontend not found"}
 
+# Explicit route for CSS to ensure it's accessible
+@app.get("/ui/style.css")
+async def serve_css():
+    """Serve the CSS file explicitly."""
+    css_path = FRONTEND_DIR / "style.css"
+    if css_path.exists():
+        return FileResponse(css_path, media_type="text/css")
+    return {"error": "CSS not found"}
+
 # Basic routes
 @app.get("/")
 async def root():

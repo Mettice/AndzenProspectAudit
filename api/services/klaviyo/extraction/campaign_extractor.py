@@ -1,6 +1,7 @@
 """
 Campaign data extraction module.
 """
+import asyncio
 import logging
 from typing import Dict, Any, List
 
@@ -74,15 +75,53 @@ class CampaignExtractor:
         # Get statistics for all campaigns
         campaign_statistics = {}
         if all_campaigns:
-            campaign_ids = [c["id"] for c in all_campaigns[:50]]
+            # Batch campaigns to reduce API load
+            all_campaign_ids = [c["id"] for c in all_campaigns[:50]]
+            batch_size = 15  # Process 15 campaigns at a time to reduce rate limiting
+            
             if verbose:
-                print(f"  Fetching statistics for {len(campaign_ids)} campaigns...")
-            campaign_statistics = await self.campaign_stats.get_statistics(
-                campaign_ids=campaign_ids,
-                timeframe="last_365_days"
-            )
+                print(f"  Fetching statistics for {len(all_campaign_ids)} campaigns in batches of {batch_size}...")
+            
+            # Process campaigns in batches with delays
+            for i in range(0, len(all_campaign_ids), batch_size):
+                batch_ids = all_campaign_ids[i:i + batch_size]
+                batch_num = (i // batch_size) + 1
+                total_batches = (len(all_campaign_ids) + batch_size - 1) // batch_size
+                
+                if verbose and total_batches > 1:
+                    print(f"    Processing batch {batch_num}/{total_batches} ({len(batch_ids)} campaigns)...")
+                
+                try:
+                    batch_stats = await self.campaign_stats.get_statistics(
+                        campaign_ids=batch_ids,
+                        timeframe="last_365_days"
+                    )
+                    
+                    # Merge batch results
+                    if batch_stats:
+                        if not campaign_statistics:
+                            campaign_statistics = batch_stats
+                        else:
+                            # Merge results if multiple batches
+                            batch_results = batch_stats.get("data", {}).get("attributes", {}).get("results", [])
+                            if batch_results and "data" in campaign_statistics:
+                                existing_results = campaign_statistics["data"]["attributes"].get("results", [])
+                                existing_results.extend(batch_results)
+                    
+                    # Add delay between batches to avoid rate limiting
+                    if i + batch_size < len(all_campaign_ids):
+                        await asyncio.sleep(1.5)  # 1.5 second delay between batches
+                        
+                except Exception as e:
+                    if verbose:
+                        print(f"    ⚠️ Batch {batch_num} failed: {e}")
+                    continue
+            
             if campaign_statistics and verbose:
-                print(f"  ✓ Campaign statistics extracted")
+                total_results = 0
+                if "data" in campaign_statistics and "attributes" in campaign_statistics["data"]:
+                    total_results = len(campaign_statistics["data"]["attributes"].get("results", []))
+                print(f"  ✓ Campaign statistics extracted for {total_results} campaigns")
         
         return {
             "campaigns": all_campaigns,
