@@ -253,12 +253,6 @@ class DataExtractionOrchestrator:
                         rev = perf.get("revenue", 0)
                         open_rate = perf.get("open_rate", 0)
                         print(f"  {status} {name}: Open {open_rate:.1f}%, Rev ${rev:,.0f}")
-            except Exception as e:
-                if verbose:
-                    print(f"  ✗ Error fetching core flows data: {e}")
-                logger.error(f"Error fetching core flows data: {e}", exc_info=True)
-                enhanced_data["core_flows"] = {}
-        
         if verbose:
             print(f"\n{'='*60}")
             print("✓ DATA EXTRACTION COMPLETE!")

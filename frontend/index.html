@@ -582,18 +582,28 @@
       
       try {
         const response = await fetch(`${API_BASE_URL}/api/audit/test-connection?api_key=${encodeURIComponent(apiKey)}`);
-        const data = await response.json();
+        
+        let data;
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          // If response is not JSON, try to get text
+          const text = await response.text();
+          throw new Error(text || `HTTP ${response.status}: ${response.statusText}`);
+        }
         
         if (data.success) {
           showAPIStatus(statusEl, 'success', '✓ Connected');
           log('✓ Klaviyo API connection successful');
         } else {
           showAPIStatus(statusEl, 'error', '✗ Failed');
-          log(`✗ Klaviyo API connection failed: ${data.message || 'Unknown error'}`);
+          const errorMsg = data.message || data.detail || 'Unknown error';
+          log(`✗ Klaviyo API connection failed: ${errorMsg}`);
         }
       } catch (err) {
         showAPIStatus(statusEl, 'error', '✗ Error');
-        log(`✗ Error testing Klaviyo API: ${err.message}`);
+        const errorMsg = err.message || 'Connection failed';
+        log(`✗ Error testing Klaviyo API: ${errorMsg}`);
       } finally {
         testBtn.disabled = false;
       }

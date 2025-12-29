@@ -4,6 +4,7 @@ Audit API routes.
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from typing import Optional
 from sqlalchemy.orm import Session
+from httpx import HTTPStatusError
 from api.models.schemas import AuditRequest, AuditResponse, ReportStatusResponse
 from api.models.report import Report, ReportStatus
 from api.services.klaviyo import KlaviyoService
@@ -63,13 +64,8 @@ async def _process_audit_background(
             _report_cache[report_id] = {"progress": 5.0, "step": "Extracting data from Klaviyo..."}
             date_range_dict = request_data.get("date_range")
             
-            # Enable fast mode if requested (reduces API calls)
-            fast_mode = request_data.get("fast_mode", False)
-            klaviyo_service._fast_mode = fast_mode
-            
             klaviyo_data = await klaviyo_service.extract_all_data(
-                date_range=date_range_dict,
-                fast_mode=fast_mode
+                date_range=date_range_dict
             )
             _report_cache[report_id] = {"progress": 20.0, "step": "Data extraction complete"}
             
@@ -549,12 +545,75 @@ async def test_connection(api_key: str):
     """
     Test Klaviyo API connection.
     """
+    if not api_key or not api_key.strip():
+        raise HTTPException(status_code=400, detail="API key is required")
+    
+    # Validate API key format (Klaviyo keys start with pk_ or sk_)
+    if not (api_key.startswith("pk_") or api_key.startswith("sk_")):
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid API key format. Klaviyo API keys should start with 'pk_' or 'sk_'"
+        )
+    
     try:
         klaviyo_service = KlaviyoService(api_key=api_key)
         result = await klaviyo_service.test_connection()
-        return {"success": result, "message": "Connection successful"}
+        
+        if result:
+            return {"success": True, "message": "Connection successful"}
+        else:
+            # If test_connection returns False, it means the connection failed
+            # but no exception was raised. This could be a 401/403 error.
+            return {"success": False, "message": "Connection failed: Invalid API key or insufficient permissions. Please check your API key."}
+    except HTTPStatusError as e:
+        # Handle HTTP status errors with detailed messages
+        status_code = e.response.status_code if hasattr(e, 'response') and e.response else 400
+        error_msg = "Connection failed"
+        
+        try:
+            # Try to extract error details from response
+            if hasattr(e, 'response') and e.response:
+                error_data = e.response.json()
+                errors = error_data.get("errors", [])
+                if errors:
+                    error_detail = errors[0].get("detail", "")
+                    if error_detail:
+                        error_msg = error_detail
+        except Exception:
+            pass
+        
+        # Map status codes to user-friendly messages
+        if status_code == 401:
+            error_msg = "Invalid API key. Please check your Klaviyo API key."
+        elif status_code == 403:
+            error_msg = "API key does not have sufficient permissions."
+        elif status_code == 404:
+            error_msg = "API endpoint not found. Please check Klaviyo API version."
+        elif status_code == 429:
+            error_msg = "Rate limit exceeded. Please try again in a moment."
+        elif status_code == 400:
+            error_msg = error_msg or "Bad request. Please check your API key format."
+        
+        return {"success": False, "message": error_msg}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        # Provide more detailed error information for other exceptions
+        error_msg = str(e)
+        
+        # Check for common error patterns
+        if "401" in error_msg or "Unauthorized" in error_msg:
+            error_msg = "Invalid API key. Please check your Klaviyo API key."
+        elif "403" in error_msg or "Forbidden" in error_msg:
+            error_msg = "API key does not have sufficient permissions."
+        elif "404" in error_msg or "Not Found" in error_msg:
+            error_msg = "API endpoint not found. Please check Klaviyo API version."
+        elif "429" in error_msg or "Too Many Requests" in error_msg:
+            error_msg = "Rate limit exceeded. Please try again in a moment."
+        elif "timeout" in error_msg.lower():
+            error_msg = "Connection timeout. Please check your internet connection."
+        else:
+            error_msg = f"Connection failed: {error_msg}"
+        
+        return {"success": False, "message": error_msg}
 
 
 @router.post("/test-llm")

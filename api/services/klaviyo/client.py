@@ -176,10 +176,17 @@ class KlaviyoClient:
         
         Returns:
             True if connection successful, False otherwise
+            
+        Raises:
+            HTTPStatusError: If there's a specific HTTP error (401, 403, etc.)
         """
         try:
             await self.request("GET", "/accounts/")
             return True
+        except HTTPStatusError as e:
+            # Re-raise HTTP errors so we can provide better error messages
+            logger.error(f"Connection test failed with HTTP {e.response.status_code}: {e}", exc_info=True)
+            raise
         except Exception as e:
             logger.error(f"Connection test failed: {e}", exc_info=True)
             return False
