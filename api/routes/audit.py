@@ -259,22 +259,38 @@ async def _process_audit_background(
                     pass
             
             # Update report with results
+            # Extract just filenames from paths for storage
+            from pathlib import Path
+            
+            html_url = generated_report.get("html_url")
+            pdf_url = generated_report.get("pdf_url")
+            word_url = generated_report.get("word_url")
+            
+            # Store just filenames (not full paths) for download endpoint
             report.filename = generated_report.get("filename", report.filename)
-            report.file_path_html = generated_report.get("html_url")
-            report.file_path_pdf = generated_report.get("pdf_url")
-            report.file_path_word = generated_report.get("word_url")
+            if html_url:
+                report.file_path_html = Path(html_url).name if html_url else None
+            if pdf_url:
+                report.file_path_pdf = Path(pdf_url).name if pdf_url else None
+            if word_url:
+                report.file_path_word = Path(word_url).name if word_url else None
             report.status = ReportStatus.COMPLETED
             
             # Store HTML content in cache and set final progress
+            # Use just filenames for download URLs (not full paths)
+            html_filename = Path(html_url).name if html_url else None
+            pdf_filename = Path(pdf_url).name if pdf_url else None
+            word_filename = Path(word_url).name if word_url else None
+            
             _report_cache[report_id] = {
                 "progress": 100.0,
                 "step": "Report generation complete",
                 "html_content": generated_report.get("html_content"),
                 "report_data": {
                     "filename": generated_report.get("filename"),
-                    "html_url": generated_report.get("html_url"),
-                    "pdf_url": generated_report.get("pdf_url"),
-                    "word_url": generated_report.get("word_url"),
+                    "html_url": f"/api/audit/download-file?path={html_filename}" if html_filename else None,
+                    "pdf_url": f"/api/audit/download-file?path={pdf_filename}" if pdf_filename else None,
+                    "word_url": f"/api/audit/download-file?path={word_filename}" if word_filename else None,
                     "pages": generated_report.get("pages"),
                     "sections": generated_report.get("sections", [])
                 }
@@ -479,18 +495,47 @@ async def get_report_status(report_id: int):
         cached = _report_cache.get(report_id, {})
         
         if report.status == ReportStatus.COMPLETED:
+            # Use cached report_data if available (has proper download URLs)
+            # Otherwise construct URLs from filenames
+            report_data = cached.get("report_data")
+            if not report_data:
+                # Fallback: construct URLs from stored filenames
+                report_data = {
+                    "filename": report.filename,
+                    "html_url": f"/api/audit/download-file?path={report.file_path_html}" if report.file_path_html else None,
+                    "pdf_url": f"/api/audit/download-file?path={report.file_path_pdf}" if report.file_path_pdf else None,
+                    "word_url": f"/api/audit/download-file?path={report.file_path_word}" if report.file_path_word else None
+                }
+            
+            # Get HTML content from cache, or fallback to reading from file
+            html_content = cached.get("html_content")
+            if not html_content and report.file_path_html:
+                # Cache miss - read from file on disk
+                try:
+                    from pathlib import Path
+                    reports_dir = Path(__file__).parent.parent.parent / "data" / "reports"
+                    # Handle both full paths and just filenames
+                    html_filename = Path(report.file_path_html).name
+                    html_file_path = reports_dir / html_filename
+                    if html_file_path.exists():
+                        with open(html_file_path, "r", encoding="utf-8") as f:
+                            html_content = f.read()
+                        # Store in cache for future requests
+                        if report_id not in _report_cache:
+                            _report_cache[report_id] = {}
+                        _report_cache[report_id]["html_content"] = html_content
+                        print(f"✓ Loaded HTML content from file for report {report_id}")
+                except Exception as e:
+                    print(f"⚠ Could not read HTML content from file: {e}")
+                    html_content = None
+            
             return ReportStatusResponse(
                 report_id=report.id,
                 status="completed",
                 progress=100.0,
-                report_url=report.file_path_html,
-                html_content=cached.get("html_content"),
-                report_data=cached.get("report_data", {
-                    "filename": report.filename,
-                    "html_url": report.file_path_html,
-                    "pdf_url": report.file_path_pdf,
-                    "word_url": report.file_path_word
-                })
+                report_url=report_data.get("html_url") or (f"/api/audit/download-file?path={report.file_path_html}" if report.file_path_html else None),
+                html_content=html_content,
+                report_data=report_data
             )
         elif report.status == ReportStatus.FAILED:
             return ReportStatusResponse(
@@ -768,7 +813,7 @@ async def generate_audit_pro(request: AuditRequest):
 @router.get("/download-file")
 async def download_file(path: str):
     """
-    Download a report file by filename.
+    Download a report file by filename or full path.
     Serves files from the reports directory.
     """
     from fastapi.responses import FileResponse
@@ -777,21 +822,32 @@ async def download_file(path: str):
     
     # Security: Only allow files from reports directory
     reports_dir = Path(__file__).parent.parent.parent / "data" / "reports"
-    file_path = reports_dir / path
     
-    # Prevent directory traversal
+    # Handle both full paths and just filenames
+    path_obj = Path(path)
+    if path_obj.is_absolute():
+        # Full path provided - extract just the filename
+        filename = path_obj.name
+        file_path = reports_dir / filename
+    else:
+        # Just filename provided
+        file_path = reports_dir / path
+    
+    # Prevent directory traversal - ensure file is within reports directory
     try:
-        file_path.resolve().relative_to(reports_dir.resolve())
-    except ValueError:
+        resolved_file = file_path.resolve()
+        resolved_reports = reports_dir.resolve()
+        resolved_file.relative_to(resolved_reports)
+    except (ValueError, OSError):
         raise HTTPException(
             status_code=400,
-            detail="Invalid file path"
+            detail=f"Invalid file path: {path}"
         )
     
     if not file_path.exists():
         raise HTTPException(
             status_code=404,
-            detail="File not found"
+            detail=f"File not found: {file_path.name}"
         )
     
     # Determine media type from extension
@@ -805,7 +861,7 @@ async def download_file(path: str):
     
     return FileResponse(
         path=str(file_path),
-        filename=path,
+        filename=file_path.name,
         media_type=media_types.get(ext, 'application/octet-stream')
     )
 

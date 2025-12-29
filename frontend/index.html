@@ -1063,8 +1063,16 @@
             }
             
             if (statusJson.status === 'completed') {
-              // Audit completed!
-              clearInterval(pollTimer);
+              // Audit completed! Stop all polling immediately
+              if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+              }
+              if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+              }
+              stopCountdownTimer();
               hideProgress();
               setStatus('Completed', 'success');
               log('Audit completed successfully.');
