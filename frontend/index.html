@@ -855,106 +855,159 @@
           headers['Authorization'] = `Bearer ${token}`;
         }
 
-        // Use AbortController for timeout (1 hour max)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60 * 60 * 1000); // 1 hour
-        
+        // Submit audit request (returns immediately with report_id)
         const res = await fetch(`${API_BASE_URL}/api/audit/generate`, {
           method: 'POST',
           headers: headers,
-          body: JSON.stringify(payload),
-          signal: controller.signal
+          body: JSON.stringify(payload)
         });
         
-        clearTimeout(timeoutId);
-
         const json = await res.json();
         if (!res.ok || !json.success) {
-          throw new Error(json.detail || 'Audit failed');
+          throw new Error(json.detail || 'Failed to start audit generation');
         }
 
-        hideProgress();
-        setStatus('Completed', 'success');
-        log('Audit completed successfully.');
+        // Get report_id for polling
+        const reportId = json.report_id || json.report_data?.report_id;
+        if (!reportId) {
+          throw new Error('No report ID returned from server');
+        }
 
-        const htmlContent = json.html_content;
-        const reportFilename = json.report_data?.filename || 'report.html';
+        log(`Audit generation started. Report ID: ${reportId}`);
+        log('Polling for status...');
+
+        // Poll for status every 5 seconds
+        const pollInterval = 5000; // 5 seconds
+        const maxPollTime = 60 * 60 * 1000; // 1 hour max
+        const startTime = Date.now();
+        let pollTimer;
         
-        // Helper function to create full download URL from relative path
-        function getFullDownloadUrl(relativePath) {
-          if (!relativePath) return null;
-          // If already a full HTTP URL, use it
-          if (relativePath.startsWith('http')) {
-            return relativePath;
+        const pollStatus = async () => {
+          try {
+            const statusRes = await fetch(`${API_BASE_URL}/api/audit/status/${reportId}`, {
+              method: 'GET',
+              headers: headers
+            });
+            
+            if (!statusRes.ok) {
+              throw new Error(`Status check failed: ${statusRes.statusText}`);
+            }
+            
+            const statusJson = await statusRes.json();
+            
+            // Update progress if available
+            if (statusJson.progress !== undefined) {
+              updateProgress(statusJson.progress);
+            }
+            
+            if (statusJson.status === 'completed') {
+              // Audit completed!
+              clearInterval(pollTimer);
+              hideProgress();
+              setStatus('Completed', 'success');
+              log('Audit completed successfully.');
+
+              // Helper function to create full download URL from relative path
+              function getFullDownloadUrl(relativePath) {
+                if (!relativePath) return null;
+                if (relativePath.startsWith('http')) return relativePath;
+                if (relativePath.startsWith('/')) return `${API_BASE_URL}${relativePath}`;
+                return `${API_BASE_URL}/api/audit/download-file?path=${encodeURIComponent(relativePath)}`;
+              }
+              
+              const htmlContent = statusJson.html_content;
+              const reportData = statusJson.report_data || {};
+              const reportFilename = reportData.filename || 'report.html';
+              
+              // Build download buttons
+              let downloadButtons = '<div class="download-buttons">';
+              
+              const htmlDownloadUrl = getFullDownloadUrl(reportData.html_url);
+              if (htmlDownloadUrl) {
+                downloadButtons += `<button class="btn-download" onclick="downloadFile('${htmlDownloadUrl}', '${reportFilename}')">Download HTML</button>`;
+              }
+              
+              const pdfDownloadUrl = getFullDownloadUrl(reportData.pdf_url);
+              if (pdfDownloadUrl) {
+                const pdfFilename = reportFilename.replace('.html', '.pdf');
+                downloadButtons += `<button class="btn-download" onclick="downloadFile('${pdfDownloadUrl}', '${pdfFilename}')">Download PDF</button>`;
+              } else {
+                downloadButtons += `<button class="btn-download btn-disabled" disabled title="PDF generation failed or unavailable">Download PDF (Unavailable)</button>`;
+              }
+              
+              const wordDownloadUrl = getFullDownloadUrl(reportData.word_url);
+              if (wordDownloadUrl) {
+                const wordFilename = reportFilename.replace('.html', '.docx');
+                downloadButtons += `<button class="btn-download" onclick="downloadFile('${wordDownloadUrl}', '${wordFilename}')">Download Word</button>`;
+              } else {
+                downloadButtons += `<button class="btn-download btn-disabled" disabled title="Word generation failed or unavailable">Download Word (Unavailable)</button>`;
+              }
+              
+              downloadButtons += '</div>';
+              
+              // Display report inline if HTML content is available
+              if (htmlContent) {
+                const escapedHtml = htmlContent
+                  .replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;')
+                  .replace(/"/g, '&quot;')
+                  .replace(/'/g, '&#39;');
+                
+                resultBox.innerHTML = `
+                  <div class="success-box">
+                    <p class="label">Report Generated Successfully</p>
+                    <p class="value">${reportFilename}</p>
+                    ${downloadButtons}
+                  </div>
+                  <div class="report-preview" id="report-preview">
+                    <iframe srcdoc="${escapedHtml}" style="width: 100%; height: 600px; border: 1px solid var(--brand-border); border-radius: 8px; margin-top: 16px;"></iframe>
+                  </div>
+                `;
+              } else {
+                resultBox.innerHTML = `
+                  <div class="success-box">
+                    <p class="label">Report Generated Successfully</p>
+                    <p class="value">${reportFilename}</p>
+                    ${downloadButtons}
+                  </div>
+                  <p>Report generated. Use download buttons above.</p>
+                `;
+              }
+              return;
+            } else if (statusJson.status === 'failed') {
+              // Audit failed
+              clearInterval(pollTimer);
+              hideProgress();
+              setStatus('Failed', 'error');
+              throw new Error(statusJson.error || 'Audit generation failed');
+            } else if (statusJson.status === 'processing') {
+              // Still processing, continue polling
+              log(`Status: Processing... (${Math.round(statusJson.progress || 0)}%)`);
+              
+              // Check if we've exceeded max time
+              if (Date.now() - startTime > maxPollTime) {
+                clearInterval(pollTimer);
+                hideProgress();
+                setStatus('Timeout', 'error');
+                throw new Error('Audit generation timed out after 1 hour');
+              }
+            }
+          } catch (error) {
+            if (error.message.includes('timeout') || error.message.includes('failed')) {
+              clearInterval(pollTimer);
+              hideProgress();
+              setStatus('Error', 'error');
+              throw error;
+            }
+            // For other errors, continue polling (might be temporary)
+            log(`Status check error: ${error.message}. Retrying...`);
           }
-          // If it's a relative path (starts with /), prepend API_BASE_URL
-          if (relativePath.startsWith('/')) {
-            return `${API_BASE_URL}${relativePath}`;
-          }
-          // Otherwise, assume it's a filename and create the download URL
-          return `${API_BASE_URL}/api/audit/download-file?path=${encodeURIComponent(relativePath)}`;
-        }
+        };
         
-        // Build download buttons using URLs from backend
-        let downloadButtons = '<div class="download-buttons">';
-        
-        // HTML download
-        const htmlDownloadUrl = getFullDownloadUrl(json.report_url);
-        if (htmlDownloadUrl) {
-          downloadButtons += `<button class="btn-download" onclick="downloadFile('${htmlDownloadUrl}', '${reportFilename}')">Download HTML</button>`;
-        }
-        
-        // PDF download
-        const pdfDownloadUrl = getFullDownloadUrl(json.report_data?.pdf_url);
-        if (pdfDownloadUrl) {
-          const pdfFilename = reportFilename.replace('.html', '.pdf');
-          downloadButtons += `<button class="btn-download" onclick="downloadFile('${pdfDownloadUrl}', '${pdfFilename}')">Download PDF</button>`;
-        } else {
-          downloadButtons += `<button class="btn-download btn-disabled" disabled title="PDF generation failed or unavailable">Download PDF (Unavailable)</button>`;
-        }
-        
-        // Word download
-        const wordDownloadUrl = getFullDownloadUrl(json.report_data?.word_url);
-        if (wordDownloadUrl) {
-          const wordFilename = reportFilename.replace('.html', '.docx');
-          downloadButtons += `<button class="btn-download" onclick="downloadFile('${wordDownloadUrl}', '${wordFilename}')">Download Word</button>`;
-        } else {
-          downloadButtons += `<button class="btn-download btn-disabled" disabled title="Word generation failed or unavailable">Download Word (Unavailable)</button>`;
-        }
-        
-        downloadButtons += '</div>';
-        
-        // Display report inline if HTML content is available
-        if (htmlContent) {
-          // Properly escape HTML for iframe srcdoc attribute
-          const escapedHtml = htmlContent
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-          
-          resultBox.innerHTML = `
-            <div class="success-box">
-              <p class="label">Report Generated Successfully</p>
-              <p class="value">${json.report_data?.filename || 'Report'}</p>
-              ${downloadButtons}
-            </div>
-            <div class="report-preview" id="report-preview">
-              <iframe srcdoc="${escapedHtml}" style="width: 100%; height: 600px; border: 1px solid var(--brand-border); border-radius: 8px; margin-top: 16px;"></iframe>
-            </div>
-          `;
-        } else {
-          // Fallback to file link if HTML content not available
-          const reportUrl = json.report_url || json.report_data?.url || 'Report generated';
-          resultBox.innerHTML = `
-            <div class="success-box">
-              <p class="label">Report ready</p>
-              <p class="value">${reportUrl}</p>
-              ${downloadButtons}
-            </div>
-          `;
-        }
+        // Start polling immediately, then every 5 seconds
+        await pollStatus();
+        pollTimer = setInterval(pollStatus, pollInterval);
       } catch (err) {
         hideProgress();
         setStatus('Error', 'error');

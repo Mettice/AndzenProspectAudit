@@ -37,6 +37,19 @@ class AuditResponse(BaseModel):
     report_url: Optional[str] = Field(None, description="URL/path to generated report")
     report_data: Optional[Dict[str, Any]] = Field(None, description="Additional report metadata")
     html_content: Optional[str] = Field(None, description="HTML content of the report for inline display")
+    report_id: Optional[int] = Field(None, description="Report ID for status polling (async mode)")
+    status: Optional[str] = Field(None, description="Report status: processing, completed, failed")
+
+
+class ReportStatusResponse(BaseModel):
+    """Response model for report status polling."""
+    report_id: int = Field(..., description="Report ID")
+    status: str = Field(..., description="Status: processing, completed, failed")
+    progress: Optional[float] = Field(None, description="Progress percentage (0-100)")
+    report_url: Optional[str] = Field(None, description="URL/path to generated report (when completed)")
+    html_content: Optional[str] = Field(None, description="HTML content (when completed)")
+    report_data: Optional[Dict[str, Any]] = Field(None, description="Report metadata (when completed)")
+    error: Optional[str] = Field(None, description="Error message (if failed)")
 
 
 class MetricData(BaseModel):

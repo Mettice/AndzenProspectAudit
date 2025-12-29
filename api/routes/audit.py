@@ -1,46 +1,146 @@
 """
 Audit API routes.
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from typing import Optional
 from sqlalchemy.orm import Session
-from api.models.schemas import AuditRequest, AuditResponse
+from api.models.schemas import AuditRequest, AuditResponse, ReportStatusResponse
 from api.models.report import Report, ReportStatus
 from api.services.klaviyo import KlaviyoService
 from api.services.analysis import AgenticAnalysisFramework
 from api.services.report import EnhancedReportService
 from api.services.benchmark import BenchmarkService
+from api.database import SessionLocal
 # Auth imports removed temporarily for testing
 # from api.services.auth import get_current_user, require_user_or_admin  
 # from api.database import get_db
 # from api.models.user import User
 import hashlib
 import os
+import json
 
 router = APIRouter()
 
+# In-memory store for report HTML content (for async jobs)
+# In production, use Redis or database
+_report_cache = {}
+
+
+async def _process_audit_background(
+    report_id: int,
+    request_data: dict,
+    llm_config: dict
+):
+    """Background task to process audit generation."""
+    db = SessionLocal()
+    try:
+        # Get report
+        report = db.query(Report).filter(Report.id == report_id).first()
+        if not report:
+            print(f"❌ Report {report_id} not found")
+            return
+        
+        try:
+            print(f"🚀 Starting background audit generation for report {report_id}...")
+            
+            # Initialize services
+            klaviyo_service = KlaviyoService(api_key=request_data["api_key"])
+            benchmark_service = BenchmarkService()
+            
+            # Get LLM API key
+            anthropic_api_key = llm_config.get("anthropic_api_key") or os.getenv("ANTHROPIC_API_KEY")
+            if not anthropic_api_key:
+                raise Exception("Anthropic API key required")
+            
+            analysis_framework = AgenticAnalysisFramework(anthropic_api_key=anthropic_api_key)
+            report_service = EnhancedReportService()
+            
+            # Step 1: Extract data from Klaviyo
+            print("📊 Extracting data from Klaviyo...")
+            date_range_dict = request_data.get("date_range")
+            
+            klaviyo_data = await klaviyo_service.extract_all_data(
+                date_range=date_range_dict
+            )
+            
+            # Step 2: Load benchmarks
+            benchmarks = benchmark_service.get_all_benchmarks()
+            
+            # Step 3: Run comprehensive agentic analysis
+            print("🤖 Running comprehensive analysis...")
+            analysis_results = await analysis_framework.run_comprehensive_analysis(
+                klaviyo_data=klaviyo_data,
+                benchmarks=benchmarks,
+                client_name=request_data["client_name"]
+            )
+            
+            # Step 4: Convert analysis results to audit data format
+            print("🔄 Converting analysis results to audit data format...")
+            audit_data = await klaviyo_service.format_audit_data(
+                date_range=date_range_dict,
+                verbose=False
+            )
+            
+            # Step 5: Generate audit report  
+            print("📝 Generating audit report...")
+            
+            generated_report = await report_service.generate_audit(
+                audit_data=audit_data,
+                client_name=request_data["client_name"],
+                auditor_name=request_data.get("auditor_name"),
+                client_code=request_data.get("client_code"),
+                industry=request_data.get("industry"),
+                llm_config=llm_config
+            )
+            
+            # Update report with results
+            report.filename = generated_report.get("filename", report.filename)
+            report.file_path_html = generated_report.get("html_url")
+            report.file_path_pdf = generated_report.get("pdf_url")
+            report.file_path_word = generated_report.get("word_url")
+            report.status = ReportStatus.COMPLETED
+            
+            # Store HTML content in cache
+            _report_cache[report_id] = {
+                "html_content": generated_report.get("html_content"),
+                "report_data": {
+                    "filename": generated_report.get("filename"),
+                    "html_url": generated_report.get("html_url"),
+                    "pdf_url": generated_report.get("pdf_url"),
+                    "word_url": generated_report.get("word_url"),
+                    "pages": generated_report.get("pages"),
+                    "sections": generated_report.get("sections", [])
+                }
+            }
+            
+            db.commit()
+            print(f"✅ Audit report {report_id} completed successfully")
+            
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            print(f"❌ ERROR in background audit generation for report {report_id}: {error_msg}")
+            print(f"Traceback: {traceback.format_exc()}")
+            
+            # Update report status to failed
+            report.status = ReportStatus.FAILED
+            _report_cache[report_id] = {"error": error_msg}
+            db.commit()
+            
+    finally:
+        db.close()
+
 
 @router.post("/generate", response_model=AuditResponse)
-async def generate_audit(request: AuditRequest):
+async def generate_audit(request: AuditRequest, background_tasks: BackgroundTasks):
     """
-    Generate a complete comprehensive audit report for a Klaviyo account.
+    Generate a complete comprehensive audit report for a Klaviyo account (async).
     
+    Returns immediately with a report_id. Use /status/{report_id} to poll for completion.
     Uses the enhanced agentic analysis framework and comprehensive report template.
     """
     try:
-        print(f"🚀 Starting audit generation for {request.client_name}...")
-        
-        # DEBUG: Log request parameters
-        print(f"🔍 DEBUG: Request parameters:")
-        print(f"  days: {request.days}")
-        print(f"  date_range: {request.date_range}")
-        if request.date_range:
-            print(f"  date_range.start: {request.date_range.start}")
-            print(f"  date_range.end: {request.date_range.end}")
-        
-        # Initialize services
-        klaviyo_service = KlaviyoService(api_key=request.api_key)
-        benchmark_service = BenchmarkService()
+        print(f"🚀 Starting async audit generation for {request.client_name}...")
         
         # Get LLM API key from request (prioritize request over env vars)
         anthropic_api_key = request.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
@@ -50,11 +150,6 @@ async def generate_audit(request: AuditRequest):
                 detail="Anthropic API key required. Please provide 'anthropic_api_key' in the request or set ANTHROPIC_API_KEY environment variable."
             )
         
-        analysis_framework = AgenticAnalysisFramework(anthropic_api_key=anthropic_api_key)
-        report_service = EnhancedReportService()
-        
-        # Step 1: Extract data from Klaviyo
-        print("📊 Extracting data from Klaviyo...")
         # Convert DateRange model to dict if provided
         date_range_dict = None
         if request.date_range:
@@ -62,7 +157,6 @@ async def generate_audit(request: AuditRequest):
                 "start": request.date_range.start,
                 "end": request.date_range.end
             }
-            print(f"✅ Using date_range: {date_range_dict['start']} to {date_range_dict['end']}")
         elif request.days:
             # Fallback: convert days to date_range if date_range not provided
             from datetime import datetime, timedelta, timezone
@@ -72,47 +166,8 @@ async def generate_audit(request: AuditRequest):
                 "start": start_date.isoformat(),
                 "end": end_date.isoformat()
             }
-            print(f"⚠️  No date_range provided, converting days={request.days} to date_range: {date_range_dict['start']} to {date_range_dict['end']}")
-        else:
-            print("⚠️  No date_range or days provided, will use default (365 days)")
         
-        klaviyo_data = await klaviyo_service.extract_all_data(
-            date_range=date_range_dict
-        )
-        
-        # DEBUG: Show extracted data structure
-        print("🔍 DEBUG: Klaviyo data structure:")
-        print(f"  Keys: {list(klaviyo_data.keys())}")
-        print(f"  Revenue data type: {type(klaviyo_data.get('revenue'))}")
-        print(f"  Campaigns count: {len(klaviyo_data.get('campaigns', []))}")
-        print(f"  Flows count: {len(klaviyo_data.get('flows', []))}")
-        if klaviyo_data.get('revenue'):
-            print(f"  Revenue sample: {str(klaviyo_data.get('revenue'))[:200]}...")
-        if klaviyo_data.get('campaigns') and len(klaviyo_data['campaigns']) > 0:
-            print(f"  Campaign sample: {str(klaviyo_data['campaigns'][0])[:200]}...")
-        
-        # Step 2: Load benchmarks
-        benchmarks = benchmark_service.get_all_benchmarks()
-        
-        # Step 3: Run comprehensive agentic analysis
-        print("🤖 Running comprehensive analysis...")
-        analysis_results = await analysis_framework.run_comprehensive_analysis(
-            klaviyo_data=klaviyo_data,
-            benchmarks=benchmarks,
-            client_name=request.client_name
-        )
-        
-        # Step 4: Convert analysis results to audit data format
-        print("🔄 Converting analysis results to audit data format...")
-        audit_data = await klaviyo_service.format_audit_data(
-            date_range=date_range_dict,
-            verbose=False
-        )
-        
-        # Step 5: Generate audit report  
-        print("📝 Generating audit report...")
-        
-        # Build LLM config from request (for all LLM services - Claude, OpenAI, Gemini)
+        # Build LLM config from request
         llm_config = {
             "provider": request.llm_provider or "claude",
             "anthropic_api_key": request.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY"),
@@ -123,30 +178,58 @@ async def generate_audit(request: AuditRequest):
             "gemini_model": request.gemini_model or os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
         }
         
-        report = await report_service.generate_audit(
-            audit_data=audit_data,
-            client_name=request.client_name,
-            auditor_name=request.auditor_name,
-            client_code=getattr(request, 'client_code', None),
-            industry=request.industry,
-            llm_config=llm_config  # Pass LLM config so all preparers can use it
+        # Prepare request data for background task
+        request_data = {
+            "api_key": request.api_key,
+            "client_name": request.client_name,
+            "auditor_name": request.auditor_name,
+            "client_code": getattr(request, 'client_code', None),
+            "industry": request.industry,
+            "date_range": date_range_dict
+        }
+        
+        # Create report record with PROCESSING status
+        db = SessionLocal()
+        try:
+            api_key_hash = hashlib.sha256(request.api_key.encode()).hexdigest() if request.api_key else None
+            
+            db_report = Report(
+                filename=f"audit_{request.client_name}_pending",
+                client_name=request.client_name,
+                auditor_name=request.auditor_name,
+                client_code=getattr(request, 'client_code', None),
+                industry=request.industry,
+                analysis_period_days=request.days,
+                status=ReportStatus.PROCESSING,
+                klaviyo_api_key_hash=api_key_hash,
+                llm_provider=request.llm_provider,
+                llm_model=request.claude_model or request.openai_model or request.gemini_model,
+                created_by_id=None
+            )
+            db.add(db_report)
+            db.commit()
+            db.refresh(db_report)
+            report_id = db_report.id
+            print(f"✓ Created report record with ID: {report_id}")
+        finally:
+            db.close()
+        
+        # Add background task
+        background_tasks.add_task(
+            _process_audit_background,
+            report_id=report_id,
+            request_data=request_data,
+            llm_config=llm_config
         )
         
-        print(f"✅ Audit report generated: {report.get('html_url')}")
-        print(f"   HTML content length: {len(report.get('html_content', ''))} characters")
-        
+        # Return immediately with report_id
         return AuditResponse(
             success=True,
-            report_url=report.get("html_url"),  # Changed from "url" to "html_url"
-            html_content=report.get("html_content"),  # Include HTML content for inline display
-            report_data={
-                "filename": report.get("filename"),
-                "html_url": report.get("html_url"),
-                "pdf_url": report.get("pdf_url"),
-                "word_url": report.get("word_url"),
-                "pages": report.get("pages"),
-                "sections": report.get("sections", [])
-            }
+            report_id=report_id,
+            status="processing",
+            report_url=None,
+            html_content=None,
+            report_data={"report_id": report_id, "status": "processing"}
         )
         
     except Exception as e:
@@ -154,6 +237,50 @@ async def generate_audit(request: AuditRequest):
         print(f"❌ ERROR in audit generation: {e}")
         print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Audit generation failed: {str(e)}")
+
+
+@router.get("/status/{report_id}", response_model=ReportStatusResponse)
+async def get_report_status(report_id: int):
+    """Get the status of an audit report generation."""
+    db = SessionLocal()
+    try:
+        report = db.query(Report).filter(Report.id == report_id).first()
+        if not report:
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        # Get cached content if available
+        cached = _report_cache.get(report_id, {})
+        
+        if report.status == ReportStatus.COMPLETED:
+            return ReportStatusResponse(
+                report_id=report.id,
+                status="completed",
+                progress=100.0,
+                report_url=report.file_path_html,
+                html_content=cached.get("html_content"),
+                report_data=cached.get("report_data", {
+                    "filename": report.filename,
+                    "html_url": report.file_path_html,
+                    "pdf_url": report.file_path_pdf,
+                    "word_url": report.file_path_word
+                })
+            )
+        elif report.status == ReportStatus.FAILED:
+            return ReportStatusResponse(
+                report_id=report.id,
+                status="failed",
+                progress=0.0,
+                error=cached.get("error", "Unknown error occurred")
+            )
+        else:
+            # Still processing - estimate progress (rough)
+            return ReportStatusResponse(
+                report_id=report.id,
+                status="processing",
+                progress=25.0  # Rough estimate
+            )
+    finally:
+        db.close()
 
 
 @router.post("/generate-pro", response_model=AuditResponse)

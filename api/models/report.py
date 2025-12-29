@@ -39,7 +39,7 @@ class Report(Base):
     llm_model = Column(String, nullable=True)
     
     # Relationships
-    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Made nullable for async jobs
     created_by = relationship("User", back_populates="reports")
     
     # Timestamps
