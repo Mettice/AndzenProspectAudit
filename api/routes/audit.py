@@ -14,6 +14,7 @@ from api.services.auth import get_current_user, require_user_or_admin
 from api.database import get_db
 from api.models.user import User
 import hashlib
+import os
 
 router = APIRouter()
 
@@ -39,7 +40,16 @@ async def generate_audit(request: AuditRequest):
         # Initialize services
         klaviyo_service = KlaviyoService(api_key=request.api_key)
         benchmark_service = BenchmarkService()
-        analysis_framework = AgenticAnalysisFramework()
+        
+        # Get LLM API key from request (prioritize request over env vars)
+        anthropic_api_key = request.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
+        if not anthropic_api_key:
+            raise HTTPException(
+                status_code=400,
+                detail="Anthropic API key required. Please provide 'anthropic_api_key' in the request or set ANTHROPIC_API_KEY environment variable."
+            )
+        
+        analysis_framework = AgenticAnalysisFramework(anthropic_api_key=anthropic_api_key)
         report_service = EnhancedReportService()
         
         # Step 1: Extract data from Klaviyo
@@ -100,11 +110,25 @@ async def generate_audit(request: AuditRequest):
         
         # Step 5: Generate audit report  
         print("📝 Generating audit report...")
+        
+        # Build LLM config from request (for all LLM services - Claude, OpenAI, Gemini)
+        llm_config = {
+            "provider": request.llm_provider or "claude",
+            "anthropic_api_key": request.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY"),
+            "claude_model": request.claude_model or os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5"),
+            "openai_api_key": request.openai_api_key or os.getenv("OPENAI_API_KEY"),
+            "openai_model": request.openai_model or os.getenv("OPENAI_MODEL", "gpt-4o"),
+            "gemini_api_key": request.gemini_api_key or os.getenv("GOOGLE_API_KEY"),
+            "gemini_model": request.gemini_model or os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
+        }
+        
         report = await report_service.generate_audit(
             audit_data=audit_data,
             client_name=request.client_name,
             auditor_name=request.auditor_name,
-            client_code=getattr(request, 'client_code', None)
+            client_code=getattr(request, 'client_code', None),
+            industry=request.industry,
+            llm_config=llm_config  # Pass LLM config so all preparers can use it
         )
         
         print(f"✅ Audit report generated: {report.get('html_url')}")

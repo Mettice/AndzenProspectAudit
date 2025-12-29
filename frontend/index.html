@@ -831,19 +831,18 @@
       } else {
         // Convert days to date_range for standard periods
         const days = parseInt(period);
-        const endDate = new Date();
-        endDate.setUTCHours(23, 59, 59, 999);
+        const endDate = new Date(); // Use current time, not end of day
         const startDate = new Date(endDate);
         startDate.setUTCDate(startDate.getUTCDate() - days);
-        startDate.setUTCHours(0, 0, 0, 0);
+        startDate.setUTCHours(0, 0, 0, 0); // Start of day
         
         payload.date_range = {
           start: startDate.toISOString(),
-          end: endDate.toISOString()
+          end: endDate.toISOString() // Current time, not 23:59:59
         };
         payload.days = days; // Keep for backward compatibility
         
-        log(`${days} days period: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+        log(`${days} days period: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString()}`);
       }
 
       log('Submitting audit request...');
