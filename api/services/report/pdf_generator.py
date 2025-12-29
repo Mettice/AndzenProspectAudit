@@ -109,11 +109,23 @@ async def generate_pdf_playwright(html_path: Path) -> Optional[Path]:
         from playwright.async_api import async_playwright
         
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            # Launch browser with additional args for Railway/Linux environments
+            browser = await p.chromium.launch(
+                headless=True,
+                args=['--no-sandbox', '--disable-setuid-sandbox']  # Required for Railway/Linux
+            )
             page = await browser.new_page()
             
-            # Load the HTML file
-            await page.goto(f"file://{html_path.absolute()}")
+            # Load the HTML file - use file:// for local, but handle Railway environment
+            html_url = f"file://{html_path.absolute()}"
+            try:
+                await page.goto(html_url, wait_until='networkidle', timeout=10000)
+            except Exception as e:
+                # If file:// doesn't work, try reading content and setting it directly
+                print(f"⚠ Could not load file:// URL, trying alternative method: {e}")
+                with open(html_path, 'r', encoding='utf-8') as f:
+                    html_content = f.read()
+                await page.set_content(html_content, wait_until='networkidle')
             
             # Wait for charts and content to load
             await page.wait_for_timeout(2000)  # Wait 2 seconds for JS to execute
