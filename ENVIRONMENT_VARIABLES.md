@@ -49,15 +49,26 @@ Supabase doesn't require separate environment variables. The database connection
 
 **To get your Supabase connection string:**
 1. Go to: https://supabase.com/dashboard/project/vplzphjygfazhsaqxhbt/settings/database
-2. Scroll to **Connection string** section
-3. Select **URI** tab
-4. Copy the connection string
-5. Replace `[YOUR-PASSWORD]` with your actual database password
+2. Scroll down to find **Connection string** section
+3. You'll see tabs: **URI**, **JDBC**, **Golang**, etc.
+4. Click on the **URI** tab
+5. Copy the connection string (it will look like: `postgresql://postgres.[ref]:[YOUR-PASSWORD]@aws-0-us-west-1.pooler.supabase.com:6543/postgres`)
+6. Replace `[YOUR-PASSWORD]` with your actual database password
 
-**Format:**
-```
-postgresql://postgres:[PASSWORD]@db.vplzphjygfazhsaqxhbt.supabase.co:5432/postgres
-```
+**If direct connection (port 5432) fails with "Network is unreachable":**
+- This is often an IPv6 connectivity issue with Railway
+- **Solution**: Use Connection Pooling instead (port 6543)
+- Go to Supabase → Settings → Database → Connection string
+- Look for "Connection pooling" section (may be in a different tab or section)
+- Use the connection pooling URL (port 6543) instead of direct (port 5432)
+- **For Oceania (Sydney) region**: Format: `postgresql://postgres.vplzphjygfazhsaqxhbt:[PASSWORD]@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres`
+- **Note**: The region (`ap-southeast-2` for Sydney) must match your Supabase project region
+
+**If you don't see Connection pooling:**
+- Check if your Supabase project is **paused** (common cause of connection failures)
+- Go to Supabase dashboard and ensure project is active
+- Try the direct connection: `postgresql://postgres:[PASSWORD]@db.vplzphjygfazhsaqxhbt.supabase.co:5432/postgres`
+- Ensure Network Restrictions allow all IPs (0.0.0.0/0)
 
 ---
 
@@ -92,10 +103,18 @@ openssl rand -hex 32
 In Railway dashboard → **Variables**, add:
 
 ```env
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@db.vplzphjygfazhsaqxhbt.supabase.co:5432/postgres
+# Option 1: Connection Pooling (RECOMMENDED for Railway - port 6543)
+# For Oceania (Sydney) region - adjust region if your project is in a different region
+DATABASE_URL=postgresql://postgres.vplzphjygfazhsaqxhbt:YOUR_PASSWORD@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres
+
+# Option 2: Direct Connection (port 5432) - may have IPv6 issues on Railway
+# DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@db.vplzphjygfazhsaqxhbt.supabase.co:5432/postgres
+
 SECRET_KEY=your-generated-secret-key
 CORS_ORIGINS=https://your-app.vercel.app
 ```
+
+**Important for Railway**: If you get "Network is unreachable" errors, try connection pooling (Option 1) instead of direct connection (Option 2). Connection pooling often resolves IPv6 connectivity issues.
 
 ### Step 4: Configure Vercel
 

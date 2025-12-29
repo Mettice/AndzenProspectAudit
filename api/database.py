@@ -27,16 +27,20 @@ if IS_POSTGRES:
     connect_args = {}
     if "supabase.co" in DATABASE_URL or "pooler.supabase.com" in DATABASE_URL:
         # Supabase requires SSL connections
-        # Try different SSL modes for better compatibility
         connect_args = {
             "sslmode": "require",
             "connect_timeout": 10  # 10 second timeout
         }
-        # For production (Railway), also try without SSL verification if needed
-        # This is less secure but may work if SSL verification is the issue
+        
+        # For Railway: Try to force IPv4 if IPv6 is causing issues
+        # This is a workaround for Railway's IPv6 connectivity issues
         if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_ENVIRONMENT_NAME"):
-            # Running on Railway - use require mode (Supabase needs SSL)
-            pass
+            # Railway may have IPv6 connectivity issues
+            # Connection pooling (port 6543) often works better than direct (5432)
+            if ":5432" in DATABASE_URL and "pooler" not in DATABASE_URL:
+                print("⚠️  WARNING: Using direct connection (port 5432) on Railway.")
+                print("   Consider using connection pooling (port 6543) if connection fails.")
+                print("   Get it from: Supabase → Settings → Database → Connection string → Connection pooling")
     
     engine = create_engine(
         DATABASE_URL,
