@@ -100,21 +100,26 @@ class KlaviyoClient:
                         json=data
                     )
                     
+                    # Parse and use Klaviyo rate limit headers (if available)
+                    self._update_rate_limits_from_headers(response)
+                    
                     # Check for rate limiting
                     if response.status_code == 429 and retry_on_429 and attempt < max_retries:
-                        retry_after = self._extract_retry_after(response)
+                        # Use Retry-After header (Klaviyo provides this on 429 errors)
+                        retry_after = self._extract_retry_after_from_header(response)
                         if not retry_after:
-                            # More aggressive exponential backoff - shorter waits
-                            base_delay = min(2 ** attempt, 10)  # Cap base delay at 10s (was 30s)
+                            # Fallback: try to extract from JSON body
+                            retry_after = self._extract_retry_after(response)
+                        if not retry_after:
+                            # Exponential backoff as last resort
+                            base_delay = min(2 ** attempt, 10)
                             import random
-                            jitter = random.uniform(0.1, 0.3)  # Smaller jitter
+                            jitter = random.uniform(0.1, 0.3)
                             retry_after = base_delay + jitter
-                        else:
-                            # Use server-provided retry time, but cap it
-                            retry_after = min(retry_after, 15)  # Cap at 15 seconds (was 60s)
                         
+                        # Use server-provided retry time (don't cap it - Klaviyo knows best)
                         logger.warning(
-                            f"Rate limited. Waiting {retry_after:.1f} seconds before retry "
+                            f"Rate limited (429). Waiting {retry_after:.1f} seconds (from Retry-After header) before retry "
                             f"{attempt + 1}/{max_retries}..."
                         )
                         await asyncio.sleep(retry_after)
@@ -131,7 +136,19 @@ class KlaviyoClient:
                 if e.response.status_code == 400:
                     raise  # Fail immediately for bad requests
                 if e.response.status_code == 429 and retry_on_429 and attempt < max_retries:
-                    # Already handled above, but catch here too
+                    # Extract Retry-After from header
+                    retry_after = self._extract_retry_after_from_header(e.response)
+                    if not retry_after:
+                        retry_after = self._extract_retry_after(e.response)
+                    if not retry_after:
+                        retry_after = min(2 ** attempt, 10)
+                    
+                    logger.warning(
+                        f"Rate limited (429). Waiting {retry_after:.1f} seconds before retry "
+                        f"{attempt + 1}/{max_retries}..."
+                    )
+                    await asyncio.sleep(retry_after)
+                    await self.rate_limiter.acquire()
                     continue
                 # For other errors (5xx), retry if we have attempts left
                 if e.response.status_code >= 500 and attempt < max_retries:
@@ -145,9 +162,74 @@ class KlaviyoClient:
         # If we get here, all retries failed
         raise HTTPStatusError("Rate limit exceeded after all retries", request=None, response=None)
     
+    def _extract_retry_after_from_header(self, response) -> Optional[int]:
+        """
+        Extract Retry-After delay from HTTP header (Klaviyo provides this on 429 errors).
+        
+        Args:
+            response: HTTP response object
+            
+        Returns:
+            Retry delay in seconds, or None if not found
+        """
+        try:
+            retry_after = response.headers.get("Retry-After")
+            if retry_after:
+                return int(retry_after)
+        except (ValueError, TypeError):
+            pass
+        return None
+    
+    def _update_rate_limits_from_headers(self, response):
+        """
+        Update rate limiter based on Klaviyo RateLimit headers.
+        
+        Klaviyo provides these headers on all non-429 responses:
+        - RateLimit-Limit: The number of requests allowed per time period
+        - RateLimit-Remaining: The approximate number of requests remaining within a window
+        - RateLimit-Reset: Number of seconds remaining before current window resets
+        
+        We use these to dynamically adjust our rate limiting to match Klaviyo's actual limits.
+        """
+        try:
+            # Get rate limit headers
+            limit = response.headers.get("RateLimit-Limit")
+            remaining = response.headers.get("RateLimit-Remaining")
+            reset = response.headers.get("RateLimit-Reset")
+            
+            if limit and remaining and reset:
+                limit_int = int(limit)
+                remaining_int = int(remaining)
+                reset_int = int(reset)
+                
+                # If we're running low on remaining requests, slow down
+                # Calculate requests per minute from limit
+                # Klaviyo uses 1-minute windows for steady rate limits
+                if remaining_int < limit_int * 0.2:  # Less than 20% remaining
+                    # Slow down by increasing minimum interval
+                    # Reduce to 50% of normal rate when low on quota
+                    self.rate_limiter.requests_per_minute = max(
+                        int(limit_int * 0.5),  # Use 50% of limit when low
+                        remaining_int  # But never less than remaining
+                    )
+                    logger.debug(
+                        f"Rate limit low ({remaining_int}/{limit_int} remaining). "
+                        f"Reduced to {self.rate_limiter.requests_per_minute} req/min"
+                    )
+                elif remaining_int > limit_int * 0.5:  # More than 50% remaining
+                    # We have plenty of quota, can use normal rate
+                    # Reset to configured rate (80% of limit)
+                    original_rpm = int(limit_int * 0.8)
+                    if self.rate_limiter.requests_per_minute < original_rpm:
+                        self.rate_limiter.requests_per_minute = original_rpm
+                        logger.debug(f"Rate limit healthy. Reset to {original_rpm} req/min")
+        except (ValueError, TypeError, AttributeError) as e:
+            # Headers not available or invalid - that's okay, use defaults
+            pass
+    
     def _extract_retry_after(self, response) -> Optional[int]:
         """
-        Extract retry-after delay from 429 response.
+        Extract retry-after delay from 429 response JSON body (fallback).
         
         Args:
             response: HTTP response object

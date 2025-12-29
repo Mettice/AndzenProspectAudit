@@ -59,6 +59,16 @@ async def _process_audit_background(
                 if "start_time" not in existing_cache:
                     existing_cache["start_time"] = datetime.now().isoformat()
             
+            # Immediately update progress to show we've started (fixes stuck at 0% issue)
+            existing_cache = _report_cache.get(report_id, {})
+            existing_start_time = existing_cache.get("start_time", datetime.now().isoformat())
+            _report_cache[report_id].update({
+                "progress": 1.0, 
+                "step": "Starting audit generation...",
+                "start_time": existing_start_time
+            })
+            print(f"✓ Progress updated to 1% for report {report_id}")
+            
             # Initialize services
             klaviyo_service = KlaviyoService(api_key=request_data["api_key"])
             benchmark_service = BenchmarkService()
@@ -73,14 +83,13 @@ async def _process_audit_background(
             
             # Step 1: Extract data from Klaviyo (0-20%)
             print("📊 Extracting data from Klaviyo...")
-            # Preserve start_time from initialization
-            existing_cache = _report_cache.get(report_id, {})
-            existing_start_time = existing_cache.get("start_time", datetime.now().isoformat())
+            # Update progress to extraction phase
             _report_cache[report_id].update({
                 "progress": 5.0, 
                 "step": "Extracting data from Klaviyo...",
                 "start_time": existing_start_time  # Preserve original start time
             })
+            print(f"✓ Progress updated to 5% for report {report_id}")
             date_range_dict = request_data.get("date_range")
             
             # Update progress during extraction (continuous progress simulation)
