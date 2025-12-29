@@ -8,6 +8,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/ui/style.css" />
+  <!-- API Configuration - Update this script tag with your Railway URL after deployment -->
+  <script>
+    // Set API URL for production (update this after Railway deployment)
+    window.API_URL = window.API_URL || 'https://your-app.railway.app';
+  </script>
 </head>
 <body>
   <div class="page">
@@ -246,8 +251,10 @@
 
   <script>
     // API Configuration - supports both local development and production
+    // API URL configuration
+    // For localhost: auto-detect port
+    // For production: use window.API_URL (set by Vercel) or fallback
     const API_BASE_URL = (() => {
-      // Check for environment variable (Vercel)
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         // Use the same port as the current page
         const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
@@ -255,7 +262,10 @@
         const apiPort = port === '8001' ? '8001' : '8000';
         return `http://${window.location.hostname}:${apiPort}`;
       }
-      // For production, use Railway URL from environment or default
+      // For production (Vercel):
+      // Option 1: Set window.API_URL via a script tag in index.html (see deployment guide)
+      // Option 2: Use Vercel environment variable (requires build step)
+      // For now, use a placeholder that you'll replace after deployment
       return window.API_URL || 'https://your-app.railway.app';
     })();
     
