@@ -7,6 +7,9 @@ import os
 
 logger = logging.getLogger(__name__)
 
+# Import intent analysis function
+from .flow_preparer import analyze_flow_intent_level
+
 
 async def prepare_browse_abandonment_data(
     browse_raw: Dict[str, Any],
@@ -31,6 +34,15 @@ async def prepare_browse_abandonment_data(
         flow_data = flows[0]
     else:
         flow_data = {}
+    
+    # Step 1: Analyze flow intent level (before LLM call)
+    intent_analysis = analyze_flow_intent_level(flow_data, "browse_abandonment")
+    
+    if intent_analysis.get("intent_level"):
+        logger.info(
+            f"Browse abandonment intent analysis: {intent_analysis.get('intent_level')} intent - "
+            f"Timing: {intent_analysis.get('recommended_timing')}"
+        )
     
     # Try to use LLM service for insights
     narrative = ""
@@ -85,6 +97,11 @@ async def prepare_browse_abandonment_data(
                 "currency": currency
             }
         )
+        
+        # Add intent analysis to context for LLM
+        if "context" not in formatted_data:
+            formatted_data["context"] = {}
+        formatted_data["context"]["intent_analysis"] = intent_analysis
         
         # Generate insights using LLM - use browse_abandonment section for proper prompt
         strategic_insights = await llm_service.generate_insights(
@@ -167,6 +184,7 @@ async def prepare_browse_abandonment_data(
             "revenue_per_recipient": browse_benchmarks.get("revenue_per_recipient", {}).get("average", 2.10)
         }),
         "industry": browse_raw.get("industry", "Apparel and Accessories"),
+        "intent_analysis": intent_analysis,  # Flow intent level analysis
         "narrative": narrative,  # LLM-generated narrative (HTML formatted)
         "secondary_narrative": secondary_narrative,  # LLM-generated secondary insights (HTML formatted)
         "recommendations": recommendations,  # LLM-generated recommendations

@@ -18,6 +18,10 @@ def get_list_growth_prompt(data: Dict[str, Any], context: Dict[str, Any]) -> str
     churn_rate = section_data.get("churn_rate", 0)
     period_months = section_data.get("period_months", 6)
     
+    # Get list-revenue correlation from context (added in Phase 3)
+    # Context is passed as separate parameter, but also check data.context for backward compatibility
+    list_revenue_correlation = context.get("list_revenue_correlation", data.get("context", {}).get("list_revenue_correlation", {}))
+    
     prompt = f"""You are an expert email marketing strategist analyzing list growth data. Provide clear narrative insights.
 
 CLIENT CONTEXT:
@@ -30,6 +34,11 @@ LIST GROWTH METRICS:
 - New Subscribers: {growth_subscribers:,}
 - Lost Subscribers: {lost_subscribers:,}
 - Churn Rate: {churn_rate:.2f}%
+
+LIST-REVENUE CORRELATION:
+- Connection: {list_revenue_correlation.get("connection", "N/A")}
+- Revenue Impact: {list_revenue_correlation.get("revenue_impact", "N/A")}
+- Opportunity: {list_revenue_correlation.get("opportunity", "N/A")}
 
 PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
 
@@ -62,6 +71,13 @@ def get_automation_prompt(data: Dict[str, Any], context: Dict[str, Any]) -> str:
     flows = section_data.get("flows", [])
     period_days = section_data.get("period_days", 90)
     
+    # Get flow issues from context (added in Phase 2)
+    # Context is passed as separate parameter, but also check data.context for backward compatibility
+    flow_issues = context.get("flow_issues", data.get("context", {}).get("flow_issues", {}))
+    missing_flows = flow_issues.get("missing", [])
+    duplicate_flows = flow_issues.get("duplicates", [])
+    zero_deliveries = flow_issues.get("zero_deliveries", [])
+    
     prompt = f"""You are an expert email marketing strategist analyzing automation performance. Provide clear narrative insights.
 
 CLIENT CONTEXT:
@@ -72,6 +88,11 @@ CLIENT CONTEXT:
 - Total Flow Revenue: {currency_symbol}{total_revenue:,.2f}
 - Total Recipients: {total_recipients:,}
 - Number of Flows: {len(flows)}
+
+FLOW ISSUES DETECTED:
+- Missing Flows: {len(missing_flows)} critical flow(s) not found
+- Duplicate Flows: {len(duplicate_flows)} duplicate flow type(s) detected
+- Zero Deliveries: {len(zero_deliveries)} live flow(s) with zero deliveries
 
 PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
 
@@ -94,11 +115,30 @@ def get_data_capture_prompt(data: Dict[str, Any], context: Dict[str, Any]) -> st
     client_name = context.get("client_name", "the client")
     industry = context.get("industry", "retail")
     
+    # Get categorized forms from context (added in Phase 2)
+    # Context is passed as separate parameter, but also check data.context for backward compatibility
+    section_data = data.get("data", {})
+    categorized_forms = context.get("categorized_forms", data.get("context", {}).get("categorized_forms", {}))
+    high_performers = categorized_forms.get("high_performers", [])
+    underperformers = categorized_forms.get("underperformers", [])
+    inactive = categorized_forms.get("inactive", [])
+    
     prompt = f"""You are an expert email marketing strategist analyzing form performance data. Provide clear narrative insights.
 
 CLIENT CONTEXT:
 - Client: {client_name}
 - Industry: {industry}
+
+FORM PERFORMANCE SUMMARY:
+- Total Forms: {section_data.get("total_forms", 0)}
+- Total Impressions: {section_data.get("total_impressions", 0):,}
+- Total Submissions: {section_data.get("total_submissions", 0):,}
+- Average Submit Rate: {section_data.get("avg_submit_rate", 0):.2f}%
+
+FORM CATEGORIZATION:
+- High Performers: {len(high_performers)} form(s) (≥5% submit rate)
+- Underperformers: {len(underperformers)} form(s) (<3% submit rate with >100 impressions)
+- Inactive Forms: {len(inactive)} form(s) (0 impressions)
 
 PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
 

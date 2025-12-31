@@ -7,6 +7,67 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def interpret_kav_split(
+    flow_percentage: float,
+    campaign_percentage: float,
+    kav_percentage: float,
+    benchmarks: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Strategist approach:
+    - Campaigns > Flows = Automation underinvestment
+    - Flows > Campaigns = Healthy automation, potential campaign opportunity
+    - KAV < 30% = Below benchmark, room to grow
+    - KAV > 30% = Healthy, optimize to maintain
+    
+    Args:
+        flow_percentage: Percentage of revenue from flows
+        campaign_percentage: Percentage of revenue from campaigns
+        kav_percentage: Total KAV percentage
+        benchmarks: Optional benchmarks dictionary
+    
+    Returns:
+        Dict with thesis, opportunity, priority, kav_status, and kav_opportunity
+    """
+    interpretation = {
+        "thesis": "",
+        "opportunity": "",
+        "priority": ""
+    }
+    
+    # Flow vs Campaign analysis
+    if campaign_percentage > flow_percentage * 1.2:  # Campaigns 20%+ more than flows
+        interpretation["thesis"] = "Campaign-heavy revenue indicates automation underinvestment"
+        interpretation["opportunity"] = "Adding flows (Welcome, Abandoned Cart, Post Purchase) could increase automation revenue"
+        interpretation["priority"] = "HIGH"
+    elif flow_percentage > campaign_percentage * 1.2:  # Flows 20%+ more than campaigns
+        interpretation["thesis"] = "Healthy automation foundation with potential campaign opportunity"
+        interpretation["opportunity"] = "Regular campaign sends could complement strong automation performance"
+        interpretation["priority"] = "MEDIUM"
+    else:
+        interpretation["thesis"] = "Balanced approach between campaigns and flows"
+        interpretation["opportunity"] = "Optimize both channels for maximum impact"
+        interpretation["priority"] = "LOW"
+    
+    # KAV percentage analysis (industry benchmark is typically 30%)
+    kav_benchmark = 30.0
+    if benchmarks and isinstance(benchmarks, dict):
+        # Try to get KAV benchmark from benchmarks if available
+        kav_benchmark = benchmarks.get("kav_benchmark", 30.0)
+    
+    if kav_percentage < 25:
+        interpretation["kav_status"] = "Below industry benchmark (30%)"
+        interpretation["kav_opportunity"] = f"Reaching 30% KAV could generate additional revenue"
+    elif kav_percentage < 30:
+        interpretation["kav_status"] = "Approaching industry benchmark"
+        interpretation["kav_opportunity"] = "Small optimizations could reach benchmark"
+    else:
+        interpretation["kav_status"] = "Exceeds industry benchmark"
+        interpretation["kav_opportunity"] = "Maintain position and optimize further"
+    
+    return interpretation
+
+
 async def prepare_kav_data(
     kav_raw: Dict[str, Any], 
     client_name: str = "the client",
@@ -25,6 +86,33 @@ async def prepare_kav_data(
     account_context = account_context or {}
     currency = account_context.get("currency", "USD")
     timezone = account_context.get("timezone", "UTC")
+    
+    # Calculate flow and campaign percentages early (needed for interpretation)
+    flow_pct = revenue.get("flow_percentage", 0)
+    campaign_pct = revenue.get("campaign_percentage", 0)
+    kav_pct = revenue.get("attributed_percentage", 0) or totals.get("kav_percentage", 0)
+    
+    # If percentages not in revenue, calculate from totals
+    if not flow_pct and totals:
+        attributed = totals.get("attributed_revenue", 0)
+        if attributed > 0:
+            flow_pct = (totals.get("flow_revenue", 0) / attributed) * 100
+            campaign_pct = (totals.get("campaign_revenue", 0) / attributed) * 100
+    
+    # Step 1: Interpret KAV split (before LLM call)
+    # Get benchmarks from account_context if available
+    benchmarks = account_context.get("benchmarks", {}) if account_context else {}
+    kav_interpretation = interpret_kav_split(
+        flow_percentage=flow_pct,
+        campaign_percentage=campaign_pct,
+        kav_percentage=kav_pct,
+        benchmarks=benchmarks
+    )
+    
+    logger.info(
+        f"KAV interpretation: {kav_interpretation.get('thesis')} "
+        f"(Priority: {kav_interpretation.get('priority')}) - {kav_interpretation.get('kav_status')}"
+    )
     
     # Initialize variables for LLM response
     primary_narrative = ""
@@ -69,6 +157,11 @@ async def prepare_kav_data(
                 "timezone": timezone
             }
         )
+        
+        # Add KAV interpretation to context for LLM
+        if "context" not in formatted_data:
+            formatted_data["context"] = {}
+        formatted_data["context"]["kav_interpretation"] = kav_interpretation
         
         # Generate insights using LLM
         strategic_narratives = await llm_service.generate_insights(
@@ -153,17 +246,6 @@ async def prepare_kav_data(
             # Try to get KAV percentage from either structure
             kav_pct = revenue.get("attributed_percentage", 0) or totals.get("kav_percentage", 0)
             primary_narrative = f"Klaviyo Attributed Value (KAV) represents {kav_pct:.1f}% of total revenue, indicating the impact of email and SMS marketing efforts."
-    
-    # Calculate flow and campaign percentages if not present
-    flow_pct = revenue.get("flow_percentage", 0)
-    campaign_pct = revenue.get("campaign_percentage", 0)
-    
-    # If percentages not in revenue, calculate from totals
-    if not flow_pct and totals:
-        attributed = totals.get("attributed_revenue", 0)
-        if attributed > 0:
-            flow_pct = (totals.get("flow_revenue", 0) / attributed) * 100
-            campaign_pct = (totals.get("campaign_revenue", 0) / attributed) * 100
     
     # Calculate message type breakdown (Campaigns vs Flows)
     flow_revenue = revenue.get("flow_attributed", totals.get("flow_revenue", 0))
@@ -301,6 +383,7 @@ async def prepare_kav_data(
         "areas_of_opportunity": areas_of_opportunity if isinstance(areas_of_opportunity, list) else [],
         "root_cause_analysis": root_cause_analysis,
         "risk_flags": risk_flags if isinstance(risk_flags, list) else [],
-        "quick_wins": quick_wins if isinstance(quick_wins, list) else []
+        "quick_wins": quick_wins if isinstance(quick_wins, list) else [],
+        "kav_interpretation": kav_interpretation  # KAV strategic interpretation
     }
 

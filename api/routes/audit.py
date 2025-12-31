@@ -182,25 +182,24 @@ async def _process_audit_background(
             try:
                 # Run analysis with timeout protection and real progress tracking
                 print(f"🤖 Starting AI analysis for report {report_id}...")
-                try:
-                    # Add a timeout to prevent hanging forever (30 minutes max)
-                    analysis_results = await asyncio.wait_for(
-                        analysis_framework.run_comprehensive_analysis(
-                            klaviyo_data=klaviyo_data,
-                            benchmarks=benchmarks,
-                            client_name=request_data["client_name"],
-                            progress_callback=update_analysis_progress
-                        ),
-                        timeout=1800.0  # 30 minutes max
-                    )
-                    print(f"✓ AI analysis completed for report {report_id}")
-                except asyncio.TimeoutError:
-                    print(f"❌ AI analysis timed out after 30 minutes for report {report_id}")
-                    _report_cache[report_id].update({
-                        "progress": 30.0,
-                        "step": "AI analysis timed out - please try again"
-                    })
-                    raise Exception("AI analysis timed out after 30 minutes. Please try again.")
+                # Add a timeout to prevent hanging forever (30 minutes max)
+                analysis_results = await asyncio.wait_for(
+                    analysis_framework.run_comprehensive_analysis(
+                        klaviyo_data=klaviyo_data,
+                        benchmarks=benchmarks,
+                        client_name=request_data["client_name"],
+                        progress_callback=update_analysis_progress
+                    ),
+                    timeout=1800.0  # 30 minutes max
+                )
+                print(f"✓ AI analysis completed for report {report_id}")
+            except asyncio.TimeoutError:
+                print(f"❌ AI analysis timed out after 30 minutes for report {report_id}")
+                _report_cache[report_id].update({
+                    "progress": 30.0,
+                    "step": "AI analysis timed out - please try again"
+                })
+                raise Exception("AI analysis timed out after 30 minutes. Please try again.")
             finally:
                 analysis_done.set()
             
@@ -811,59 +810,115 @@ async def generate_audit_pro(request: AuditRequest):
 
 
 @router.get("/download-file")
-async def download_file(path: str):
+async def download_file(path: str, report_id: Optional[int] = None):
     """
-    Download a report file by filename or full path.
+    Download a report file by filename or report_id.
+    Queries the database to verify the report exists and get the correct file path.
     Serves files from the reports directory.
     """
-    from fastapi.responses import FileResponse
+    from fastapi.responses import FileResponse, Response
     from pathlib import Path
     import os
     
-    # Security: Only allow files from reports directory
-    reports_dir = Path(__file__).parent.parent.parent / "data" / "reports"
-    
-    # Handle both full paths and just filenames
-    path_obj = Path(path)
-    if path_obj.is_absolute():
-        # Full path provided - extract just the filename
-        filename = path_obj.name
-        file_path = reports_dir / filename
-    else:
-        # Just filename provided
-        file_path = reports_dir / path
-    
-    # Prevent directory traversal - ensure file is within reports directory
+    db = SessionLocal()
     try:
-        resolved_file = file_path.resolve()
-        resolved_reports = reports_dir.resolve()
-        resolved_file.relative_to(resolved_reports)
-    except (ValueError, OSError):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid file path: {path}"
-        )
+        # Query database to get the report record
+        report = None
+        if report_id:
+            # Query by report_id
+            report = db.query(Report).filter(Report.id == report_id).first()
+        else:
+            # Query by filename (extract filename from path)
+            filename = Path(path).name
+            report = db.query(Report).filter(Report.filename == filename).first()
+        
+        if not report:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Report not found in database: {path}"
+            )
+        
+        # Determine which file type to serve (html, pdf, or word)
+        file_type = None
+        stored_path = None
+        
+        # Check path parameter to determine file type
+        path_lower = path.lower()
+        if path_lower.endswith('.pdf'):
+            file_type = 'pdf'
+            stored_path = report.file_path_pdf
+        elif path_lower.endswith('.docx') or path_lower.endswith('.doc'):
+            file_type = 'word'
+            stored_path = report.file_path_word
+        else:
+            # Default to HTML
+            file_type = 'html'
+            stored_path = report.file_path_html
+        
+        # If no stored path, try to construct from filename
+        if not stored_path:
+            stored_path = report.filename
+            if file_type == 'pdf':
+                stored_path = stored_path.replace('.html', '.pdf')
+            elif file_type == 'word':
+                stored_path = stored_path.replace('.html', '.docx')
+        
+        # Extract just the filename (in case full path was stored)
+        filename = Path(stored_path).name if stored_path else Path(path).name
+        
+        # Security: Only allow files from reports directory
+        reports_dir = Path(__file__).parent.parent.parent / "data" / "reports"
+        file_path = reports_dir / filename
+        
+        # Prevent directory traversal - ensure file is within reports directory
+        try:
+            resolved_file = file_path.resolve()
+            resolved_reports = reports_dir.resolve()
+            resolved_file.relative_to(resolved_reports)
+        except (ValueError, OSError):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file path: {path}"
+            )
+        
+        # Check if file exists on disk
+        if file_path.exists():
+            # File exists on disk - serve it
+            ext = file_path.suffix.lower()
+            media_types = {
+                '.html': 'text/html',
+                '.pdf': 'application/pdf',
+                '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                '.doc': 'application/msword'
+            }
+            
+            return FileResponse(
+                path=str(file_path),
+                filename=file_path.name,
+                media_type=media_types.get(ext, 'application/octet-stream')
+            )
+        else:
+            # File doesn't exist on disk - check if we have HTML content in cache
+            if file_type == 'html':
+                cached = _report_cache.get(report.id, {})
+                html_content = cached.get("html_content")
+                
+                if html_content:
+                    # Serve HTML content from cache
+                    return Response(
+                        content=html_content,
+                        media_type='text/html',
+                        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+                    )
+            
+            # File not found and no cache - return error with helpful message
+            raise HTTPException(
+                status_code=404,
+                detail=f"File not found: {filename}. The file may have been deleted or the server was restarted. Report ID: {report.id}"
+            )
     
-    if not file_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail=f"File not found: {file_path.name}"
-        )
-    
-    # Determine media type from extension
-    ext = file_path.suffix.lower()
-    media_types = {
-        '.html': 'text/html',
-        '.pdf': 'application/pdf',
-        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        '.doc': 'application/msword'
-    }
-    
-    return FileResponse(
-        path=str(file_path),
-        filename=file_path.name,
-        media_type=media_types.get(ext, 'application/octet-stream')
-    )
+    finally:
+        db.close()
 
 
 @router.get("/test-connection")

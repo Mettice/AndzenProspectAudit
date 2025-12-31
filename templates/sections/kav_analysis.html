@@ -218,6 +218,35 @@
     </div>
     <!-- End Channel Breakdown Tab -->
     
+    <!-- KAV Strategic Interpretation -->
+    {% if kav_data.kav_interpretation %}
+    <div class="kav-interpretation-section">
+        <h4 class="subsection-title">Strategic Interpretation</h4>
+        <div class="interpretation-box">
+            <div class="interpretation-thesis">
+                <h5>Thesis</h5>
+                <p>{{ kav_data.kav_interpretation.thesis }}</p>
+            </div>
+            <div class="interpretation-opportunity">
+                <h5>Opportunity</h5>
+                <p>{{ kav_data.kav_interpretation.opportunity }}</p>
+            </div>
+            <div class="interpretation-priority">
+                <strong>Priority:</strong> <span class="priority-badge priority-{{ kav_data.kav_interpretation.priority|lower }}">{{ kav_data.kav_interpretation.priority }}</span>
+            </div>
+            {% if kav_data.kav_interpretation.kav_status %}
+            <div class="interpretation-kav-status">
+                <h5>KAV Status</h5>
+                <p><strong>{{ kav_data.kav_interpretation.kav_status }}</strong></p>
+                {% if kav_data.kav_interpretation.kav_opportunity %}
+                <p>{{ kav_data.kav_interpretation.kav_opportunity }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Strategic Analysis -->
     <div class="strategic-analysis">
         <div class="analysis-header">
@@ -492,6 +521,70 @@
 
 .analysis-content {
     padding: 1.5rem;
+}
+
+/* KAV Interpretation Styles */
+.kav-interpretation-section {
+    margin: 2rem 0;
+}
+
+.interpretation-box {
+    background: #F0FDF4;
+    border: 2px solid #65DA4F;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.interpretation-thesis,
+.interpretation-opportunity,
+.interpretation-kav-status {
+    margin-bottom: 1.5rem;
+}
+
+.interpretation-thesis h5,
+.interpretation-opportunity h5,
+.interpretation-kav-status h5 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 0.75rem;
+}
+
+.interpretation-thesis p,
+.interpretation-opportunity p,
+.interpretation-kav-status p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: #262626;
+    margin: 0;
+}
+
+.interpretation-priority {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    color: #262626;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #D1FAE5;
+}
+
+.priority-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.subsection-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.17rem;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 1rem;
+    margin-top: 1.5rem;
+    line-height: 1.3;
 }
 
 .narrative-section {

@@ -289,11 +289,13 @@ class EnhancedReportService:
                     {"name": "Track D: Unengaged", "cadence": "Goes through Sunset Flow then suppressed"},
                     {"name": "Track E: For Suppression", "cadence": "Do not send. Needs to be suppressed"}
                 ]
-            }),
-            
-            # Phase 3: Strategic Recommendations (Enhanced Intelligence)
-            "strategic_recommendations_data": await prepare_strategic_recommendations(audit_data)
+            })
         }
+        
+        # Phase 3: Strategic Recommendations (Enhanced Intelligence)
+        # Pass prepared context so strategic thesis can access kav_interpretation, pattern_diagnosis, etc.
+        # Must be added AFTER context is fully built
+        context["strategic_recommendations_data"] = await prepare_strategic_recommendations(audit_data, prepared_context=context)
         
         # Render HTML
         html_content = template.render(**context)

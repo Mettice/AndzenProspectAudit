@@ -69,6 +69,91 @@
         </table>
     </div>
     
+    <!-- Campaign Pattern Diagnosis -->
+    {% if campaign_performance_data.pattern_diagnosis and campaign_performance_data.pattern_diagnosis.pattern %}
+    <div class="pattern-diagnosis-section">
+        <h4 class="subsection-title">Campaign Pattern Analysis</h4>
+        <div class="pattern-box pattern-{{ campaign_performance_data.pattern_diagnosis.priority|lower }}">
+            <div class="pattern-header">
+                <span class="pattern-name">{{ campaign_performance_data.pattern_diagnosis.pattern|replace('_', ' ')|title }}</span>
+                <span class="pattern-priority priority-{{ campaign_performance_data.pattern_diagnosis.priority|lower }}">{{ campaign_performance_data.pattern_diagnosis.priority }}</span>
+            </div>
+            <p class="pattern-diagnosis">{{ campaign_performance_data.pattern_diagnosis.diagnosis }}</p>
+            <p class="pattern-root-cause"><strong>Root Cause:</strong> {{ campaign_performance_data.pattern_diagnosis.root_cause }}</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Deliverability Analysis -->
+    {% if campaign_performance_data.deliverability_analysis and campaign_performance_data.deliverability_analysis.issues %}
+    <div class="deliverability-section">
+        <h4 class="subsection-title">Deliverability Analysis</h4>
+        <div class="deliverability-status status-{{ campaign_performance_data.deliverability_analysis.overall_status|lower }}">
+            <strong>Overall Status:</strong> {{ campaign_performance_data.deliverability_analysis.overall_status }}
+        </div>
+        <table class="deliverability-table">
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                    <th>Benchmark</th>
+                    <th>Severity</th>
+                    <th>Diagnosis</th>
+                    <th>Recommendation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for issue in campaign_performance_data.deliverability_analysis.issues %}
+                <tr>
+                    <td>{{ issue.metric|replace('_', ' ')|title }}</td>
+                    <td>{{ issue.value|round(3) }}%</td>
+                    <td>{{ issue.benchmark|round(3) }}%</td>
+                    <td><span class="severity-badge severity-{{ issue.severity|lower }}">{{ issue.severity }}</span></td>
+                    <td>{{ issue.diagnosis }}</td>
+                    <td>{{ issue.recommendation }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    <!-- Segmentation Recommendation -->
+    {% if campaign_performance_data.segmentation_recommendation and campaign_performance_data.segmentation_recommendation.needed %}
+    <div class="segmentation-recommendation-section">
+        <h4 class="subsection-title">Segmentation Recommendation</h4>
+        <div class="segmentation-box">
+            <p class="segmentation-reason"><strong>Reason:</strong> {{ campaign_performance_data.segmentation_recommendation.reason }}</p>
+            <p class="segmentation-priority"><strong>Priority:</strong> <span class="priority-badge priority-{{ campaign_performance_data.segmentation_recommendation.priority|lower }}">{{ campaign_performance_data.segmentation_recommendation.priority }}</span></p>
+            {% if campaign_performance_data.segmentation_recommendation.tracks %}
+            <div class="segmentation-tracks">
+                <h5>Recommended 5-Track Model:</h5>
+                <table class="tracks-table">
+                    <thead>
+                        <tr>
+                            <th>Track</th>
+                            <th>Criteria</th>
+                            <th>Recommended Cadence</th>
+                            <th>Typical %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for track in campaign_performance_data.segmentation_recommendation.tracks %}
+                        <tr>
+                            <td><strong>{{ track.name }}</strong></td>
+                            <td>{{ track.criteria }}</td>
+                            <td>{{ track.recommended_cadence }}</td>
+                            <td>{{ track.typical_percentage }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Performance Analysis -->
     {% if campaign_performance_data.secondary_narrative %}
     <div class="campaign-analysis">
@@ -234,6 +319,222 @@
     line-height: 1.7;
     margin-bottom: 0.75rem;
     color: #000000; /* Pure black */
+}
+
+/* Pattern Diagnosis Styles */
+.pattern-diagnosis-section {
+    margin: 2rem 0;
+}
+
+.pattern-box {
+    background: #FFFFFF;
+    border: 2px solid #E5E7EB;
+    border-left: 4px solid #65DA4F;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.pattern-box.pattern-high {
+    border-left-color: #F59E0B;
+}
+
+.pattern-box.pattern-critical {
+    border-left-color: #EF4444;
+}
+
+.pattern-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.pattern-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #000000;
+}
+
+.pattern-priority {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.priority-high {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.priority-critical {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.priority-medium {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.priority-low {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.pattern-diagnosis {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: #262626;
+    margin-bottom: 0.75rem;
+}
+
+.pattern-root-cause {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #666;
+    margin: 0;
+}
+
+/* Deliverability Styles */
+.deliverability-section {
+    margin: 2rem 0;
+}
+
+.deliverability-status {
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.status-good {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-poor {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.deliverability-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.deliverability-table thead {
+    background-color: #65DA4F;
+    color: #000;
+}
+
+.deliverability-table th {
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: 1px solid #4CAF50;
+}
+
+.deliverability-table td {
+    padding: 0.75rem;
+    border: 1px solid #E0E0E0;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    vertical-align: top;
+}
+
+.deliverability-table tbody tr:nth-child(even) {
+    background-color: #F9F9F9;
+}
+
+.severity-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.severity-poor {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+/* Segmentation Recommendation Styles */
+.segmentation-recommendation-section {
+    margin: 2rem 0;
+}
+
+.segmentation-box {
+    background: #F0FDF4;
+    border: 2px solid #65DA4F;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.segmentation-reason,
+.segmentation-priority {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: #262626;
+    margin-bottom: 1rem;
+}
+
+.priority-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.segmentation-tracks {
+    margin-top: 1.5rem;
+}
+
+.segmentation-tracks h5 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #000000;
+}
+
+.tracks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.tracks-table thead {
+    background-color: #65DA4F;
+    color: #000;
+}
+
+.tracks-table th {
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: 1px solid #4CAF50;
+}
+
+.tracks-table td {
+    padding: 0.75rem;
+    border: 1px solid #E0E0E0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.tracks-table tbody tr:nth-child(even) {
+    background-color: #FFFFFF;
 }
 </style>
 

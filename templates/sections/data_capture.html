@@ -18,6 +18,66 @@
         {% endif %}
     </div>
     
+    <!-- Form Categorization Summary -->
+    {% if data_capture_data.categorized_forms %}
+    <div class="form-categorization-section">
+        <h4 class="subsection-title">Form Performance Summary</h4>
+        <div class="categorization-summary">
+            <div class="category-stat">
+                <span class="stat-value">{{ data_capture_data.categorized_forms.high_performers|length }}</span>
+                <span class="stat-label">High Performers (≥5% submit rate)</span>
+            </div>
+            <div class="category-stat">
+                <span class="stat-value">{{ data_capture_data.categorized_forms.underperformers|length }}</span>
+                <span class="stat-label">Underperformers (<3% with >100 impressions)</span>
+            </div>
+            <div class="category-stat">
+                <span class="stat-value">{{ data_capture_data.categorized_forms.inactive|length }}</span>
+                <span class="stat-label">Inactive (0 impressions)</span>
+            </div>
+        </div>
+        
+        <!-- Underperforming Forms with Recommendations -->
+        {% if data_capture_data.categorized_forms.underperformers %}
+        <div class="underperformers-section">
+            <h5 class="subsubsection-title">Underperforming Forms Requiring Attention</h5>
+            {% for form in data_capture_data.categorized_forms.underperformers %}
+            <div class="form-issue-box">
+                <div class="form-issue-header">
+                    <strong>{{ form.name }}</strong>
+                    <span class="form-submit-rate">{{ form.submit_rate|round(2) }}% submit rate</span>
+                </div>
+                <p class="form-problem">{{ form.problem }}</p>
+                {% if form.recommendations %}
+                <ul class="form-recommendations">
+                    {% for rec in form.recommendations %}
+                    <li>{{ rec }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Inactive Forms -->
+        {% if data_capture_data.categorized_forms.inactive %}
+        <div class="inactive-forms-section">
+            <h5 class="subsubsection-title">Inactive Forms</h5>
+            {% for form in data_capture_data.categorized_forms.inactive %}
+            <div class="form-issue-box inactive">
+                <div class="form-issue-header">
+                    <strong>{{ form.name }}</strong>
+                </div>
+                <p class="form-problem">{{ form.issue }}</p>
+                <p class="form-recommendation"><strong>Recommendation:</strong> {{ form.recommendation }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
     <!-- Form Performance Table -->
     <div class="form-performance-section">
         <h4 class="subsection-title">Data Capture Form Performance in the last 90 Days</h4>
@@ -253,10 +313,115 @@
     margin-bottom: 0.5rem;
 }
 
+/* Form Categorization Styles */
+.form-categorization-section {
+    margin: 2rem 0;
+}
+
+.categorization-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.category-stat {
+    background: #F9F9F9;
+    border: 1px solid #E5E7EB;
+    padding: 1rem;
+    text-align: center;
+}
+
+.stat-value {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: #000000;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    display: block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.underperformers-section,
+.inactive-forms-section {
+    margin-top: 2rem;
+}
+
+.subsubsection-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 1rem;
+}
+
+.form-issue-box {
+    background: #FFFFFF;
+    border-left: 4px solid #F59E0B;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.form-issue-box.inactive {
+    border-left-color: #9CA3AF;
+}
+
+.form-issue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #000000;
+}
+
+.form-submit-rate {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 400;
+}
+
+.form-problem {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #262626;
+    margin-bottom: 0.75rem;
+}
+
+.form-recommendation {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #666;
+    margin: 0;
+}
+
+.form-recommendations {
+    margin: 0.75rem 0 0 1.5rem;
+    padding: 0;
+}
+
+.form-recommendations li {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #262626;
+    margin-bottom: 0.5rem;
+}
+
 @media print {
     .data-capture-intro,
     .form-analysis,
-    .advanced-section {
+    .advanced-section,
+    .form-categorization-section {
         page-break-inside: avoid;
     }
 }

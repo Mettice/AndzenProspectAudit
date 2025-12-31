@@ -191,15 +191,75 @@ class FlowPatternMatcher:
             )
             
             # Parse batched results into a dict keyed by flow_id
+            # Statistics are grouped by flow_message_id, so we need to aggregate by flow_id
             batched_stats_by_flow_id = {}
             if batched_stats_response and "data" in batched_stats_response:
                 results = batched_stats_response.get("data", {}).get("attributes", {}).get("results", [])
+                logger.info(f"Parsing {len(results)} flow statistics results")
+                
+                # Helper function to aggregate statistics
+                def aggregate_stats(existing: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
+                    """Aggregate statistics from multiple messages in the same flow."""
+                    if not existing:
+                        return new.copy()
+                    
+                    aggregated = {
+                        "recipients": existing.get("recipients", 0) + new.get("recipients", 0),
+                        "opens": existing.get("opens", 0) + new.get("opens", 0),
+                        "clicks": existing.get("clicks", 0) + new.get("clicks", 0),
+                        "conversions": existing.get("conversions", 0) + new.get("conversions", 0),
+                        "conversion_uniques": existing.get("conversion_uniques", 0) + new.get("conversion_uniques", 0),
+                        "revenue": existing.get("revenue", 0) + new.get("revenue", 0),
+                        "conversion_value": existing.get("conversion_value", 0) + new.get("conversion_value", 0)
+                    }
+                    
+                    # Recalculate rates after aggregation
+                    recipients = aggregated["recipients"]
+                    if recipients > 0:
+                        aggregated["open_rate"] = (aggregated["opens"] / recipients) * 100
+                        aggregated["click_rate"] = (aggregated["clicks"] / recipients) * 100
+                        aggregated["conversion_rate"] = (aggregated["conversions"] / recipients) * 100
+                    else:
+                        aggregated["open_rate"] = 0
+                        aggregated["click_rate"] = 0
+                        aggregated["conversion_rate"] = 0
+                    
+                    return aggregated
+                
                 for result in results:
-                    flow_id = result.get("id")
+                    # Extract flow_id from groupings (not from result.id)
+                    groupings = result.get("groupings", {})
+                    flow_id = groupings.get("flow_id")
+                    
                     if flow_id:
                         from ..parsers import extract_statistics
                         stats = extract_statistics({"data": {"attributes": {"results": [result]}}})
-                        batched_stats_by_flow_id[flow_id] = stats
+                        if stats:
+                            # Aggregate statistics for this flow_id (sum across all messages)
+                            if flow_id in batched_stats_by_flow_id:
+                                batched_stats_by_flow_id[flow_id] = aggregate_stats(
+                                    batched_stats_by_flow_id[flow_id], 
+                                    stats
+                                )
+                            else:
+                                batched_stats_by_flow_id[flow_id] = stats
+                            
+                            # Log aggregated totals after adding this message's stats
+                            total_recipients = batched_stats_by_flow_id[flow_id].get("recipients", 0)
+                            total_revenue = batched_stats_by_flow_id[flow_id].get("revenue", 0)
+                            logger.debug(f"Added stats for flow {flow_id} message: recipients={stats.get('recipients', 0)}, revenue={stats.get('revenue', 0)} | Flow totals: recipients={total_recipients}, revenue={total_revenue}")
+                        else:
+                            logger.warning(f"No statistics extracted for flow {flow_id} - result statistics may be empty")
+                    else:
+                        logger.warning(f"Flow result missing flow_id in groupings: {result}")
+                
+                # Log summary of aggregated statistics
+                if batched_stats_by_flow_id:
+                    logger.info(f"Aggregated statistics for {len(batched_stats_by_flow_id)} flows:")
+                    for fid, agg_stats in batched_stats_by_flow_id.items():
+                        logger.info(f"  Flow {fid}: recipients={agg_stats.get('recipients', 0)}, revenue=${agg_stats.get('revenue', 0):.2f}, open_rate={agg_stats.get('open_rate', 0):.2f}%")
+            else:
+                logger.warning(f"Batched stats response missing data: {batched_stats_response}")
         except Exception as e:
             logger.error(f"Error fetching batched flow statistics: {e}", exc_info=True)
             batched_stats_by_flow_id = {}
@@ -224,6 +284,8 @@ class FlowPatternMatcher:
             
             # Get statistics from batched response
             stats = batched_stats_by_flow_id.get(flow_id, {})
+            if not stats:
+                logger.warning(f"No statistics found for flow {flow_id} ({flow_name}) - flow may have no deliveries or statistics API returned no data")
             
             # Calculate revenue per recipient
             recipients = stats.get("recipients", 0)
@@ -233,7 +295,7 @@ class FlowPatternMatcher:
             else:
                 stats["revenue_per_recipient"] = 0
             
-            # Ensure basic structure
+            # Ensure basic structure - only set defaults if stats is completely empty
             if not stats:
                 stats = {
                     "recipients": 0,
@@ -246,6 +308,17 @@ class FlowPatternMatcher:
                     "revenue": 0,
                     "revenue_per_recipient": 0
                 }
+            else:
+                # Ensure all required keys exist (in case extract_statistics returned partial data)
+                stats.setdefault("recipients", 0)
+                stats.setdefault("opens", 0)
+                stats.setdefault("open_rate", 0)
+                stats.setdefault("clicks", 0)
+                stats.setdefault("click_rate", 0)
+                stats.setdefault("conversions", 0)
+                stats.setdefault("conversion_rate", 0)
+                stats.setdefault("revenue", 0)
+                stats.setdefault("revenue_per_recipient", 0)
             
             core_flows[flow_type] = {
                 "flow_id": flow_id,

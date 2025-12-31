@@ -127,7 +127,8 @@
                     </td>
                     <td class="strategic-focus">
                         {% if flow_analysis and flow_analysis.get('strategic_recommendations') and flow_analysis.strategic_recommendations|length > 0 %}
-                        <div class="focus-item">{{ flow_analysis.strategic_recommendations[0][:50] }}...</div>
+                        {% set first_rec = flow_analysis.strategic_recommendations[0] if flow_analysis.strategic_recommendations|length > 0 else '' %}
+                        <div class="focus-item">{{ (first_rec|string)[:50] }}...</div>
                         {% else %}
                         <span class="focus-placeholder">Optimization analysis</span>
                         {% endif %}
@@ -165,7 +166,8 @@
                 
                 {% if flow_lifecycle_analysis.optimization_priority_matrix.prioritized_flows %}
                 <div class="optimization-list">
-                    {% for priority_flow in flow_lifecycle_analysis.optimization_priority_matrix.prioritized_flows[:3] %}
+                    {% for priority_flow in flow_lifecycle_analysis.optimization_priority_matrix.prioritized_flows %}
+                    {% if loop.index <= 3 %}
                     <div class="optimization-item priority-{{ loop.index }}">
                         <div class="optimization-header">
                             <span class="flow-name">{{ priority_flow.flow_name }}</span>
@@ -176,6 +178,7 @@
                             <strong>Focus:</strong> {{ priority_flow.key_optimization }}
                         </div>
                     </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -195,7 +198,8 @@
                 
                 {% if segmentation_analysis.prioritized_opportunities %}
                 <div class="segmentation-opportunities">
-                    {% for opportunity in segmentation_analysis.prioritized_opportunities[:2] %}
+                    {% for opportunity in segmentation_analysis.prioritized_opportunities %}
+                    {% if loop.index <= 2 %}
                     <div class="segmentation-item">
                         <div class="seg-header">
                             <span class="seg-type">{{ opportunity.type.replace('_', ' ')|title }}</span>
@@ -205,6 +209,7 @@
                             {{ opportunity.category.replace('_', ' ')|title }} optimization opportunity
                         </div>
                     </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -251,19 +256,84 @@
     <div class="implementation-roadmap">
         <h4 class="roadmap-title">Strategic Implementation Timeline</h4>
         <div class="roadmap-timeline">
-            {% for phase in flow_lifecycle_analysis.implementation_roadmap[:3] %}
-            <div class="timeline-phase phase-{{ loop.index }}">
-                <div class="phase-marker">{{ loop.index }}</div>
-                <div class="phase-content">
-                    <div class="phase-title">{{ phase.initiative }}</div>
-                    <div class="phase-timeline">{{ phase.week }}</div>
-                    <div class="phase-focus">{{ phase.focus }}</div>
+            {% set roadmap_list = flow_lifecycle_analysis.implementation_roadmap %}
+            {% for phase in roadmap_list %}
+                {% if loop.index <= 3 %}
+                <div class="timeline-phase phase-{{ loop.index }}">
+                    <div class="phase-marker">{{ loop.index }}</div>
+                    <div class="phase-content">
+                        <div class="phase-title">{{ phase.initiative or "Phase " + loop.index|string }}</div>
+                        <div class="phase-timeline">{{ phase.week or "TBD" }}</div>
+                        <div class="phase-focus">{{ phase.focus or phase.deliverable or "Optimization" }}</div>
+                    </div>
                 </div>
-            </div>
+                {% endif %}
             {% endfor %}
         </div>
     </div>
     {% endif %}
+    
+    <!-- Flow Issues Detection -->
+    <div class="flow-issues-section">
+        <h4 class="subsection-title">Flow Issues & Opportunities</h4>
+        
+        {% if automation_overview_data.flow_issues and (automation_overview_data.flow_issues.missing or automation_overview_data.flow_issues.duplicates or automation_overview_data.flow_issues.zero_deliveries) %}
+        <!-- Missing Flows -->
+        {% if automation_overview_data.flow_issues.missing %}
+        <div class="flow-issue-category">
+            <h5 class="issue-category-title">Missing Flows (Opportunities)</h5>
+            {% for missing in automation_overview_data.flow_issues.missing %}
+            <div class="flow-issue-box opportunity">
+                <div class="issue-header">
+                    <strong>{{ missing.flow_type|replace('_', ' ')|title }}</strong>
+                    <span class="issue-priority priority-{{ missing.priority|lower }}">{{ missing.priority }}</span>
+                </div>
+                <p class="issue-description">{{ missing.opportunity }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Duplicate Flows -->
+        {% if automation_overview_data.flow_issues.duplicates %}
+        <div class="flow-issue-category">
+            <h5 class="issue-category-title">Duplicate Flows (Requires Review)</h5>
+            {% for duplicate in automation_overview_data.flow_issues.duplicates %}
+            <div class="flow-issue-box warning">
+                <div class="issue-header">
+                    <strong>{{ duplicate.flow_type|replace('_', ' ')|title }}</strong>
+                    <span class="issue-priority priority-{{ duplicate.priority|lower }}">{{ duplicate.priority }}</span>
+                </div>
+                <p class="issue-description">{{ duplicate.issue }}</p>
+                <p class="issue-flows"><strong>Flows:</strong> {{ duplicate.flows|join(', ') }}</p>
+                <p class="issue-recommendation"><strong>Recommendation:</strong> {{ duplicate.recommendation }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Zero Deliveries -->
+        {% if automation_overview_data.flow_issues.zero_deliveries %}
+        <div class="flow-issue-category">
+            <h5 class="issue-category-title">Zero Deliveries (Critical)</h5>
+            {% for zero in automation_overview_data.flow_issues.zero_deliveries %}
+            <div class="flow-issue-box critical">
+                <div class="issue-header">
+                    <strong>{{ zero.flow_name }}</strong>
+                    <span class="issue-priority priority-{{ zero.priority|lower }}">{{ zero.priority }}</span>
+                </div>
+                <p class="issue-description">{{ zero.issue }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% else %}
+        <!-- No Issues Detected -->
+        <div class="no-issues-message">
+            <p>✅ <strong>No flow issues detected.</strong> All core flows are present, active, and delivering emails.</p>
+        </div>
+        {% endif %}
+    </div>
 </section>
 
 <style>
@@ -774,5 +844,107 @@
         flex-direction: column;
         gap: 1rem;
     }
-}
+    }
+    
+    /* Flow Issues Styles */
+    .flow-issues-section {
+        margin: 2rem 0;
+    }
+    
+    .subsection-title {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 1.17rem;
+        font-weight: 700;
+        color: #000000;
+        margin-bottom: 1rem;
+        margin-top: 1.5rem;
+        line-height: 1.3;
+    }
+    
+    .flow-issue-category {
+        margin-bottom: 2rem;
+    }
+    
+    .issue-category-title {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #000000;
+        margin-bottom: 1rem;
+    }
+    
+    .flow-issue-box {
+        background: #FFFFFF;
+        border-left: 4px solid #65DA4F;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1rem;
+        border-radius: 4px;
+    }
+    
+    .flow-issue-box.opportunity {
+        border-left-color: #3B82F6;
+    }
+    
+    .flow-issue-box.warning {
+        border-left-color: #F59E0B;
+    }
+    
+    .flow-issue-box.critical {
+        border-left-color: #EF4444;
+    }
+    
+    .issue-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #000000;
+    }
+    
+    .issue-priority {
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    
+    .issue-priority.priority-high,
+    .issue-priority.priority-critical {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+    
+    .issue-priority.priority-medium {
+        background: #FEF3C7;
+        color: #92400E;
+    }
+    
+    .issue-priority.priority-low {
+        background: #DBEAFE;
+        color: #1E40AF;
+    }
+    
+    .issue-description {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.9rem;
+        color: #4B5563;
+        line-height: 1.5;
+        margin-bottom: 0.5rem;
+    }
+    
+    .issue-flows,
+    .issue-recommendation {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.85rem;
+        color: #6B7280;
+        margin-top: 0.5rem;
+    }
+    
+    .issue-recommendation strong {
+        color: #262626;
+    }
 </style>

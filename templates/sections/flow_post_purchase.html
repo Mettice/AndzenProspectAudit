@@ -48,6 +48,30 @@
         </table>
     </div>
     
+    <!-- Intent Level Analysis -->
+    {% if post_purchase_data.intent_analysis %}
+    <div class="intent-analysis-section">
+        <h4 class="subsection-title">Flow Intent Level Analysis</h4>
+        <div class="intent-box">
+            <div class="intent-info">
+                <div class="intent-level">
+                    <strong>Intent Level:</strong> <span class="intent-badge intent-{{ post_purchase_data.intent_analysis.intent_level }}">{{ post_purchase_data.intent_analysis.intent_level|upper }}</span>
+                </div>
+                {% if post_purchase_data.intent_analysis.recommended_timing %}
+                <div class="intent-timing">
+                    <strong>Recommended Timing:</strong> {{ post_purchase_data.intent_analysis.recommended_timing }}
+                </div>
+                {% endif %}
+                {% if post_purchase_data.intent_analysis.messaging_strategy %}
+                <div class="intent-messaging">
+                    <strong>Messaging Strategy:</strong> {{ post_purchase_data.intent_analysis.messaging_strategy }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Benchmark Comparison -->
     <div class="benchmark-section">
         <h4 class="benchmark-question">
@@ -148,6 +172,70 @@
     margin-bottom: 1rem;
     margin-top: 1.5rem;
     line-height: 1.3;
+}
+
+/* Intent Analysis Styles */
+.intent-analysis-section {
+    margin: 2rem 0;
+}
+
+.intent-box {
+    background: #F0FDF4;
+    border: 2px solid #65DA4F;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.intent-info {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: #262626;
+}
+
+.intent-level,
+.intent-timing,
+.intent-messaging {
+    margin-bottom: 1rem;
+}
+
+.intent-level:last-child,
+.intent-timing:last-child,
+.intent-messaging:last-child {
+    margin-bottom: 0;
+}
+
+.intent-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.intent-badge.intent-high {
+    background: #DCFCE7;
+    color: #166534;
+}
+
+.intent-badge.intent-medium {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.intent-badge.intent-low {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.intent-badge.intent-very-high {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.intent-badge.intent-medium-high {
+    background: #E0E7FF;
+    color: #3730A3;
 }
 
 .benchmark-section {

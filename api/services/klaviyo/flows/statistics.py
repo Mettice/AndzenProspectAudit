@@ -43,9 +43,10 @@ class FlowStatisticsService:
             logger.debug(f"Using cached conversion_metric_id: {self._cached_conversion_metric_id}")
             return self._cached_conversion_metric_id
         
-        logger.warning(
-            "conversion_metric_id is required for flow statistics. "
-            "Attempting to resolve conversion metric with fallback options..."
+        # Only log info on first resolution attempt (not warning)
+        logger.info(
+            "Resolving conversion_metric_id for flow statistics. "
+            "This will be cached for subsequent requests..."
         )
         
         # Try multiple metric names in order of preference

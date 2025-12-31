@@ -39,6 +39,10 @@ def get_kav_prompt(data: Dict[str, Any], context: Dict[str, Any]) -> str:
     potential_kav = total_revenue * (kav_benchmark / 100)
     revenue_opportunity = potential_kav - attributed_revenue
     
+    # Get KAV interpretation from context (added in Phase 3)
+    # Context is passed as separate parameter, but also check data.context for backward compatibility
+    kav_interpretation = context.get("kav_interpretation", data.get("context", {}).get("kav_interpretation", {}))
+    
     prompt = f"""You are an expert email marketing strategist analyzing Klaviyo performance data. Provide clear narrative insights like the strategist would after reviewing dashboard screenshots.
 
 CLIENT CONTEXT:
@@ -55,6 +59,13 @@ KLAVIYO ATTRIBUTED VALUE (KAV) METRICS:
 - Flow Revenue: {currency_symbol}{attributed_revenue * (flow_percentage/100):,.2f} ({flow_percentage:.1f}% of attributed)
 - Campaign Revenue: {currency_symbol}{attributed_revenue * (campaign_percentage/100):,.2f} ({campaign_percentage:.1f}% of attributed)
 - Revenue Opportunity: {currency_symbol}{revenue_opportunity:,.2f} if KAV reaches benchmark
+
+STRATEGIC INTERPRETATION:
+- Thesis: {kav_interpretation.get("thesis", "N/A")}
+- Opportunity: {kav_interpretation.get("opportunity", "N/A")}
+- KAV Status: {kav_interpretation.get("kav_status", "N/A")}
+- KAV Opportunity: {kav_interpretation.get("kav_opportunity", "N/A")}
+- Priority: {kav_interpretation.get("priority", "N/A")}
 
 PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
 

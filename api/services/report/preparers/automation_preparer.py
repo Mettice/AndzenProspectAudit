@@ -1,11 +1,103 @@
 """
 Automation overview data preparer.
 """
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import logging
 from .helpers import generate_flow_strategic_summary, create_flow_implementation_roadmap
 
 logger = logging.getLogger(__name__)
+
+
+def detect_flow_issues(flows_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Strategist approach:
+    - Missing flows = Opportunity
+    - Duplicate flows = Customer confusion
+    - Zero deliveries = Investigation needed
+    
+    Args:
+        flows_data: List of flow dictionaries
+    
+    Returns:
+        Dict with missing, duplicates, and zero_deliveries lists
+    """
+    issues = {
+        "missing": [],
+        "duplicates": [],
+        "zero_deliveries": []
+    }
+    
+    # Helper to determine flow type from name
+    def get_flow_type(flow: Dict[str, Any]) -> Optional[str]:
+        """Determine flow type from flow name."""
+        flow_name = flow.get("name", "").lower()
+        if "welcome" in flow_name or "nurture" in flow_name:
+            return "welcome_series"
+        elif "abandon" in flow_name and "cart" in flow_name:
+            return "abandoned_cart"
+        elif "abandon" in flow_name and "checkout" in flow_name:
+            return "abandoned_checkout"
+        elif "browse" in flow_name:
+            return "browse_abandonment"
+        elif "post" in flow_name or "purchase" in flow_name:
+            return "post_purchase"
+        return flow.get("type")  # Fallback to type field if exists
+    
+    # Missing flows detection
+    required_flows = ["welcome_series", "abandoned_cart", "browse_abandonment", "post_purchase"]
+    found_flow_types = set()
+    
+    for flow in flows_data:
+        # Check if flow is found (exists and active)
+        if flow.get("found", True):  # Default to True if not specified
+            flow_type = get_flow_type(flow)
+            if flow_type:
+                found_flow_types.add(flow_type)
+                # Also check for abandoned_checkout as a variant of abandoned_cart
+                if flow_type == "abandoned_checkout":
+                    found_flow_types.add("abandoned_cart")
+    
+    for required in required_flows:
+        if required not in found_flow_types:
+            issues["missing"].append({
+                "flow_type": required,
+                "opportunity": f"Missing {required.replace('_', ' ').title()} flow represents automation opportunity",
+                "priority": "HIGH" if required in ["abandoned_cart", "post_purchase"] else "MEDIUM"
+            })
+    
+    # Duplicate detection
+    flow_types = {}
+    for flow in flows_data:
+        if flow.get("found", True):  # Only check active flows
+            flow_type = get_flow_type(flow)
+            if flow_type:
+                flow_name = flow.get("name", "Unknown")
+                if flow_type in flow_types:
+                    issues["duplicates"].append({
+                        "flow_type": flow_type,
+                        "flows": [flow_types[flow_type], flow_name],
+                        "issue": "Multiple flows of same type running concurrently can cause customer confusion",
+                        "recommendation": "Consolidate or clearly differentiate flows"
+                    })
+                else:
+                    flow_types[flow_type] = flow_name
+    
+    # Zero deliveries detection (use recipients as proxy for deliveries)
+    for flow in flows_data:
+        if flow.get("found", True):  # Only check flows that exist
+            recipients = flow.get("recipients", 0)
+            deliveries = flow.get("deliveries", recipients)  # Use recipients as fallback
+            if deliveries == 0:
+                flow_name = flow.get("name", "Unknown")
+                flow_type = get_flow_type(flow)
+                issues["zero_deliveries"].append({
+                    "flow_name": flow_name,
+                    "flow_type": flow_type or "unknown",
+                    "issue": "Flow exists but has zero deliveries - requires immediate investigation",
+                    "priority": "CRITICAL"
+                })
+    
+    return issues
 
 
 async def prepare_automation_data(
@@ -149,6 +241,16 @@ async def prepare_automation_data(
     total_revenue = sum(f.get("revenue", 0) for f in flows)
     total_recipients = sum(f.get("recipients", 0) for f in flows)
     
+    # Step 1: Detect flow issues (missing, duplicates, zero deliveries)
+    flow_issues = detect_flow_issues(flows)
+    
+    if flow_issues.get("missing"):
+        logger.info(f"Detected {len(flow_issues['missing'])} missing flows")
+    if flow_issues.get("duplicates"):
+        logger.info(f"Detected {len(flow_issues['duplicates'])} duplicate flow types")
+    if flow_issues.get("zero_deliveries"):
+        logger.warning(f"Detected {len(flow_issues['zero_deliveries'])} flows with zero deliveries")
+    
     # Import advanced analyzers
     try:
         from ...klaviyo.flows.lifecycle import FlowLifecycleAnalyzer
@@ -254,6 +356,11 @@ async def prepare_automation_data(
             }
         )
         
+        # Add flow issues to context for LLM
+        if "context" not in formatted_data:
+            formatted_data["context"] = {}
+        formatted_data["context"]["flow_issues"] = flow_issues
+        
         # Generate insights using LLM
         strategic_insights = await llm_service.generate_insights(
             section="automation_overview",
@@ -291,6 +398,7 @@ async def prepare_automation_data(
     return {
         "period_days": automation_raw.get("period_days", 90),
         "flows": flows,  # All flows should be included
+        "flow_issues": flow_issues,  # Flow issues (missing, duplicates, zero deliveries)
         "summary": {
             "total_conversion_value": total_revenue,
             "vs_previous_period": automation_raw.get("summary", {}).get("vs_previous_period", 0),

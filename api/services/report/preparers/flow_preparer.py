@@ -7,6 +7,67 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def analyze_flow_intent_level(flow_data: Dict[str, Any], flow_type: str) -> Dict[str, Any]:
+    """
+    Strategist approach:
+    - "Added to Cart" = Lower intent, earlier funnel → Different timing/messaging
+    - "Started Checkout" = Higher intent, closer to purchase → Urgent timing
+    
+    Args:
+        flow_data: Flow data dictionary
+        flow_type: Flow type string (e.g., "abandoned_cart", "abandoned_checkout")
+    
+    Returns:
+        Dict with intent_level, recommended_timing, and messaging_strategy
+    """
+    flow_name = flow_data.get("flow_name", "").lower() if flow_data.get("flow_name") else ""
+    flow_type_lower = flow_type.lower() if flow_type else ""
+    
+    intent_analysis = {
+        "intent_level": None,
+        "recommended_timing": None,
+        "messaging_strategy": None
+    }
+    
+    # Check for checkout abandonment (high intent)
+    if "checkout" in flow_name or flow_type_lower == "abandoned_checkout":
+        intent_analysis = {
+            "intent_level": "high",
+            "recommended_timing": "2 hours, 1 day, 3 days",
+            "messaging_strategy": "Urgent, value-focused, minimal friction"
+        }
+    # Check for cart abandonment (medium intent)
+    elif "cart" in flow_name or flow_type_lower == "abandoned_cart":
+        intent_analysis = {
+            "intent_level": "medium",
+            "recommended_timing": "4 hours, 1 day, 3 days, 7 days",
+            "messaging_strategy": "Product-focused, social proof, gentle urgency"
+        }
+    # Browse abandonment (lower intent)
+    elif "browse" in flow_name or flow_type_lower == "browse_abandonment":
+        intent_analysis = {
+            "intent_level": "low",
+            "recommended_timing": "1 day, 3 days, 7 days, 14 days",
+            "messaging_strategy": "Educational, product discovery, brand awareness"
+        }
+    # Post-purchase (highest intent for retention)
+    elif "post" in flow_name or "purchase" in flow_name or flow_type_lower == "post_purchase":
+        intent_analysis = {
+            "intent_level": "very_high",
+            "recommended_timing": "Immediate, 1 day, 7 days",
+            "messaging_strategy": "Thank you, cross-sell, upsell, reviews"
+        }
+    # Welcome series (medium-high intent for onboarding)
+    elif "welcome" in flow_name or flow_type_lower == "welcome_series":
+        intent_analysis = {
+            "intent_level": "medium_high",
+            "recommended_timing": "Immediate, 1 day, 3 days, 7 days",
+            "messaging_strategy": "Onboarding, brand introduction, value proposition"
+        }
+    
+    return intent_analysis
+
+
 async def prepare_flow_data(
     flow_raw: Dict[str, Any],
     flow_type: str,
@@ -21,6 +82,15 @@ async def prepare_flow_data(
     # Get account context
     account_context = account_context or {}
     currency = account_context.get("currency", "USD")
+    
+    # Step 1: Analyze flow intent level (before LLM call)
+    intent_analysis = analyze_flow_intent_level(flow_raw, flow_type)
+    
+    if intent_analysis.get("intent_level"):
+        logger.info(
+            f"Flow intent analysis: {intent_analysis.get('intent_level')} intent - "
+            f"Timing: {intent_analysis.get('recommended_timing')}"
+        )
     
     # Try to use LLM service for insights
     try:
@@ -78,6 +148,11 @@ async def prepare_flow_data(
             }
         )
         
+        # Add intent analysis to context for LLM
+        if "context" not in formatted_data:
+            formatted_data["context"] = {}
+        formatted_data["context"]["intent_analysis"] = intent_analysis
+        
         # Generate insights using LLM
         strategic_insights = await llm_service.generate_insights(
             section="flow_performance",
@@ -120,6 +195,7 @@ async def prepare_flow_data(
         "benchmark": flow_raw.get("benchmark", benchmark),
         "industry": flow_raw.get("industry", "Apparel and Accessories"),
         "analysis": flow_raw.get("analysis", {}),
+        "intent_analysis": intent_analysis,  # Flow intent level analysis
         "narrative": narrative,  # LLM-generated narrative
         "secondary_narrative": secondary_narrative,  # LLM-generated secondary insights
         "performance_status": performance_status,  # LLM-determined status

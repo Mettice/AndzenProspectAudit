@@ -102,22 +102,41 @@ def extract_statistics(response: Dict[str, Any]) -> Dict[str, Any]:
     """
     results = response.get("data", {}).get("attributes", {}).get("results", [])
     if not results:
+        logger.debug("extract_statistics: No results in response")
         return {}
     
     result = results[0]
     stats = result.get("statistics", {})
     
+    if not stats:
+        logger.warning(f"extract_statistics: No statistics dict in result for flow {result.get('id', 'unknown')}")
+        return {}
+    
     # Convert rates from decimal to percentage
-    return {
+    # Handle case where rates might already be percentages (check if > 1)
+    open_rate = stats.get("open_rate", 0)
+    click_rate = stats.get("click_rate", 0)
+    conversion_rate = stats.get("conversion_rate", 0)
+    
+    # If rate is > 1, assume it's already a percentage, otherwise convert from decimal
+    open_rate_pct = open_rate if open_rate > 1 else open_rate * 100
+    click_rate_pct = click_rate if click_rate > 1 else click_rate * 100
+    conversion_rate_pct = conversion_rate if conversion_rate > 1 else conversion_rate * 100
+    
+    extracted = {
         "recipients": stats.get("recipients", 0),
         "opens": stats.get("opens", 0),
-        "open_rate": stats.get("open_rate", 0) * 100,
+        "open_rate": open_rate_pct,
         "clicks": stats.get("clicks", 0),
-        "click_rate": stats.get("click_rate", 0) * 100,
+        "click_rate": click_rate_pct,
         "conversions": stats.get("conversions", 0),
-        "conversion_rate": stats.get("conversion_rate", 0) * 100,
+        "conversion_rate": conversion_rate_pct,
         "revenue": stats.get("conversion_value", 0),
     }
+    
+    logger.debug(f"extract_statistics: Extracted stats - recipients={extracted['recipients']}, revenue={extracted['revenue']}, open_rate={extracted['open_rate']:.2f}%")
+    
+    return extracted
 
 
 def parse_nested_aggregate_values(values: List[Any]) -> float:

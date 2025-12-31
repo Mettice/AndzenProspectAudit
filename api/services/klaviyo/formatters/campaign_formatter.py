@@ -34,12 +34,15 @@ class CampaignFormatter:
             # Return default structure if no data
             return {
                 "summary": {
-                    "avg_open_rate": 0,
-                    "avg_click_rate": 0,
-                    "avg_placed_order_rate": 0,
-                    "total_revenue": campaign_revenue,  # Use revenue from KAV data
-                    "total_sent": 0  # Add missing total_sent field
-                },
+                "avg_open_rate": 0,
+                "avg_click_rate": 0,
+                "avg_placed_order_rate": 0,
+                "total_revenue": campaign_revenue,  # Use revenue from KAV data
+                "total_sent": 0,  # Add missing total_sent field
+                "avg_bounce_rate": 0,
+                "avg_unsubscribe_rate": 0,
+                "avg_spam_complaint_rate": 0
+            },
                 "benchmark": {
                     "industry": "Apparel and Accessories",
                     "open_rate": 44.50,
@@ -66,6 +69,9 @@ class CampaignFormatter:
         total_clicks = 0
         total_conversions = 0
         total_recipients = 0
+        total_bounces = 0
+        total_unsubscribes = 0
+        total_spam_complaints = 0
         campaign_count = 0
         
         for result in results:
@@ -78,6 +84,19 @@ class CampaignFormatter:
                 total_clicks += stats.get("clicks", 0)
                 total_conversions += conversions
                 total_recipients += recipients
+                
+                # Extract deliverability metrics (rates are in decimal format 0.0-1.0)
+                # We need to convert to counts first, then calculate average rate
+                bounce_rate_decimal = stats.get("bounce_rate", 0)
+                unsubscribe_rate_decimal = stats.get("unsubscribe_rate", 0)
+                spam_complaint_rate_decimal = stats.get("spam_complaint_rate", 0)
+                
+                # Calculate counts from rates (approximate, since we don't have exact counts)
+                # For weighted average, we'll use recipients as weight
+                total_bounces += bounce_rate_decimal * recipients
+                total_unsubscribes += unsubscribe_rate_decimal * recipients
+                total_spam_complaints += spam_complaint_rate_decimal * recipients
+                
                 campaign_count += 1
                 
                 # Log if conversions are missing
@@ -86,10 +105,15 @@ class CampaignFormatter:
         
         logger.info(f"Campaign summary: {campaign_count} campaigns, {total_recipients} recipients, {total_conversions} conversions, {total_opens} opens, {total_clicks} clicks")
         
-        # Calculate average rates
+        # Calculate average rates (convert to percentage)
         avg_open_rate = (total_opens / total_recipients * 100) if total_recipients > 0 else 0
         avg_click_rate = (total_clicks / total_recipients * 100) if total_recipients > 0 else 0
         avg_placed_order_rate = (total_conversions / total_recipients * 100) if total_recipients > 0 else 0
+        
+        # Calculate average deliverability rates (convert from decimal to percentage)
+        avg_bounce_rate = (total_bounces / total_recipients * 100) if total_recipients > 0 else 0
+        avg_unsubscribe_rate = (total_unsubscribes / total_recipients * 100) if total_recipients > 0 else 0
+        avg_spam_complaint_rate = (total_spam_complaints / total_recipients * 100) if total_recipients > 0 else 0
         
         # Determine status vs benchmark
         def get_status(metric_val, benchmark_avg):
@@ -106,7 +130,10 @@ class CampaignFormatter:
                 "avg_click_rate": round(avg_click_rate, 2),
                 "avg_placed_order_rate": round(avg_placed_order_rate, 2),
                 "total_revenue": campaign_revenue,  # Use revenue from KAV data
-                "total_sent": total_recipients  # Add missing total_sent field
+                "total_sent": total_recipients,  # Add missing total_sent field
+                "avg_bounce_rate": round(avg_bounce_rate, 3),  # Deliverability metrics (3 decimals for precision)
+                "avg_unsubscribe_rate": round(avg_unsubscribe_rate, 3),
+                "avg_spam_complaint_rate": round(avg_spam_complaint_rate, 3)
             },
             "benchmark": {
                 "industry": "Apparel and Accessories",

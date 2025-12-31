@@ -6,6 +6,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Import intent analysis function
+from .flow_preparer import analyze_flow_intent_level
+
 
 async def prepare_abandoned_cart_data(
     cart_raw: Dict[str, Any],
@@ -23,6 +26,18 @@ async def prepare_abandoned_cart_data(
     
     # Get benchmark
     cart_benchmarks = benchmarks.get("flows", {}).get("abandoned_cart", {})
+    
+    # Step 1: Analyze flow intent level (before LLM call)
+    # Get first flow for intent analysis
+    flows_list = cart_raw.get("flows", [])
+    flow_data_for_intent = flows_list[0] if flows_list else {}
+    intent_analysis = analyze_flow_intent_level(flow_data_for_intent, "abandoned_cart")
+    
+    if intent_analysis.get("intent_level"):
+        logger.info(
+            f"Abandoned cart intent analysis: {intent_analysis.get('intent_level')} intent - "
+            f"Timing: {intent_analysis.get('recommended_timing')}"
+        )
     
     # Try to use LLM service for insights
     narrative = ""
@@ -77,6 +92,11 @@ async def prepare_abandoned_cart_data(
                 "currency": currency
             }
         )
+        
+        # Add intent analysis to context for LLM
+        if "context" not in formatted_data:
+            formatted_data["context"] = {}
+        formatted_data["context"]["intent_analysis"] = intent_analysis
         
         # Generate insights using LLM
         strategic_insights = await llm_service.generate_insights(
@@ -167,6 +187,7 @@ async def prepare_abandoned_cart_data(
         }),
         "industry": cart_raw.get("industry", "Apparel and Accessories"),
         "segmentation": cart_raw.get("segmentation", {}),
+        "intent_analysis": intent_analysis,  # Flow intent level analysis
         "narrative": narrative,  # LLM-generated narrative (HTML formatted)
         "secondary_narrative": secondary_narrative,  # LLM-generated secondary insights (HTML formatted)
         "recommendations": recommendations,  # LLM-generated recommendations

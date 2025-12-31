@@ -12,6 +12,46 @@
 <section class="section page strategic-recommendations" data-page="19">
     <h1 class="section-title">STRATEGIC RECOMMENDATIONS & IMPLEMENTATION ROADMAP</h1>
     
+    <!-- Strategic Thesis -->
+    {% if strategic_recommendations_data.strategic_thesis %}
+    <div class="strategic-thesis-section">
+        <h2 class="subsection-title">Strategic Thesis</h2>
+        <div class="thesis-box">
+            <div class="thesis-content">{{ strategic_recommendations_data.strategic_thesis|safe }}</div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Integration Opportunities -->
+    {% if strategic_recommendations_data.integration_opportunities and strategic_recommendations_data.integration_opportunities|length > 0 %}
+    <div class="integration-opportunities-section">
+        <h2 class="subsection-title">Third-Party Integration Opportunities</h2>
+        <div class="integrations-grid">
+            {% for integration in strategic_recommendations_data.integration_opportunities %}
+            <div class="integration-card priority-{{ integration.priority|lower }}">
+                <div class="integration-header">
+                    <h4 class="integration-name">{{ integration.integration }}</h4>
+                    <span class="integration-priority priority-{{ integration.priority|lower }}">{{ integration.priority }}</span>
+                </div>
+                {% if integration.reason %}
+                <p class="integration-reason">{{ integration.reason }}</p>
+                {% endif %}
+                {% if integration.capabilities %}
+                <div class="integration-capabilities">
+                    <strong>Capabilities:</strong>
+                    <ul class="capabilities-list">
+                        {% for capability in integration.capabilities %}
+                        <li>{{ capability }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Executive Summary Panel -->
     {% if strategic_recommendations_data.strategic_recommendations %}
     {% set sr_data = strategic_recommendations_data.strategic_recommendations %}
@@ -170,8 +210,10 @@
                     <div class="action-items">
                         <strong>Implementation Steps:</strong>
                         <ul class="action-list">
-                            {% for step in rec.implementation_steps[:5] %}
+                            {% for step in rec.implementation_steps %}
+                            {% if loop.index <= 5 %}
                             <li>{{ step }}</li>
+                            {% endif %}
                             {% endfor %}
                         </ul>
                     </div>
@@ -179,8 +221,10 @@
                     <div class="action-items">
                         <strong>Implementation Actions:</strong>
                         <ul class="action-list">
-                            {% for action in rec.specific_actions[:3] %}
+                            {% for action in rec.specific_actions %}
+                            {% if loop.index <= 3 %}
                             <li>{{ action }}</li>
+                            {% endif %}
                             {% endfor %}
                         </ul>
                     </div>
@@ -252,8 +296,10 @@
                     <div class="action-items" style="margin-top: 1rem;">
                         <strong>Implementation Steps:</strong>
                         <ul class="action-list">
-                            {% for step in rec.implementation_steps[:3] %}
+                            {% for step in rec.implementation_steps %}
+                            {% if loop.index <= 3 %}
                             <li>{{ step }}</li>
+                            {% endif %}
                             {% endfor %}
                         </ul>
                     </div>
@@ -346,8 +392,10 @@
                 
                 {% if result.insights %}
                 <div class="agent-insights">
-                    {% for insight in result.insights[:2] %}
+                    {% for insight in result.insights %}
+                    {% if loop.index <= 2 %}
                     <p class="insight-item">{{ insight }}</p>
+                    {% endif %}
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -360,8 +408,10 @@
         <div class="synthesis-section">
             <h4>Synthesized Strategic Insights</h4>
             <ul class="synthesis-insights">
-                {% for insight in ma_data.synthesis.key_insights[:3] %}
+                {% for insight in ma_data.synthesis.key_insights %}
+                {% if loop.index <= 3 %}
                 <li>{{ insight }}</li>
+                {% endif %}
                 {% endfor %}
             </ul>
         </div>
@@ -374,15 +424,47 @@
     <div class="implementation-roadmap">
         <h3 class="section-subtitle">📋 Strategic Implementation Roadmap</h3>
         <div class="roadmap-timeline">
-            {% for phase in strategic_recommendations_data.strategic_recommendations.implementation_roadmap[:6] %}
-            <div class="roadmap-phase">
-                <div class="phase-number">{{ loop.index }}</div>
-                <div class="phase-content">
-                    <div class="phase-title">{{ phase.initiative or phase.title }}</div>
-                    <div class="phase-timeline">{{ phase.timeline or phase.week }}</div>
-                </div>
-            </div>
-            {% endfor %}
+            {% set roadmap = strategic_recommendations_data.strategic_recommendations.implementation_roadmap %}
+            {% if roadmap.phase_1_quick_wins %}
+                {% for phase in roadmap.phase_1_quick_wins %}
+                    {% if loop.index <= 2 %}
+                        <div class="roadmap-phase">
+                            <div class="phase-number">{{ loop.index }}</div>
+                            <div class="phase-content">
+                                <div class="phase-title">{{ phase.initiative or phase.title or "Quick Win " + loop.index|string }}</div>
+                                <div class="phase-timeline">{{ phase.timeline or phase.week or "TBD" }}</div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            {% if roadmap.phase_2_optimizations %}
+                {% for phase in roadmap.phase_2_optimizations %}
+                    {% if loop.index <= 2 %}
+                        <div class="roadmap-phase">
+                            <div class="phase-number">{{ (roadmap.phase_1_quick_wins|length if roadmap.phase_1_quick_wins else 0) + loop.index }}</div>
+                            <div class="phase-content">
+                                <div class="phase-title">{{ phase.initiative or phase.title or "Optimization " + loop.index|string }}</div>
+                                <div class="phase-timeline">{{ phase.timeline or phase.week or "TBD" }}</div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            {% if roadmap.phase_3_strategic %}
+                {% set prev_count = (roadmap.phase_1_quick_wins|length if roadmap.phase_1_quick_wins else 0) + (roadmap.phase_2_optimizations|length if roadmap.phase_2_optimizations else 0) %}
+                {% for phase in roadmap.phase_3_strategic %}
+                    {% if loop.index <= 2 and (prev_count + loop.index) <= 6 %}
+                        <div class="roadmap-phase">
+                            <div class="phase-number">{{ prev_count + loop.index }}</div>
+                            <div class="phase-content">
+                                <div class="phase-title">{{ phase.initiative or phase.title or "Strategic " + loop.index|string }}</div>
+                                <div class="phase-timeline">{{ phase.timeline or phase.week or "TBD" }}</div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
         </div>
     </div>
     {% endif %}
@@ -493,6 +575,122 @@
 
 .strategic-recommendations {
     background: #FFFFFF;
+}
+
+/* Strategic Thesis Styles */
+.strategic-thesis-section {
+    margin-bottom: 2.5rem;
+}
+
+.subsection-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 1.5rem;
+    line-height: 1.3;
+}
+
+.thesis-box {
+    background: #F0FDF4;
+    border: 2px solid #65DA4F;
+    padding: 2rem;
+    border-radius: 8px;
+}
+
+.thesis-content {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: #262626;
+}
+
+.thesis-content p {
+    margin-bottom: 1rem;
+}
+
+.thesis-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Integration Opportunities Styles */
+.integration-opportunities-section {
+    margin-bottom: 2.5rem;
+}
+
+.integrations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.integration-card {
+    background: #FFFFFF;
+    border: 2px solid #E5E7EB;
+    border-left: 4px solid #65DA4F;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.integration-card.priority-medium {
+    border-left-color: #3B82F6;
+}
+
+.integration-card.priority-low {
+    border-left-color: #9CA3AF;
+}
+
+.integration-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.integration-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #000000;
+    margin: 0;
+}
+
+.integration-priority {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.integration-reason {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #262626;
+    margin-bottom: 1rem;
+}
+
+.integration-capabilities {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    color: #262626;
+}
+
+.integration-capabilities strong {
+    color: #000000;
+}
+
+.capabilities-list {
+    margin: 0.75rem 0 0 1.5rem;
+    padding: 0;
+}
+
+.capabilities-list li {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+    color: #262626;
 }
 
 .strategic-executive-summary {

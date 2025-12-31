@@ -82,6 +82,16 @@ class CampaignExtractor:
             if verbose:
                 print(f"  Fetching statistics for {len(all_campaign_ids)} campaigns in batches of {batch_size}...")
             
+            # Resolve conversion_metric_id once before processing batches
+            # This prevents repeated lookups and warnings
+            conversion_metric_id = None
+            if hasattr(self.campaign_stats, '_cached_conversion_metric_id') and self.campaign_stats._cached_conversion_metric_id:
+                conversion_metric_id = self.campaign_stats._cached_conversion_metric_id
+            else:
+                # Trigger resolution on first batch (will cache it)
+                # We'll get it from the cache after first call
+                pass
+            
             # Process campaigns in batches with delays
             for i in range(0, len(all_campaign_ids), batch_size):
                 batch_ids = all_campaign_ids[i:i + batch_size]
@@ -92,10 +102,19 @@ class CampaignExtractor:
                     print(f"    Processing batch {batch_num}/{total_batches} ({len(batch_ids)} campaigns)...")
                 
                 try:
+                    # Use cached conversion_metric_id if available (after first batch)
+                    if conversion_metric_id is None and hasattr(self.campaign_stats, '_cached_conversion_metric_id'):
+                        conversion_metric_id = self.campaign_stats._cached_conversion_metric_id
+                    
                     batch_stats = await self.campaign_stats.get_statistics(
                         campaign_ids=batch_ids,
-                        timeframe="last_365_days"
+                        timeframe="last_365_days",
+                        conversion_metric_id=conversion_metric_id  # Pass it explicitly to avoid repeated lookups
                     )
+                    
+                    # After first batch, get the cached value for subsequent batches
+                    if conversion_metric_id is None and hasattr(self.campaign_stats, '_cached_conversion_metric_id'):
+                        conversion_metric_id = self.campaign_stats._cached_conversion_metric_id
                     
                     # Merge batch results
                     if batch_stats:

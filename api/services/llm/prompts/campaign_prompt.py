@@ -27,6 +27,17 @@ def get_campaign_prompt(data: Dict[str, Any], context: Dict[str, Any]) -> str:
     benchmark_click = benchmark.get("click_rate", 1.7)
     benchmark_conv = benchmark.get("conversion_rate", 0.07)
     
+    # Get strategic analysis from context (added in Phase 1-4)
+    # Context is passed as separate parameter, but also check data.context for backward compatibility
+    pattern_diagnosis = context.get("pattern_diagnosis", data.get("context", {}).get("pattern_diagnosis", {}))
+    deliverability_analysis = context.get("deliverability_analysis", data.get("context", {}).get("deliverability_analysis", {}))
+    segmentation_recommendation = context.get("segmentation_recommendation", data.get("context", {}).get("segmentation_recommendation", {}))
+    
+    # Extract deliverability metrics if available
+    bounce_rate = metrics.get("bounce_rate", 0)
+    unsubscribe_rate = metrics.get("unsubscribe_rate", 0)
+    spam_complaint_rate = metrics.get("spam_complaint_rate", 0)
+    
     prompt = f"""You are an expert email marketing strategist analyzing campaign performance data. Provide clear narrative insights with embedded strategic elements.
 
 CLIENT CONTEXT:
@@ -40,6 +51,17 @@ CAMPAIGN PERFORMANCE METRICS:
 - Conversion Rate: {conversion_rate:.2f}% (Benchmark: {benchmark_conv:.2f}%)
 - Total Revenue: {currency_symbol}{revenue:,.2f}
 - Total Sent: {sent:,}
+- Bounce Rate: {bounce_rate:.3f}%
+- Unsubscribe Rate: {unsubscribe_rate:.3f}%
+- Spam Complaint Rate: {spam_complaint_rate:.3f}%
+
+STRATEGIC ANALYSIS:
+- Campaign Pattern: {pattern_diagnosis.get("pattern", "N/A")} - {pattern_diagnosis.get("diagnosis", "No pattern identified")}
+- Root Cause: {pattern_diagnosis.get("root_cause", "N/A")}
+- Deliverability Status: {deliverability_analysis.get("overall_status", "N/A")}
+- Deliverability Issues: {len(deliverability_analysis.get("issues", []))} issue(s) identified
+- Segmentation Needed: {"Yes" if segmentation_recommendation.get("needed", False) else "No"}
+- Segmentation Reason: {segmentation_recommendation.get("reason", "N/A") if segmentation_recommendation.get("needed", False) else "Not required"}
 
 PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
 

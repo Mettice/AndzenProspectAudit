@@ -1,10 +1,96 @@
 """
 Data capture/forms data preparer.
 """
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def generate_form_recommendations(form: Dict[str, Any]) -> List[str]:
+    """
+    Strategist's tactical recommendations:
+    - Trigger timing analysis (12s → 20s)
+    - CTA visibility
+    - Form complexity (two-step forms)
+    - Field reduction
+    
+    Args:
+        form: Form data dictionary
+    
+    Returns:
+        List of recommendation strings
+    """
+    recommendations = []
+    submit_rate = form.get("submit_rate", 0)
+    form_type = form.get("type", "").lower() if form.get("type") else ""
+    
+    # Check if popup and low submit rate
+    if "popup" in form_type and submit_rate < 1:
+        recommendations.append("Consider implementing exit-intent triggering to capture abandoning visitors")
+        recommendations.append("Review form fields - each additional field reduces conversion by ~5-10%")
+    
+    if submit_rate < 2:
+        recommendations.append("Test offering a stronger incentive (15% vs 10% discount)")
+        recommendations.append("Ensure CTA button is prominent and above the fold")
+    
+    # Trigger timing analysis (if we have this data)
+    trigger_delay = form.get("trigger_delay")
+    if trigger_delay is not None and trigger_delay < 20:
+        recommendations.append(f"Current trigger timing ({trigger_delay}s) may be too early. Test 20+ seconds for better conversion.")
+    
+    # Form complexity recommendations
+    if submit_rate < 3:
+        recommendations.append("Consider implementing a two-step form to reduce friction")
+        recommendations.append("Test reducing the number of form fields to improve conversion")
+    
+    return recommendations
+
+
+def categorize_forms(forms_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Strategist approach:
+    - High performers: ≥5% submit rate
+    - Underperformers: <3% with >100 impressions
+    - Inactive: 0 impressions
+    
+    Args:
+        forms_data: List of form dictionaries
+    
+    Returns:
+        Dict with categorized forms (high_performers, underperformers, inactive)
+    """
+    categorized = {
+        "high_performers": [],
+        "underperformers": [],
+        "inactive": []
+    }
+    
+    for form in forms_data:
+        submit_rate = form.get("submit_rate", 0)
+        impressions = form.get("impressions", 0)
+        
+        if impressions == 0:
+            categorized["inactive"].append({
+                **form,
+                "issue": "No impressions recorded",
+                "recommendation": "Either activate this form or remove it to reduce clutter"
+            })
+        elif submit_rate >= 5:
+            categorized["high_performers"].append({
+                **form,
+                "achievement": f"{submit_rate:.1f}% submit rate exceeds industry standard of 3-5%"
+            })
+        elif submit_rate < 3 and impressions > 100:
+            # Generate form-specific recommendations
+            recommendations = generate_form_recommendations(form)
+            categorized["underperformers"].append({
+                **form,
+                "problem": f"Despite {impressions} impressions, only achieving {submit_rate:.1f}% conversion",
+                "recommendations": recommendations
+            })
+    
+    return categorized
 
 
 async def prepare_data_capture_data(
@@ -59,6 +145,15 @@ async def prepare_data_capture_data(
                 seen_form_ids.add(form_id)
             seen_form_names.add(form_name)
     
+    # Step 1: Categorize forms (before LLM call)
+    categorized_forms = categorize_forms(forms)
+    
+    logger.info(
+        f"Forms categorized: {len(categorized_forms.get('high_performers', []))} high performers, "
+        f"{len(categorized_forms.get('underperformers', []))} underperformers, "
+        f"{len(categorized_forms.get('inactive', []))} inactive"
+    )
+    
     # Try to use LLM service for insights
     analysis_text = ""
     recommendations = []
@@ -83,7 +178,7 @@ async def prepare_data_capture_data(
         # Get industry from account_context
         industry = account_context.get("industry", "retail") if account_context else "retail"
         
-        # Format data for LLM
+        # Format data for LLM (include categorized forms for context)
         formatted_data = LLMDataFormatter.format_for_generic_analysis(
             section="data_capture",
             data={
@@ -100,6 +195,11 @@ async def prepare_data_capture_data(
                 "currency": account_context.get("currency", "USD") if account_context else "USD"
             }
         )
+        
+        # Add categorized forms to context for LLM
+        if "context" not in formatted_data:
+            formatted_data["context"] = {}
+        formatted_data["context"]["categorized_forms"] = categorized_forms
         
         # Generate insights using LLM
         strategic_insights = await llm_service.generate_insights(
@@ -154,6 +254,7 @@ async def prepare_data_capture_data(
     
     return {
         "forms": forms,
+        "categorized_forms": categorized_forms,  # Form categorization (high_performers, underperformers, inactive)
         "analysis_text": analysis_text,
         "recommendations": recommendations,
         "areas_of_opportunity": areas_of_opportunity if isinstance(areas_of_opportunity, list) else [],

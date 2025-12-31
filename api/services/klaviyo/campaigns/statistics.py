@@ -73,9 +73,10 @@ class CampaignStatisticsService:
                 logger.debug(f"Using cached conversion_metric_id: {self._cached_conversion_metric_id}")
                 conversion_metric_id = self._cached_conversion_metric_id
             else:
-                logger.warning(
-                    "conversion_metric_id is required for campaign statistics. "
-                    "Fetching Placed Order metric (preferring Shopify integration)..."
+                # Only log warning on first resolution attempt
+                logger.info(
+                    "Resolving conversion_metric_id for campaign statistics. "
+                    "This will be cached for subsequent requests..."
                 )
                 # Prefer Shopify integration to match dashboard
                 placed_order = await self.metrics.get_metric_by_name("Placed Order", prefer_integration="shopify")
@@ -87,7 +88,7 @@ class CampaignStatisticsService:
                     # Cache it for future use
                     self._cached_conversion_metric_id = conversion_metric_id
                     integration = placed_order.get("attributes", {}).get("integration", {})
-                    logger.info(f"Using Placed Order metric: {conversion_metric_id} ({integration.get('name', 'Unknown')})")
+                    logger.info(f"✓ Resolved conversion_metric_id: {conversion_metric_id} ({integration.get('name', 'Unknown')}) - cached for future use")
                 else:
                     logger.error(
                         "Could not find Placed Order metric and no conversion_metric_id provided"

@@ -18,6 +18,18 @@
         {% endif %}
     </div>
     
+    <!-- List-Revenue Correlation -->
+    {% if list_growth_data.list_correlation %}
+    <div class="list-correlation-section">
+        <h4 class="subsection-title">List Growth & Revenue Correlation</h4>
+        <div class="correlation-box">
+            <p class="correlation-connection"><strong>{{ list_growth_data.list_correlation.connection }}</strong></p>
+            <p class="correlation-impact">{{ list_growth_data.list_correlation.revenue_impact }}</p>
+            <p class="correlation-opportunity"><strong>Opportunity:</strong> {{ list_growth_data.list_correlation.opportunity }}</p>
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Charts Row -->
     <div class="list-growth-charts">
         <div class="chart-panel">
@@ -265,6 +277,42 @@
 
 .opportunity-table tbody tr:hover {
     background-color: #F0F8F0;
+}
+
+/* List Correlation Styles */
+.list-correlation-section {
+    margin: 2rem 0;
+}
+
+.correlation-box {
+    background: #F0FDF4;
+    border: 2px solid #65DA4F;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.correlation-connection {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    line-height: 1.8;
+    color: #000000;
+    margin-bottom: 1rem;
+}
+
+.correlation-impact {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: #262626;
+    margin-bottom: 1rem;
+}
+
+.correlation-opportunity {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: #262626;
+    margin: 0;
 }
 </style>
 

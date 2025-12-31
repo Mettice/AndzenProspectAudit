@@ -1,18 +1,322 @@
 """
 Strategic recommendations preparer using LLM.
 """
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import logging
 import json
 
 logger = logging.getLogger(__name__)
 
 
-async def prepare_strategic_recommendations(audit_data: Dict[str, Any]) -> Dict[str, Any]:
+async def generate_strategic_thesis(
+    all_audit_data: Dict[str, Any],
+    llm_service: Optional[Any] = None,
+    prepared_context: Optional[Dict[str, Any]] = None
+) -> str:
+    """
+    Strategist approach:
+    - Connect KAV split → Automation opportunity
+    - Connect campaign patterns → Segmentation need
+    - Connect list growth → Data capture opportunity
+    - Create prioritized recommendations based on gaps
+    
+    Args:
+        all_audit_data: Complete audit data dictionary with all sections
+        llm_service: Optional LLM service instance (will create if not provided)
+    
+    Returns:
+        Strategic thesis string (HTML formatted)
+    """
+    # Extract key findings from all sections
+    kav_data = all_audit_data.get("kav_data", {})
+    campaign_data = all_audit_data.get("campaign_performance_data", {})
+    list_growth_data = all_audit_data.get("list_growth_data", {})
+    data_capture_data = all_audit_data.get("data_capture_data", {})
+    automation_data = all_audit_data.get("automation_overview_data", {})  # Fixed: was "automation_data"
+    
+    kav_interpretation = kav_data.get("kav_interpretation", {})
+    campaign_pattern = campaign_data.get("pattern_diagnosis", {})
+    list_correlation = list_growth_data.get("list_correlation", {})
+    form_categories = data_capture_data.get("categorized_forms", {})
+    flow_issues = automation_data.get("flow_issues", {})
+    
+    # Build synthesis prompt for LLM - structured for better LLM understanding
+    client_name = prepared_context.get("client_name", "the client") if prepared_context else all_audit_data.get("client_name", "the client")
+    
+    synthesis_prompt = f"""You are an expert email marketing strategist creating a strategic thesis for a comprehensive Klaviyo audit report.
+
+CLIENT: {client_name}
+
+AUDIT FINDINGS SUMMARY:
+
+KAV (Klaviyo Attributed Value) Analysis:
+- Strategic Thesis: {kav_interpretation.get("thesis", "N/A")}
+- Opportunity: {kav_interpretation.get("opportunity", "N/A")}
+- KAV Status: {kav_interpretation.get("kav_status", "N/A")}
+
+Campaign Performance:
+- Pattern Identified: {campaign_pattern.get("pattern", "N/A")}
+- Diagnosis: {campaign_pattern.get("diagnosis", "N/A")}
+- Root Cause: {campaign_pattern.get("root_cause", "N/A")}
+- Priority Level: {campaign_pattern.get("priority", "N/A")}
+
+List Growth & Revenue Correlation:
+- Connection: {list_correlation.get("connection", "N/A")}
+- Revenue Impact: {list_correlation.get("revenue_impact", "N/A")}
+- Opportunity: {list_correlation.get("opportunity", "N/A")}
+
+Data Capture Performance:
+- Underperforming Forms: {len(form_categories.get("underperformers", []))}
+- Inactive Forms: {len(form_categories.get("inactive", []))}
+- High-Performing Forms: {len(form_categories.get("high_performers", []))}
+
+Flow Issues & Opportunities:
+- Missing Flows: {len(flow_issues.get("missing", []))}
+- Duplicate Flows: {len(flow_issues.get("duplicates", []))}
+- Zero-Delivery Flows: {len(flow_issues.get("zero_deliveries", []))}
+
+YOUR TASK:
+Create a comprehensive 2-3 paragraph strategic thesis that synthesizes all the findings above. The thesis should:
+
+1. Identify the Core Opportunity: What is the single most important opportunity for improvement? (e.g., automation underinvestment, segmentation gaps, data capture optimization)
+
+2. Connect Findings Across Sections: Show how different findings relate to each other (e.g., "Low KAV percentage combined with high campaign open rates but low click rates suggests...")
+
+3. Prioritize Recommendations: Based on the priority levels and impact identified, what should be addressed first?
+
+4. Provide Clear Next Steps: What are the immediate actionable next steps?
+
+REQUIREMENTS:
+- Write in a professional, consultant-style tone
+- Be specific and actionable - reference actual findings from the audit
+- Use numbers and percentages where available
+- Connect insights across different sections
+- Focus on business impact and revenue opportunities
+- Write 2-3 well-structured paragraphs (each 4-6 sentences)
+- DO NOT use generic phrases like "Contact Andzen" or "schedule consultation" - you ARE the strategist
+
+Provide your strategic thesis in the following JSON format:
+
+{{
+    "primary": "Your complete 2-3 paragraph strategic thesis here. This should synthesize all findings, identify the core opportunity, connect insights across sections, prioritize recommendations, and provide clear next steps. Write in professional consultant tone with specific numbers and actionable insights."
+}}
+
+Return only the JSON object, no additional text."""
+    
+    # Use provided LLM service or create one
+    if not llm_service:
+        account_context = all_audit_data.get("account_context", {})
+        llm_config = account_context.get("llm_config", {}) if account_context else {}
+        from ...llm import LLMService
+        
+        llm_service = LLMService(
+            default_provider=llm_config.get("provider", "claude"),
+            anthropic_api_key=llm_config.get("anthropic_api_key"),
+            openai_api_key=llm_config.get("openai_api_key"),
+            gemini_api_key=llm_config.get("gemini_api_key"),
+            claude_model=llm_config.get("claude_model"),
+            openai_model=llm_config.get("openai_model"),
+            gemini_model=llm_config.get("gemini_model"),
+            llm_config=llm_config if llm_config else None
+        )
+    
+    try:
+        # Log the prompt for debugging
+        logger.debug(f"Strategic thesis prompt length: {len(synthesis_prompt)} characters")
+        logger.debug(f"Key findings in prompt: KAV={kav_interpretation.get('thesis', 'N/A')[:50]}..., Pattern={campaign_pattern.get('pattern', 'N/A')}")
+        
+        thesis_response = await llm_service.generate_insights(
+            section="strategic_synthesis",
+            data={"prompt": synthesis_prompt},
+            context={}
+        )
+        
+        # Extract thesis text (could be in primary field or as direct response)
+        thesis_text = thesis_response.get("primary", "") or thesis_response.get("thesis", "") or str(thesis_response)
+        
+        # Check if we got a fallback error message
+        if "Unable to provide" in thesis_text or "no specific performance data" in thesis_text:
+            logger.warning("LLM returned fallback error message for strategic thesis. Using fallback thesis generator.")
+            return _generate_fallback_thesis(
+                kav_interpretation,
+                campaign_pattern,
+                list_correlation,
+                form_categories,
+                flow_issues
+            )
+        
+        # Format as HTML paragraphs
+        if thesis_text:
+            paragraphs = [p.strip() for p in thesis_text.split('\n\n') if p.strip()]
+            thesis_html = '\n'.join([f'<p>{p}</p>' for p in paragraphs])
+            logger.info(f"Strategic thesis generated successfully ({len(thesis_html)} characters)")
+        else:
+            logger.warning("Strategic thesis text is empty, using fallback")
+            return _generate_fallback_thesis(
+                kav_interpretation,
+                campaign_pattern,
+                list_correlation,
+                form_categories,
+                flow_issues
+            )
+        
+        return thesis_html
+        
+    except Exception as e:
+        logger.error(f"Error generating strategic thesis: {e}")
+        # Fallback: Create a simple thesis from key findings
+        return _generate_fallback_thesis(
+            kav_interpretation,
+            campaign_pattern,
+            list_correlation,
+            form_categories,
+            flow_issues
+        )
+
+
+def identify_integration_opportunities(audit_data: Dict[str, Any]) -> list:
+    """
+    Strategist approach:
+    - Missing review flows → Okendo Reviews
+    - Wishlist behavior → Wishlist Plus
+    - UGC needs → Okendo
+    
+    Args:
+        audit_data: Complete audit data dictionary
+    
+    Returns:
+        List of integration opportunity dictionaries
+    """
+    opportunities = []
+    
+    # Check for review flow
+    reviews_data = audit_data.get("reviews_data", {})
+    post_purchase_data = audit_data.get("post_purchase_data", {})
+    
+    # Check if review flow exists in post-purchase flows
+    has_review_flow = False
+    if post_purchase_data:
+        # Check if any post-purchase flow mentions reviews
+        flows = post_purchase_data.get("flows", [])
+        for flow in flows:
+            flow_name = flow.get("flow_name", "").lower() if flow.get("flow_name") else ""
+            if "review" in flow_name or "rating" in flow_name:
+                has_review_flow = True
+                break
+    
+    # Also check reviews_data directly
+    if reviews_data:
+        has_review_flow = reviews_data.get("has_review_flow", False) or \
+                         reviews_data.get("review_flow_exists", False)
+    
+    if not has_review_flow:
+        opportunities.append({
+            "integration": "Okendo Reviews",
+            "capabilities": [
+                "Review request flows",
+                "Dynamic review content blocks",
+                "UGC galleries",
+                "Sentiment-based automation triggers"
+            ],
+            "priority": "MEDIUM",
+            "reason": "No review request flow detected in post-purchase automation"
+        })
+    
+    # Check for wishlist data
+    wishlist_data = audit_data.get("wishlist_data", {})
+    has_wishlist_behavior = False
+    
+    if wishlist_data:
+        # Check if wishlist data indicates active wishlist usage
+        has_wishlist_behavior = wishlist_data.get("has_wishlist_behavior", False) or \
+                               wishlist_data.get("wishlist_items_count", 0) > 0 or \
+                               wishlist_data.get("wishlist_flows_exist", False)
+    
+    # Also check flows for wishlist-related automation
+    automation_data = audit_data.get("automation_data", {})
+    if automation_data:
+        flows = automation_data.get("flows", [])
+        for flow in flows:
+            flow_name = flow.get("name", "").lower() if flow.get("name") else ""
+            if "wishlist" in flow_name:
+                has_wishlist_behavior = True
+                break
+    
+    if has_wishlist_behavior:
+        opportunities.append({
+            "integration": "Wishlist Plus",
+            "capabilities": [
+                "Low stock alerts",
+                "Price drop notifications",
+                "Back in stock triggers",
+                "Wishlist abandonment flows"
+            ],
+            "priority": "LOW",
+            "reason": "Wishlist behavior detected - integration could enhance automation"
+        })
+    
+    # Check for UGC needs (if reviews are present but no UGC gallery)
+    if has_review_flow and not reviews_data.get("ugc_gallery_exists", False):
+        opportunities.append({
+            "integration": "Okendo UGC",
+            "capabilities": [
+                "User-generated content galleries",
+                "Social proof widgets",
+                "UGC in email campaigns",
+                "Visual content blocks"
+            ],
+            "priority": "LOW",
+            "reason": "Review flow exists but UGC gallery not detected"
+        })
+    
+    return opportunities
+
+
+def _generate_fallback_thesis(
+    kav_interpretation: Dict[str, Any],
+    campaign_pattern: Dict[str, Any],
+    list_correlation: Dict[str, Any],
+    form_categories: Dict[str, Any],
+    flow_issues: Dict[str, Any]
+) -> str:
+    """Generate fallback strategic thesis from key findings."""
+    thesis_parts = []
+    
+    # KAV analysis
+    if kav_interpretation.get("thesis"):
+        thesis_parts.append(kav_interpretation.get("thesis"))
+    
+    # Campaign pattern
+    if campaign_pattern.get("diagnosis"):
+        thesis_parts.append(campaign_pattern.get("diagnosis"))
+    
+    # List correlation
+    if list_correlation.get("connection"):
+        thesis_parts.append(list_correlation.get("connection"))
+    
+    # Flow issues
+    missing_count = len(flow_issues.get("missing", []))
+    if missing_count > 0:
+        thesis_parts.append(f"Missing {missing_count} critical automation flows represents a significant revenue opportunity.")
+    
+    # Combine into paragraphs
+    if thesis_parts:
+        thesis_text = " ".join(thesis_parts)
+        paragraphs = [p.strip() for p in thesis_text.split('. ') if p.strip()]
+        return '\n'.join([f'<p>{p}.</p>' for p in paragraphs if p])
+    else:
+        return '<p>Strategic analysis indicates opportunities for optimization across automation, segmentation, and data capture strategies.</p>'
+
+
+async def prepare_strategic_recommendations(audit_data: Dict[str, Any], prepared_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Prepare strategic recommendations using LLM service.
     
     This synthesizes all audit findings into high-level strategic recommendations.
+    
+    Args:
+        audit_data: Raw audit data dictionary
+        prepared_context: Optional prepared context dictionary with processed data (kav_interpretation, pattern_diagnosis, etc.)
     """
     # Initialize variables
     strategic_recommendations = {
@@ -74,6 +378,13 @@ async def prepare_strategic_recommendations(audit_data: Dict[str, Any]) -> Dict[
             "currency_symbol": account_context.get("currency_symbol", "$"),
             "timezone": account_context.get("timezone", "UTC")
         }
+        
+        # Step 1: Generate strategic thesis (synthesizes all findings)
+        logger.info("Generating strategic thesis...")
+        strategic_thesis = await generate_strategic_thesis(audit_data, llm_service, prepared_context)
+        
+        # Add strategic thesis to context for recommendations
+        context["strategic_thesis"] = strategic_thesis
         
         # Generate strategic recommendations using LLM
         logger.info("Generating strategic recommendations using LLM...")
@@ -150,8 +461,32 @@ async def prepare_strategic_recommendations(audit_data: Dict[str, Any]) -> Dict[
         # Calculate estimated revenue impact from audit data
         strategic_recommendations["total_revenue_impact"] = _calculate_fallback_revenue_impact(audit_data)
     
+    # Generate strategic thesis (even if LLM failed for recommendations)
+    # Use prepared_context if available (has prepared data with kav_interpretation, pattern_diagnosis, etc.)
+    # Otherwise fall back to raw audit_data
+    thesis_data_source = prepared_context if prepared_context else audit_data
+    try:
+        strategic_thesis = await generate_strategic_thesis(thesis_data_source, None)
+    except Exception as e:
+        logger.warning(f"Failed to generate strategic thesis: {e}")
+        strategic_thesis = _generate_fallback_thesis(
+            thesis_data_source.get("kav_data", {}).get("kav_interpretation", {}),
+            thesis_data_source.get("campaign_performance_data", {}).get("pattern_diagnosis", {}),
+            thesis_data_source.get("list_growth_data", {}).get("list_correlation", {}),
+            thesis_data_source.get("data_capture_data", {}).get("categorized_forms", {}),
+            thesis_data_source.get("automation_overview_data", {}).get("flow_issues", {})
+        )
+    
+    # Step 2: Identify integration opportunities
+    integration_opportunities = identify_integration_opportunities(audit_data)
+    
+    if integration_opportunities:
+        logger.info(f"Identified {len(integration_opportunities)} integration opportunities")
+    
     return {
         "strategic_recommendations": strategic_recommendations,
+        "strategic_thesis": strategic_thesis,  # Strategic synthesis thesis
+        "integration_opportunities": integration_opportunities,  # Third-party integration recommendations
         "phase3_enabled": not strategic_recommendations.get("error", False)
     }
 

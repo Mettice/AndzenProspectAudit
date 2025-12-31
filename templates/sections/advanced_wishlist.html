@@ -23,11 +23,11 @@
         <div class="status-grid">
             <div class="status-item">
                 <div class="status-header">Wishlist Automation</div>
-                <div class="status-value {{ 'enabled' if wishlist_data.enabled else 'disabled' }}">
-                    {{ 'ENABLED' if wishlist_data.enabled else 'NOT IMPLEMENTED' }}
+                <div class="status-value {{ 'enabled' if wishlist_data.get('enabled', False) else 'disabled' }}">
+                    {{ 'ENABLED' if wishlist_data.get('enabled', False) else 'NOT IMPLEMENTED' }}
                 </div>
                 <div class="status-description">
-                    {% if wishlist_data.enabled %}
+                    {% if wishlist_data.get('enabled', False) %}
                     Active wishlist automation detected
                     {% else %}
                     No wishlist automation found
@@ -37,9 +37,15 @@
             
             <div class="status-item">
                 <div class="status-header">Integration Platform</div>
-                <div class="status-value">{{ wishlist_data.integration|default('NONE') }}</div>
+                <div class="status-value">
+                    {% if wishlist_data.get('integration') and wishlist_data.get('integration') != 'None' and wishlist_data.get('integration') != 'NONE' %}
+                        {{ wishlist_data.integration }}
+                    {% else %}
+                        None
+                    {% endif %}
+                </div>
                 <div class="status-description">
-                    {% if wishlist_data.integration and wishlist_data.integration != 'None' %}
+                    {% if wishlist_data.get('integration') and wishlist_data.get('integration') != 'None' and wishlist_data.get('integration') != 'NONE' %}
                     Connected wishlist platform
                     {% else %}
                     No wishlist platform integration
@@ -85,7 +91,7 @@
     <div class="strategy-section">
         <h4 class="strategy-title">Wishlist & Price Drop Strategy</h4>
         
-        {% if not wishlist_data.enabled %}
+        {% if not wishlist_data.get('enabled', False) %}
         <div class="opportunity-callout">
             <div class="callout-header">💎 HIGH-VALUE OPPORTUNITY</div>
             <p>

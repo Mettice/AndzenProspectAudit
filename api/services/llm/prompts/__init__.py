@@ -49,6 +49,15 @@ def get_prompt_template(section: str, data: Dict[str, Any], context: Dict[str, A
         return get_post_purchase_prompt(data, context)
     elif section == "strategic_recommendations":
         return get_strategic_recommendations_prompt(data, context)
+    elif section == "strategic_synthesis":
+        # Strategic synthesis uses a custom prompt passed in data["prompt"]
+        # This allows generate_strategic_thesis to build its own synthesis prompt
+        custom_prompt = data.get("prompt", "")
+        if custom_prompt:
+            return custom_prompt
+        else:
+            # Fallback to generic if no custom prompt provided
+            return get_generic_prompt(section, data, context)
     else:
         return get_generic_prompt(section, data, context)
 

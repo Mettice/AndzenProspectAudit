@@ -34,6 +34,10 @@ def get_flow_prompt(data: Dict[str, Any], context: Dict[str, Any]) -> str:
     # Calculate revenue opportunity
     revenue_opportunity = max(0, (benchmark_revenue - revenue_per_recipient) * recipients) if benchmark_revenue > 0 else 0
     
+    # Get intent analysis from context (added in Phase 2)
+    # Context is passed as separate parameter, but also check data.context for backward compatibility
+    intent_analysis = context.get("intent_analysis", data.get("context", {}).get("intent_analysis", {}))
+    
     prompt = f"""You are an expert email marketing strategist analyzing flow performance data. Provide clear narrative insights with embedded strategic elements.
 
 CLIENT CONTEXT:
@@ -54,6 +58,11 @@ FLOW PERFORMANCE METRICS:
 REVENUE OPPORTUNITY:
 - Current Revenue: {currency_symbol}{revenue:,.2f}
 - Revenue Opportunity: {currency_symbol}{revenue_opportunity:,.2f} if flow reaches benchmark
+
+FLOW INTENT ANALYSIS:
+- Intent Level: {intent_analysis.get("intent_level", "N/A")}
+- Recommended Timing: {intent_analysis.get("recommended_timing", "N/A")}
+- Messaging Strategy: {intent_analysis.get("messaging_strategy", "N/A")}
 
 PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
 

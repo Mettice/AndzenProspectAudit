@@ -52,6 +52,12 @@ class FlowExtractor:
             if verbose:
                 print(f"  Fetching statistics for {len(all_flow_ids)} flows in batches of {batch_size}...")
             
+            # Resolve conversion_metric_id once before processing batches
+            # This prevents repeated lookups and warnings
+            conversion_metric_id = None
+            if hasattr(self.flow_stats, '_cached_conversion_metric_id') and self.flow_stats._cached_conversion_metric_id:
+                conversion_metric_id = self.flow_stats._cached_conversion_metric_id
+            
             # Process flows in batches with delays
             for i in range(0, len(all_flow_ids), batch_size):
                 batch_ids = all_flow_ids[i:i + batch_size]
@@ -62,10 +68,19 @@ class FlowExtractor:
                     print(f"    Processing batch {batch_num}/{total_batches} ({len(batch_ids)} flows)...")
                 
                 try:
+                    # Use cached conversion_metric_id if available (after first batch)
+                    if conversion_metric_id is None and hasattr(self.flow_stats, '_cached_conversion_metric_id'):
+                        conversion_metric_id = self.flow_stats._cached_conversion_metric_id
+                    
                     batch_stats = await self.flow_stats.get_statistics(
                         flow_ids=batch_ids,
-                        timeframe="last_365_days"
+                        timeframe="last_365_days",
+                        conversion_metric_id=conversion_metric_id  # Pass it explicitly to avoid repeated lookups
                     )
+                    
+                    # After first batch, get the cached value for subsequent batches
+                    if conversion_metric_id is None and hasattr(self.flow_stats, '_cached_conversion_metric_id'):
+                        conversion_metric_id = self.flow_stats._cached_conversion_metric_id
                     
                     # Merge batch results
                     if batch_stats:

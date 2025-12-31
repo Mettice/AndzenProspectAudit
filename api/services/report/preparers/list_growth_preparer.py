@@ -9,6 +9,68 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def correlate_list_to_revenue(
+    list_data: Dict[str, Any],
+    revenue_data: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Strategist approach:
+    - "52.9% increase in campaign recipients = revenue increase"
+    - Connect list growth to revenue opportunity
+    
+    Args:
+        list_data: List growth data dictionary
+        revenue_data: Optional revenue data dictionary (from KAV or campaign data)
+    
+    Returns:
+        Dict with connection, revenue_impact, and opportunity
+    """
+    correlation = {
+        "connection": "",
+        "revenue_impact": "",
+        "opportunity": ""
+    }
+    
+    # Calculate list growth percentage
+    current_total = list_data.get("current_total", 0)
+    net_change = list_data.get("net_change", 0)
+    period_months = list_data.get("period_months", 6)
+    
+    # Calculate growth percentage (approximate based on net change)
+    # If we have previous period data, use it; otherwise estimate
+    previous_total = current_total - net_change if current_total > 0 else 0
+    list_growth_pct = 0
+    if previous_total > 0:
+        list_growth_pct = (net_change / previous_total) * 100
+    
+    # Get revenue growth from revenue_data if available
+    revenue_growth_pct = 0
+    if revenue_data:
+        # Try different possible fields for revenue growth
+        revenue_growth_pct = revenue_data.get("revenue_growth", 0) or \
+                           revenue_data.get("vs_previous_period", 0) or \
+                           revenue_data.get("attributed_vs_previous", 0)
+    
+    if list_growth_pct > 0 and revenue_growth_pct > 0:
+        correlation["connection"] = f"{list_growth_pct:.1f}% list growth correlates with revenue performance"
+        correlation["revenue_impact"] = "Data capture investment has direct revenue implications"
+        correlation["opportunity"] = "Further list growth optimization could drive additional revenue"
+    elif list_growth_pct > 0 and revenue_growth_pct <= 0:
+        correlation["connection"] = f"{list_growth_pct:.1f}% list growth not yet translating to revenue"
+        correlation["revenue_impact"] = "Focus on engagement and conversion of new subscribers"
+        correlation["opportunity"] = "Improve welcome series and onboarding to convert new subscribers"
+    elif list_growth_pct <= 0:
+        correlation["connection"] = "List growth is stagnant or declining"
+        correlation["revenue_impact"] = "Stagnant list growth limits revenue potential"
+        correlation["opportunity"] = "Prioritize data capture optimization to grow subscriber base"
+    else:
+        correlation["connection"] = "List growth data available, revenue correlation analysis pending"
+        correlation["revenue_impact"] = "Monitor list growth impact on revenue over time"
+        correlation["opportunity"] = "Optimize data capture to maximize list growth"
+    
+    return correlation
+
+
 async def prepare_list_growth_data(
     list_raw: Dict[str, Any],
     client_name: str = "the client",
@@ -25,6 +87,19 @@ async def prepare_list_growth_data(
     
     # Format date range for display (e.g., "Sep 2025 - Dec 2025")
     date_range_str = f"{start_date.strftime('%b %Y')} - {end_date.strftime('%b %Y')}"
+    
+    # Step 1: Correlate list growth to revenue (before LLM call)
+    # Get revenue data from account_context if available (passed from orchestrator)
+    revenue_data = account_context.get("revenue_data", {}) if account_context else {}
+    list_correlation = correlate_list_to_revenue(
+        list_data=list_raw,
+        revenue_data=revenue_data
+    )
+    
+    logger.info(
+        f"List-revenue correlation: {list_correlation.get('connection')} - "
+        f"{list_correlation.get('opportunity')}"
+    )
     
     # Try to use LLM service for insights
     analysis_text = ""
@@ -59,6 +134,11 @@ async def prepare_list_growth_data(
                 "currency": account_context.get("currency", "USD") if account_context else "USD"
             }
         )
+        
+        # Add list-revenue correlation to context for LLM
+        if "context" not in formatted_data:
+            formatted_data["context"] = {}
+        formatted_data["context"]["list_correlation"] = list_correlation
         
         # Generate insights using LLM
         strategic_insights = await llm_service.generate_insights(
@@ -180,6 +260,7 @@ async def prepare_list_growth_data(
         "areas_of_opportunity": areas_of_opportunity if isinstance(areas_of_opportunity, list) else [],
         "root_cause_analysis": root_cause_analysis,  # LLM-generated root cause analysis
         "risk_flags": risk_flags,  # LLM-generated risk flags
-        "quick_wins": quick_wins  # LLM-generated quick wins
+        "quick_wins": quick_wins,  # LLM-generated quick wins
+        "list_correlation": list_correlation  # List-revenue correlation analysis
     }
 
