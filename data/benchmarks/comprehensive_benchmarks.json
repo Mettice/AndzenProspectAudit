@@ -9,32 +9,32 @@
 
   "campaigns": {
     "open_rate": {
-      "average": 42.35,
+      "average": 37.93,
       "top_10_percent": 55.00,
       "top_25_percent": 50.00,
       "bottom_25_percent": 30.00,
-      "description": "Campaign email open rate percentage (affected by Apple Mail Privacy Protection)"
+      "description": "Campaign email open rate percentage - All ecommerce average (2025 Klaviyo benchmarks)"
     },
     "click_rate": {
-      "average": 2.00,
+      "average": 1.29,
       "top_10_percent": 4.00,
       "top_25_percent": 3.00,
       "bottom_25_percent": 1.00,
-      "description": "Campaign email click rate percentage (2025 focus metric)"
+      "description": "Campaign email click rate percentage - All ecommerce average (2025 Klaviyo benchmarks)"
     },
     "conversion_rate": {
-      "average": 0.10,
+      "average": 0.08,
       "top_10_percent": 0.30,
       "top_25_percent": 0.20,
       "bottom_25_percent": 0.03,
-      "description": "Campaign conversion rate percentage"
+      "description": "Campaign placed order rate percentage - All ecommerce average (2025 Klaviyo benchmarks)"
     },
     "revenue_per_recipient": {
-      "average": 0.12,
+      "average": 0.10,
       "top_10_percent": 0.45,
       "top_25_percent": 0.25,
       "bottom_25_percent": 0.04,
-      "description": "Revenue per campaign recipient (USD)"
+      "description": "Revenue per campaign recipient (USD) - All ecommerce average (2025 Klaviyo benchmarks)"
     },
     "unsubscribe_rate": {
       "average": 0.15,

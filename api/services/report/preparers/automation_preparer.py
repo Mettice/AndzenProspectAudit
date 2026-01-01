@@ -27,21 +27,33 @@ def detect_flow_issues(flows_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         "zero_deliveries": []
     }
     
-    # Helper to determine flow type from name
+    # Helper to determine flow type from name - Enhanced with fuzzy matching
     def get_flow_type(flow: Dict[str, Any]) -> Optional[str]:
-        """Determine flow type from flow name."""
+        """Determine flow type from flow name using fuzzy pattern matching."""
         flow_name = flow.get("name", "").lower()
-        if "welcome" in flow_name or "nurture" in flow_name:
+        
+        # Flow type patterns (order matters - more specific first)
+        if "welcome" in flow_name or "nurture" in flow_name or "onboard" in flow_name or "new customer" in flow_name:
             return "welcome_series"
-        elif "abandon" in flow_name and "cart" in flow_name:
-            return "abandoned_cart"
-        elif "abandon" in flow_name and "checkout" in flow_name:
+        elif "post" in flow_name and ("purchase" in flow_name or "order" in flow_name):
+            return "post_purchase"
+        elif "browse" in flow_name and "abandon" in flow_name:
+            return "browse_abandonment"
+        elif ("abandon" in flow_name and "checkout" in flow_name) or ("checkout" in flow_name and "abandon" in flow_name):
             return "abandoned_checkout"
-        elif "browse" in flow_name:
+        elif ("abandon" in flow_name and "cart" in flow_name) or \
+             ("cart" in flow_name and "abandon" in flow_name) or \
+             ("added" in flow_name and "cart" in flow_name) or \
+             ("add" in flow_name and "cart" in flow_name) or \
+             ("atc" in flow_name and "-" in flow_name):  # Added patterns for "Added-To-Cart" and "ATC-"
+            return "abandoned_cart"
+        elif "browse" in flow_name or "product view" in flow_name or "viewed" in flow_name:
             return "browse_abandonment"
         elif "post" in flow_name or "purchase" in flow_name:
             return "post_purchase"
-        return flow.get("type")  # Fallback to type field if exists
+        
+        # Fallback to type field if exists
+        return flow.get("type")
     
     # Missing flows detection
     required_flows = ["welcome_series", "abandoned_cart", "browse_abandonment", "post_purchase"]

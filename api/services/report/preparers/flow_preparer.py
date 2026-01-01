@@ -68,6 +68,67 @@ def analyze_flow_intent_level(flow_data: Dict[str, Any], flow_type: str) -> Dict
     return intent_analysis
 
 
+def validate_flow_data(flow_raw: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Validate flow data for impossible scenarios.
+    
+    Returns:
+        Dict with "valid": bool and "issue": str if invalid
+    """
+    flow_perf = flow_raw.get("performance", {})
+    recipients = flow_perf.get("recipients", 0)
+    conversions = flow_perf.get("conversions", 0)
+    opens = flow_perf.get("opens", 0)
+    clicks = flow_perf.get("clicks", 0)
+    
+    # Check for impossible scenarios
+    if recipients == 0:
+        if conversions > 0:
+            return {
+                "valid": False,
+                "issue": "data_anomaly",
+                "message": f"0 recipients reported but {conversions} conversions recorded",
+                "severity": "high"
+            }
+        elif opens > 0 or clicks > 0:
+            return {
+                "valid": False,
+                "issue": "data_anomaly",
+                "message": f"0 recipients reported but {opens} opens and {clicks} clicks recorded",
+                "severity": "high"
+            }
+        else:
+            # Zero recipients with no activity - flow may be inactive
+            return {
+                "valid": False,
+                "issue": "inactive",
+                "message": "Flow has no recipients or activity in the reporting period",
+                "severity": "medium"
+            }
+    
+    # Check for other data inconsistencies
+    if recipients > 0:
+        # Conversions should not exceed recipients (though technically possible with multiple purchases)
+        if conversions > recipients * 2:  # Allow up to 2x for repeat purchases
+            return {
+                "valid": False,
+                "issue": "data_anomaly",
+                "message": f"Conversions ({conversions}) significantly exceed recipients ({recipients})",
+                "severity": "medium"
+            }
+        
+        # Opens should not exceed recipients (though possible with multiple opens)
+        if opens > recipients * 10:  # Allow up to 10x for multiple opens
+            return {
+                "valid": False,
+                "issue": "data_anomaly",
+                "message": f"Opens ({opens}) significantly exceed recipients ({recipients})",
+                "severity": "low"
+            }
+    
+    return {"valid": True}
+
+
 async def prepare_flow_data(
     flow_raw: Dict[str, Any],
     flow_type: str,
@@ -78,6 +139,67 @@ async def prepare_flow_data(
     """Prepare individual flow data with benchmark comparisons and LLM-generated insights."""
     if not flow_raw:
         return {}
+    
+    # Step 0: Validate flow data for impossible scenarios
+    validation = validate_flow_data(flow_raw)
+    if not validation.get("valid"):
+        # Return data quality issue structure instead of trying to analyze
+        flow_name = flow_raw.get("flow_name", flow_type.replace("_", " ").title())
+        issue_type = validation.get("issue", "data_anomaly")
+        issue_message = validation.get("message", "Data quality issue detected")
+        severity = validation.get("severity", "medium")
+        
+        # Generate helpful data quality message
+        if issue_type == "data_anomaly":
+            data_quality_message = f"""<div class="data-quality-warning">
+<h4>⚠️ DATA QUALITY ISSUE DETECTED</h4>
+<p><strong>This flow cannot be analyzed due to data inconsistencies:</strong></p>
+<ul>
+    <li>{issue_message}</li>
+    <li>This indicates a Klaviyo tracking or integration issue</li>
+</ul>
+<p><strong>Recommended Action:</strong></p>
+<p>Contact Klaviyo support to verify:</p>
+<ol>
+    <li>Flow trigger configuration</li>
+    <li>Event tracking setup</li>
+    <li>Attribution window settings</li>
+</ol>
+<p>Once data quality is resolved, re-run this audit for accurate insights.</p>
+</div>"""
+        else:  # inactive
+            data_quality_message = f"""<div class="data-quality-warning">
+<h4>⚠️ FLOW INACTIVE</h4>
+<p><strong>This flow has no activity in the reporting period:</strong></p>
+<ul>
+    <li>{issue_message}</li>
+    <li>The flow may be disabled, not triggered, or newly created</li>
+</ul>
+<p><strong>Recommended Action:</strong></p>
+<ol>
+    <li>Verify the flow is active and properly configured</li>
+    <li>Check trigger conditions match your site behavior</li>
+    <li>Ensure the flow is not paused or archived</li>
+</ol>
+</p>"""
+        
+        return {
+            "flow_name": flow_name,
+            "status": "data_quality_issue",
+            "data_quality_issue": {
+                "type": issue_type,
+                "message": issue_message,
+                "severity": severity,
+                "warning_html": data_quality_message
+            },
+            "performance": flow_raw.get("performance", {}),
+            "benchmark": benchmarks.get("flows", {}).get(flow_type, {}),
+            "industry": account_context.get("industry", "Apparel and Accessories") if account_context else "Apparel and Accessories",
+            "narrative": data_quality_message,  # Show warning instead of analysis
+            "secondary_narrative": "",
+            "performance_status": "data_quality_issue",
+            "areas_of_opportunity": []
+        }
     
     # Get account context
     account_context = account_context or {}

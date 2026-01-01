@@ -49,11 +49,28 @@
                 </div>
                 <p class="form-problem">{{ form.problem }}</p>
                 {% if form.recommendations %}
-                <ul class="form-recommendations">
+                <div class="form-recommendations-detailed">
                     {% for rec in form.recommendations %}
-                    <li>{{ rec }}</li>
+                    {% if rec is mapping %}
+                    {# New format: dict with recommendation, effort, expected_impact, priority #}
+                    <div class="form-recommendation-item priority-{{ rec.get('priority', 'medium')|lower }}">
+                        <div class="rec-header">
+                            <strong>{{ rec.get('recommendation', '') }}</strong>
+                            <span class="rec-priority priority-{{ rec.get('priority', 'medium')|lower }}">{{ rec.get('priority', 'medium')|upper() }}</span>
+                        </div>
+                        <div class="rec-details">
+                            <span class="rec-effort">⏱️ Effort: {{ rec.get('effort', 'N/A') }}</span>
+                            <span class="rec-impact">📈 Expected Impact: {{ rec.get('expected_impact', 'N/A') }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    {# Old format: plain string (backward compatibility) #}
+                    <div class="form-recommendation-item">
+                        <p>{{ rec }}</p>
+                    </div>
+                    {% endif %}
                     {% endfor %}
-                </ul>
+                </div>
                 {% endif %}
             </div>
             {% endfor %}
@@ -174,22 +191,59 @@
         {% if data_capture_data.progressive_profiling %}
         <div class="tactics-section">
             <h4>Progressive Profiling</h4>
+            {% if data_capture_data.progressive_profiling is mapping %}
+            {# New format: dict with enabled, recommendation, etc. #}
+            <div class="profiling-status">
+                <strong>Status:</strong> 
+                <span class="status-badge {% if data_capture_data.progressive_profiling.enabled %}enabled{% else %}not-enabled{% endif %}">
+                    {% if data_capture_data.progressive_profiling.enabled %}Enabled{% else %}Not Enabled{% endif %}
+                </span>
+            </div>
+            {% if data_capture_data.progressive_profiling.get('evidence') %}
+            <p class="profiling-evidence"><em>{{ data_capture_data.progressive_profiling.evidence }}</em></p>
+            {% endif %}
+            {% if data_capture_data.progressive_profiling.get('recommendation') %}
+            <p class="profiling-recommendation">{{ data_capture_data.progressive_profiling.recommendation }}</p>
+            {% endif %}
+            {% else %}
+            {# Old format: list (backward compatibility) #}
             <ul class="tactics-list">
                 {% for item in data_capture_data.progressive_profiling %}
                 <li>{{ item }}</li>
                 {% endfor %}
             </ul>
+            {% endif %}
         </div>
         {% endif %}
         
         {% if data_capture_data.flyout_forms %}
         <div class="tactics-section">
             <h4>Flyout Forms</h4>
+            {% if data_capture_data.flyout_forms is mapping %}
+            {# New format: dict with enabled, count, recommendation, etc. #}
+            <div class="flyout-status">
+                <strong>Status:</strong> 
+                <span class="status-badge {% if data_capture_data.flyout_forms.enabled %}enabled{% else %}not-enabled{% endif %}">
+                    {% if data_capture_data.flyout_forms.enabled %}Enabled{% else %}Not Enabled{% endif %}
+                </span>
+                {% if data_capture_data.flyout_forms.get('count') %}
+                <span class="flyout-count">({{ data_capture_data.flyout_forms.count }} form{{ 's' if data_capture_data.flyout_forms.count != 1 else '' }})</span>
+                {% endif %}
+            </div>
+            {% if data_capture_data.flyout_forms.get('avg_submit_rate') is not none %}
+            <p class="flyout-performance">Average submit rate: {{ data_capture_data.flyout_forms.avg_submit_rate }}%</p>
+            {% endif %}
+            {% if data_capture_data.flyout_forms.get('recommendation') %}
+            <p class="flyout-recommendation">{{ data_capture_data.flyout_forms.recommendation }}</p>
+            {% endif %}
+            {% else %}
+            {# Old format: list (backward compatibility) #}
             <ul class="tactics-list">
                 {% for item in data_capture_data.flyout_forms %}
                 <li>{{ item }}</li>
                 {% endfor %}
             </ul>
+            {% endif %}
         </div>
         {% endif %}
     </div>
@@ -415,6 +469,141 @@
     line-height: 1.6;
     color: #262626;
     margin-bottom: 0.5rem;
+}
+
+/* Enhanced form recommendations with effort/impact */
+.form-recommendations-detailed {
+    margin: 1rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-recommendation-item {
+    background: #F9FAFB;
+    border-left: 4px solid #65DA4F;
+    padding: 1rem;
+    border-radius: 4px;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.form-recommendation-item.priority-high {
+    border-left-color: #EF4444;
+    background: #FEF2F2;
+}
+
+.form-recommendation-item.priority-medium {
+    border-left-color: #F59E0B;
+    background: #FFFBEB;
+}
+
+.form-recommendation-item.priority-low {
+    border-left-color: #6B7280;
+    background: #F9FAFB;
+}
+
+.rec-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+    gap: 1rem;
+}
+
+.rec-header strong {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #111827;
+    flex: 1;
+}
+
+.rec-priority {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.rec-priority.priority-high {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.rec-priority.priority-medium {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.rec-priority.priority-low {
+    background: #E5E7EB;
+    color: #374151;
+}
+
+.rec-details {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.85rem;
+    color: #6B7280;
+    margin-top: 0.5rem;
+}
+
+.rec-effort, .rec-impact {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Status badges for progressive profiling and flyout forms */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.status-badge.enabled {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-badge.not-enabled {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.profiling-status,
+.flyout-status {
+    margin-bottom: 0.75rem;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+}
+
+.profiling-evidence,
+.profiling-recommendation,
+.flyout-performance,
+.flyout-recommendation {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #374151;
+    margin: 0.5rem 0;
+}
+
+.profiling-evidence {
+    font-style: italic;
+    color: #6B7280;
+}
+
+.flyout-count {
+    color: #6B7280;
+    font-size: 0.85rem;
+    margin-left: 0.5rem;
 }
 
 @media print {

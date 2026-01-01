@@ -22,12 +22,18 @@
                 <span class="metric-label">Active Flows</span>
             </div>
             <div class="intelligence-metric">
+                {% set optimization_count = 0 %}
                 {% if flow_lifecycle_analysis and flow_lifecycle_analysis.optimization_priority_matrix %}
                 <span class="metric-value">{{ flow_lifecycle_analysis.optimization_priority_matrix.prioritized_flows|length }}</span>
                 <span class="metric-label">Optimization Opportunities</span>
                 {% else %}
-                <span class="metric-value">-</span>
-                <span class="metric-label">Active Flows</span>
+                {% for flow in automation_overview_data.flows %}
+                    {% if flow.performance_tier and (flow.performance_tier == 'Poor' or flow.performance_tier == 'Average') %}
+                        {% set optimization_count = optimization_count + 1 %}
+                    {% endif %}
+                {% endfor %}
+                <span class="metric-value">{{ optimization_count }}</span>
+                <span class="metric-label">Optimization Opportunities</span>
                 {% endif %}
             </div>
         </div>
@@ -82,11 +88,15 @@
                     </td>
                     <td>
                         {% if flow_analysis and flow_analysis.get('benchmark_comparison') and flow_analysis.benchmark_comparison.get('overall_performance') %}
-                        <span class="performance-tier tier-{{ flow_analysis.benchmark_comparison.overall_performance }}">
+                        <span class="performance-tier tier-{{ flow_analysis.benchmark_comparison.overall_performance|lower }}">
                             {{ flow_analysis.benchmark_comparison.overall_performance|title }}
                         </span>
+                        {% elif flow.performance_tier %}
+                        <span class="performance-tier tier-{{ flow.performance_tier|lower }}">
+                            {{ flow.performance_tier }}
+                        </span>
                         {% else %}
-                        <span class="performance-tier tier-unknown">-</span>
+                        <span class="performance-tier tier-unknown">N/A</span>
                         {% endif %}
                     </td>
                     <td>
@@ -129,8 +139,10 @@
                         {% if flow_analysis and flow_analysis.get('strategic_recommendations') and flow_analysis.strategic_recommendations|length > 0 %}
                         {% set first_rec = flow_analysis.strategic_recommendations[0] if flow_analysis.strategic_recommendations|length > 0 else '' %}
                         <div class="focus-item">{{ (first_rec|string)[:50] }}...</div>
+                        {% elif flow.strategic_focus %}
+                        <div class="focus-item">{{ flow.strategic_focus }}</div>
                         {% else %}
-                        <span class="focus-placeholder">Optimization analysis</span>
+                        <span class="focus-placeholder">Optimization Analysis</span>
                         {% endif %}
                     </td>
                 </tr>

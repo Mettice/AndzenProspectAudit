@@ -89,8 +89,7 @@ class DataExtractionOrchestrator:
         self,
         date_range: Optional[Dict[str, str]] = None,
         include_enhanced: bool = True,
-        verbose: bool = True,
-        fast_mode: bool = False
+        verbose: bool = True
     ) -> Dict[str, Any]:
         """
         Extract all data from Klaviyo for audit reports.
@@ -197,53 +196,27 @@ class DataExtractionOrchestrator:
             )
             enhanced_data["kav_analysis"] = kav_data
             
-            # SECTION 5: List Growth Data (skip in fast mode - expensive)
-            if not fast_mode:
-                try:
-                    list_growth = await self.list_extractor.extract(
-                        days_for_analysis, 
-                        date_range=date_range,  # Pass date_range to optimize API calls
-                        verbose=verbose
-                    )
-                    enhanced_data["list_growth"] = list_growth
-                except Exception as e:
-                    logger.warning(f"⚠️  List growth extraction failed (continuing): {e}")
-                    enhanced_data["list_growth"] = {"lists": [], "growth_data": []}
-            else:
-                if verbose:
-                    print("  ⏭️  Skipping list growth (fast mode)")
-                enhanced_data["list_growth"] = {"lists": [], "growth_data": []}
+            # SECTION 5: List Growth Data
+            list_growth = await self.list_extractor.extract(
+                days_for_analysis, 
+                date_range=date_range,  # Pass date_range to optimize API calls
+                verbose=verbose
+            )
+            enhanced_data["list_growth"] = list_growth
             
-            # SECTION 6: Form Performance Data (skip in fast mode - expensive)
-            if not fast_mode:
-                try:
-                    form_data = await self.form_extractor.extract(days_for_analysis, verbose, date_range=date_range)
-                    enhanced_data["forms"] = form_data
-                except Exception as e:
-                    logger.warning(f"⚠️  Form performance extraction failed (continuing): {e}")
-                    enhanced_data["forms"] = {"forms": []}
-            else:
-                if verbose:
-                    print("  ⏭️  Skipping form performance (fast mode)")
-                enhanced_data["forms"] = {"forms": []}
+            # SECTION 6: Form Performance Data
+            form_data = await self.form_extractor.extract(days_for_analysis, verbose, date_range=date_range)
+            enhanced_data["forms"] = form_data
             
-            # SECTION 7: Core Flows Deep Dive (skip in fast mode - very expensive)
-            if not fast_mode:
-                if verbose:
-                    period_label = f"{days_for_analysis} Days" if days_for_analysis < 365 else f"{days_for_analysis // 30} Months" if days_for_analysis < 730 else "Year to Date"
-                    print(f"\n🎯 SECTION 7: Core Flows Performance ({period_label})")
-                    print("-" * 40)
-                
-                try:
-                    core_flows = await self.flow_patterns.get_core_flows_performance(days=days_for_analysis)
-                    enhanced_data["core_flows"] = core_flows
-                except Exception as e:
-                    logger.warning(f"⚠️  Core flows extraction failed (continuing): {e}")
-                    enhanced_data["core_flows"] = {}
-            else:
-                if verbose:
-                    print("  ⏭️  Skipping core flows deep dive (fast mode)")
-                enhanced_data["core_flows"] = {}
+            # SECTION 7: Core Flows Deep Dive
+            if verbose:
+                period_label = f"{days_for_analysis} Days" if days_for_analysis < 365 else f"{days_for_analysis // 30} Months" if days_for_analysis < 730 else "Year to Date"
+                print(f"\n🎯 SECTION 7: Core Flows Performance ({period_label})")
+                print("-" * 40)
+            
+            try:
+                core_flows = await self.flow_patterns.get_core_flows_performance(days=days_for_analysis)
+                enhanced_data["core_flows"] = core_flows
                 
                 if verbose:
                     for flow_type, flow_info in core_flows.items():
@@ -253,6 +226,12 @@ class DataExtractionOrchestrator:
                         rev = perf.get("revenue", 0)
                         open_rate = perf.get("open_rate", 0)
                         print(f"  {status} {name}: Open {open_rate:.1f}%, Rev ${rev:,.0f}")
+            except Exception as e:
+                if verbose:
+                    print(f"  ✗ Error fetching core flows data: {e}")
+                logger.error(f"Error fetching core flows data: {e}", exc_info=True)
+                enhanced_data["core_flows"] = {}
+        
         if verbose:
             print(f"\n{'='*60}")
             print("✓ DATA EXTRACTION COMPLETE!")
@@ -372,6 +351,10 @@ class DataExtractionOrchestrator:
         # Get campaign data for channel breakdown calculation
         campaigns = raw_data.get("campaigns", [])
         campaign_statistics = raw_data.get("campaign_statistics", {})
+        
+        # Get flow data for wishlist detection
+        flows = raw_data.get("flows", [])
+        flow_statistics = raw_data.get("flow_statistics", {})
         email_campaigns = raw_data.get("email_campaigns", [])
         sms_campaigns = raw_data.get("sms_campaigns", [])
         push_campaigns = raw_data.get("push_campaigns", [])
@@ -636,13 +619,8 @@ class DataExtractionOrchestrator:
                 "recommendations": ["Consider implementing review collection flows"]
             },
             
-            # Wishlist Data (placeholder for advanced features)
-            "wishlist_data": {
-                "enabled": False,
-                "integration": "None", 
-                "wishlist_flows": [],
-                "recommendations": ["Consider implementing wishlist abandonment flows"]
-            },
+            # Wishlist Data - detect from flows
+            "wishlist_data": self._detect_wishlist_data(flows, flow_statistics),
             
             # Add top-level cover data for template compatibility
             "client_name": "Client Name",  # Will be overridden by report service
@@ -651,5 +629,75 @@ class DataExtractionOrchestrator:
             
             # Raw data for further processing
             "_raw": raw_data
+        }
+    
+    def _detect_wishlist_data(self, flows: List[Dict[str, Any]], flow_statistics: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Detect wishlist automation from flows.
+        
+        Args:
+            flows: List of flow dictionaries
+            flow_statistics: Dictionary of flow statistics by flow ID
+        
+        Returns:
+            Dictionary with wishlist_data structure
+        """
+        wishlist_flows = []
+        enabled = False
+        integration = "None"
+        
+        # Check flows for wishlist-related names
+        wishlist_keywords = ["wishlist", "wish list", "price drop", "price-drop", "back in stock", "back-in-stock"]
+        
+        for flow in flows:
+            flow_name = flow.get("name", "").lower()
+            flow_id = flow.get("id")
+            
+            # Check if flow name contains wishlist keywords
+            if any(keyword in flow_name for keyword in wishlist_keywords):
+                enabled = True
+                
+                # Get flow statistics if available
+                flow_stats = flow_statistics.get(flow_id, {})
+                
+                wishlist_flows.append({
+                    "name": flow.get("name", "Unknown"),
+                    "id": flow_id,
+                    "open_rate": flow_stats.get("open_rate", 0),
+                    "click_rate": flow_stats.get("click_rate", 0),
+                    "conversion_rate": flow_stats.get("conversion_rate", 0),
+                    "revenue": flow_stats.get("revenue", 0),
+                    "recipients": flow_stats.get("recipients", 0)
+                })
+        
+        # Determine integration platform (if we can detect it)
+        # This is a placeholder - in the future, we could check for specific integrations
+        if enabled:
+            # Check flow names for integration hints
+            for flow in wishlist_flows:
+                flow_name_lower = flow.get("name", "").lower()
+                if "swym" in flow_name_lower:
+                    integration = "Swym"
+                    break
+                elif "wishlisted" in flow_name_lower:
+                    integration = "Wishlisted"
+                    break
+                elif "yotpo" in flow_name_lower:
+                    integration = "Yotpo"
+                    break
+        
+        recommendations = []
+        if not enabled:
+            recommendations = ["Consider implementing wishlist abandonment flows"]
+        elif len(wishlist_flows) == 1:
+            recommendations = ["Consider expanding wishlist automation with price drop alerts and stock notifications"]
+        else:
+            recommendations = ["Optimize existing wishlist flows for better conversion rates"]
+        
+        return {
+            "enabled": enabled,
+            "integration": integration,
+            "wishlist_flows": wishlist_flows,
+            "recommendations": recommendations
         }
 

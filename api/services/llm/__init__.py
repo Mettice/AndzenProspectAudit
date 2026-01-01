@@ -364,11 +364,15 @@ class LLMService:
         try:
             from langchain_openai import ChatOpenAI
             openai_model = self.openai_model or os.getenv("OPENAI_MODEL", "gpt-4o")
+            
+            # Newer OpenAI models (gpt-4o, o1, o3, etc.) require max_completion_tokens
+            # instead of max_tokens. Pass via model_kwargs to avoid deprecation warning.
+            # Older models will accept max_completion_tokens as well.
             client = ChatOpenAI(
                 model=openai_model,
-                api_key=self.openai_api_key,  # OpenAI supports direct api_key parameter
+                api_key=self.openai_api_key,
                 temperature=0.7,
-                max_tokens=4096
+                model_kwargs={"max_completion_tokens": 4096}  # Pass via model_kwargs for newer LangChain versions
             )
             logger.info(f"✓ OpenAI client created with model: {openai_model} (using API key from request)")
             return client
@@ -377,7 +381,19 @@ class LLMService:
             return None
         except Exception as e:
             logger.warning(f"Failed to create OpenAI client: {e}")
-            return None
+            # If max_completion_tokens fails, try without it (let LangChain use defaults)
+            try:
+                logger.info(f"Retrying OpenAI client creation without max_completion_tokens...")
+                client = ChatOpenAI(
+                    model=openai_model,
+                    api_key=self.openai_api_key,
+                    temperature=0.7
+                )
+                logger.info(f"✓ OpenAI client created with model: {openai_model} (using defaults)")
+                return client
+            except Exception as e2:
+                logger.warning(f"Failed to create OpenAI client on retry: {e2}")
+                return None
     
     def _create_gemini_client(self):
         """Create Gemini client with API key from UI (not environment)."""

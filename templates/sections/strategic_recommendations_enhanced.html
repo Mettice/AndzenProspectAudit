@@ -60,7 +60,13 @@
             <div class="summary-icon">🎯</div>
             <div class="summary-content">
                 <h3>Strategic Intelligence Executive Summary</h3>
+                {% if strategic_recommendations_data.strategic_thesis %}
+                <div class="executive-narrative">{{ strategic_recommendations_data.strategic_thesis|safe }}</div>
+                {% elif sr_data.executive_summary %}
                 <p class="executive-narrative">{{ sr_data.executive_summary }}</p>
+                {% else %}
+                <p class="executive-narrative">Strategic analysis indicates opportunities for optimization across automation, segmentation, and data capture strategies.</p>
+                {% endif %}
             </div>
         </div>
         

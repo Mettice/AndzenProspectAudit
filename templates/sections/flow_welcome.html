@@ -9,7 +9,10 @@
     <h1 class="section-title">NURTURE / WELCOME SERIES</h1>
     
     <div class="flow-intro">
-        {% if welcome_flow_data.narrative %}
+        {% if welcome_flow_data.data_quality_issue %}
+            {# Show data quality warning instead of analysis #}
+            {{ welcome_flow_data.data_quality_issue.warning_html|safe }}
+        {% elif welcome_flow_data.narrative %}
             {{ welcome_flow_data.narrative|safe }}
         {% endif %}
     </div>
@@ -287,6 +290,56 @@
 
 .opportunity-table tbody tr:hover {
     background-color: #F0F8F0;
+}
+
+/* Data Quality Warning Styles */
+.data-quality-warning {
+    background: #FEF2F2;
+    border: 2px solid #EF4444;
+    border-left: 6px solid #EF4444;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.data-quality-warning h4 {
+    color: #991B1B;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 1rem 0;
+}
+
+.data-quality-warning p {
+    color: #374151;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0.5rem 0;
+}
+
+.data-quality-warning ul,
+.data-quality-warning ol {
+    margin: 0.75rem 0;
+    padding-left: 1.5rem;
+    color: #374151;
+}
+
+.data-quality-warning li {
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+@media print {
+    .flow-performance-section,
+    .benchmark-section,
+    .flow-analysis {
+        page-break-inside: avoid;
+    }
+    
+    .data-quality-warning {
+        page-break-inside: avoid;
+        border-color: #000;
+    }
 }
 </style>
 

@@ -463,9 +463,9 @@ class EnhancedReportService:
         # Add new benchmark files here as you create them
         industry_to_file = {
             "apparel_accessories": "comprehensive_benchmarks.json",
-            "fashion_accessories": "fashion_accessories.json",
-            "toys_collectibles": "toys_collectibles.json",  # Create this file
-            "ecommerce_collections": "ecommerce_collections.json",  # Create this file
+            "fashion_accessories": "comprehensive_benchmarks.json",  # Use comprehensive until fashion_accessories.json exists
+            "toys_collectibles": "comprehensive_benchmarks.json",  # Use comprehensive until toys_collectibles.json exists
+            "ecommerce_collections": "comprehensive_benchmarks.json",  # Use comprehensive until ecommerce_collections.json exists
             "beauty_cosmetics": "comprehensive_benchmarks.json",  # Use comprehensive as default
             "electronics": "comprehensive_benchmarks.json",
             "home_garden": "comprehensive_benchmarks.json",
@@ -485,18 +485,32 @@ class EnhancedReportService:
                 metadata = benchmarks.get("metadata", {})
                 if metadata.get("source", "").find("2025") == -1 and metadata.get("last_updated", "").find("2025") == -1:
                     print(f"⚠️ Warning: Benchmarks may not be 2025 data. Source: {metadata.get('source', 'Unknown')}")
+                
+                # Debug: Log benchmark structure to verify it's loading correctly
+                if "flows" in benchmarks and "welcome_series" in benchmarks["flows"]:
+                    welcome_bench = benchmarks["flows"]["welcome_series"]
+                    print(f"✓ Benchmarks loaded: welcome_series open_rate={welcome_bench.get('open_rate', {}).get('average', 'N/A')}")
+                else:
+                    print(f"⚠️ Warning: Benchmarks structure may be incorrect. Keys: {list(benchmarks.keys())}")
+                
                 return benchmarks
         except FileNotFoundError:
-            print(f"Benchmark file not found at {benchmark_path}, using default")
+            print(f"❌ Benchmark file not found at {benchmark_path}, using default")
             # Fallback to comprehensive_benchmarks.json
             fallback_path = Path(__file__).parent.parent.parent.parent / "data" / "benchmarks" / "comprehensive_benchmarks.json"
             try:
                 with open(fallback_path, "r") as f:
-                    return json.load(f)
-            except:
+                    benchmarks = json.load(f)
+                    print(f"✓ Using fallback benchmark file: comprehensive_benchmarks.json")
+                    return benchmarks
+            except Exception as e:
+                print(f"❌ Failed to load fallback benchmark file: {e}")
                 return {}
-        except json.JSONDecodeError:
-            print(f"Invalid JSON in benchmark file")
+        except json.JSONDecodeError as e:
+            print(f"❌ Invalid JSON in benchmark file: {e}")
+            return {}
+        except Exception as e:
+            print(f"❌ Error loading benchmarks: {e}")
             return {}
     
     # Legacy methods for comprehensive report (kept for backward compatibility)

@@ -333,6 +333,7 @@ async def prepare_strategic_recommendations(audit_data: Dict[str, Any], prepared
         "implementation_roadmap": {},
         "next_steps": []
     }
+    strategic_thesis = None  # Will be generated below
     
     # Get context FIRST before using it
     account_context = audit_data.get("account_context", {})
@@ -383,6 +384,7 @@ async def prepare_strategic_recommendations(audit_data: Dict[str, Any], prepared
         logger.info("Generating strategic thesis...")
         strategic_thesis = await generate_strategic_thesis(audit_data, llm_service, prepared_context)
         
+        # Store strategic thesis for return (will be used later)
         # Add strategic thesis to context for recommendations
         context["strategic_thesis"] = strategic_thesis
         
@@ -401,15 +403,38 @@ async def prepare_strategic_recommendations(audit_data: Dict[str, Any], prepared
             
             # Extract quick wins
             quick_wins = llm_response.get("quick_wins", [])
-            if isinstance(quick_wins, list):
+            if isinstance(quick_wins, list) and len(quick_wins) > 0:
                 strategic_recommendations["quick_wins"] = quick_wins
+            else:
+                # Fallback if LLM returns empty quick wins
+                strategic_recommendations["quick_wins"] = _generate_fallback_quick_wins(audit_data)
             
             # Extract recommendations by tier
             recommendations = llm_response.get("recommendations", {})
             if isinstance(recommendations, dict):
-                strategic_recommendations["recommendations"]["tier_1_critical"] = recommendations.get("tier_1_critical", [])
-                strategic_recommendations["recommendations"]["tier_2_high_impact"] = recommendations.get("tier_2_high_impact", [])
-                strategic_recommendations["recommendations"]["tier_3_strategic"] = recommendations.get("tier_3_strategic", [])
+                tier_1 = recommendations.get("tier_1_critical", [])
+                tier_2 = recommendations.get("tier_2_high_impact", [])
+                tier_3 = recommendations.get("tier_3_strategic", [])
+                
+                # Only use LLM recommendations if they're not empty
+                if tier_1 or tier_2 or tier_3:
+                    strategic_recommendations["recommendations"]["tier_1_critical"] = tier_1 if tier_1 else []
+                    strategic_recommendations["recommendations"]["tier_2_high_impact"] = tier_2 if tier_2 else []
+                    strategic_recommendations["recommendations"]["tier_3_strategic"] = tier_3 if tier_3 else []
+                else:
+                    # Fallback if LLM returns empty recommendations
+                    strategic_recommendations["recommendations"] = {
+                        "tier_1_critical": _generate_fallback_critical(audit_data),
+                        "tier_2_high_impact": _generate_fallback_high_impact(audit_data),
+                        "tier_3_strategic": _generate_fallback_strategic(audit_data)
+                    }
+            else:
+                # Fallback if recommendations structure is invalid
+                strategic_recommendations["recommendations"] = {
+                    "tier_1_critical": _generate_fallback_critical(audit_data),
+                    "tier_2_high_impact": _generate_fallback_high_impact(audit_data),
+                    "tier_3_strategic": _generate_fallback_strategic(audit_data)
+                }
             
             # Extract total revenue impact
             total_impact = llm_response.get("total_revenue_impact", 0)
@@ -421,12 +446,15 @@ async def prepare_strategic_recommendations(audit_data: Dict[str, Any], prepared
                     strategic_recommendations["total_revenue_impact"] = float(total_impact) if total_impact else 0
                 except:
                     strategic_recommendations["total_revenue_impact"] = 0
-            elif isinstance(total_impact, (int, float)):
+            elif isinstance(total_impact, (int, float)) and total_impact > 0:
                 strategic_recommendations["total_revenue_impact"] = float(total_impact)
+            else:
+                # Fallback if LLM returns 0 or invalid revenue impact
+                strategic_recommendations["total_revenue_impact"] = _calculate_fallback_revenue_impact(audit_data)
             
             # Extract next steps
             next_steps = llm_response.get("next_steps", [])
-            if isinstance(next_steps, list):
+            if isinstance(next_steps, list) and len(next_steps) > 0:
                 strategic_recommendations["next_steps"] = next_steps
             
             # Extract risk flags
@@ -460,22 +488,46 @@ async def prepare_strategic_recommendations(audit_data: Dict[str, Any], prepared
         ]
         # Calculate estimated revenue impact from audit data
         strategic_recommendations["total_revenue_impact"] = _calculate_fallback_revenue_impact(audit_data)
+        strategic_thesis = None  # Will be generated below
     
-    # Generate strategic thesis (even if LLM failed for recommendations)
+    # Generate strategic thesis (if not already generated above, or if LLM failed for recommendations)
     # Use prepared_context if available (has prepared data with kav_interpretation, pattern_diagnosis, etc.)
     # Otherwise fall back to raw audit_data
-    thesis_data_source = prepared_context if prepared_context else audit_data
-    try:
-        strategic_thesis = await generate_strategic_thesis(thesis_data_source, None)
-    except Exception as e:
-        logger.warning(f"Failed to generate strategic thesis: {e}")
-        strategic_thesis = _generate_fallback_thesis(
-            thesis_data_source.get("kav_data", {}).get("kav_interpretation", {}),
-            thesis_data_source.get("campaign_performance_data", {}).get("pattern_diagnosis", {}),
-            thesis_data_source.get("list_growth_data", {}).get("list_correlation", {}),
-            thesis_data_source.get("data_capture_data", {}).get("categorized_forms", {}),
-            thesis_data_source.get("automation_overview_data", {}).get("flow_issues", {})
-        )
+    if strategic_thesis is None:
+        thesis_data_source = prepared_context if prepared_context else audit_data
+        try:
+            # Try to get LLM service from account_context if available
+            account_context = audit_data.get("account_context", {})
+            llm_config = account_context.get("llm_config", {}) if account_context else {}
+            from ...llm import LLMService
+            thesis_llm_service = LLMService(
+                default_provider=llm_config.get("provider", "claude"),
+                anthropic_api_key=llm_config.get("anthropic_api_key"),
+                openai_api_key=llm_config.get("openai_api_key"),
+                gemini_api_key=llm_config.get("gemini_api_key"),
+                claude_model=llm_config.get("claude_model"),
+                openai_model=llm_config.get("openai_model"),
+                gemini_model=llm_config.get("gemini_model"),
+                llm_config=llm_config if llm_config else None
+            )
+            strategic_thesis = await generate_strategic_thesis(thesis_data_source, thesis_llm_service, prepared_context)
+        except Exception as e:
+            logger.warning(f"Failed to generate strategic thesis: {e}")
+            strategic_thesis = _generate_fallback_thesis(
+                thesis_data_source.get("kav_data", {}).get("kav_interpretation", {}),
+                thesis_data_source.get("campaign_performance_data", {}).get("pattern_diagnosis", {}),
+                thesis_data_source.get("list_growth_data", {}).get("list_correlation", {}),
+                thesis_data_source.get("data_capture_data", {}).get("categorized_forms", {}),
+                thesis_data_source.get("automation_overview_data", {}).get("flow_issues", {})
+            )
+    
+    # If executive_summary is empty or not meaningful, use the strategic thesis
+    if not strategic_recommendations.get("executive_summary") or len(strategic_recommendations.get("executive_summary", "").strip()) < 50:
+        # Strip HTML tags for plain text version in executive_summary
+        import re
+        thesis_text = re.sub(r'<[^>]+>', '', strategic_thesis)  # Remove HTML tags
+        strategic_recommendations["executive_summary"] = thesis_text.strip()
+        logger.info("Using strategic thesis as executive summary")
     
     # Step 2: Identify integration opportunities
     integration_opportunities = identify_integration_opportunities(audit_data)
@@ -485,7 +537,7 @@ async def prepare_strategic_recommendations(audit_data: Dict[str, Any], prepared
     
     return {
         "strategic_recommendations": strategic_recommendations,
-        "strategic_thesis": strategic_thesis,  # Strategic synthesis thesis
+        "strategic_thesis": strategic_thesis,  # Strategic synthesis thesis (HTML format)
         "integration_opportunities": integration_opportunities,  # Third-party integration recommendations
         "phase3_enabled": not strategic_recommendations.get("error", False)
     }
