@@ -1,0 +1,267 @@
+{# 
+  Enhanced Executive Summary Section
+  Should appear after Table of Contents, before KAV section
+#}
+
+<section class="section page" data-page="executive-summary">
+    <h1 class="section-title">Executive Summary</h1>
+    
+    <div class="exec-summary-container">
+        <!-- Key Metrics Grid -->
+        <div class="summary-metrics-grid">
+            {% if kav_data %}
+            <div class="summary-metric-card">
+                <span class="big-number">{{ kav_data.revenue.get("attributed_percentage", 0)|round(1) }}%</span>
+                <span class="metric-label">KAV</span>
+                {% set kav_benchmark = 30.0 %}
+                {% set kav_value = kav_data.revenue.get("attributed_percentage", 0) %}
+                {% if kav_value >= kav_benchmark %}
+                    <span class="metric-benchmark status-excellent">✅ vs {{ kav_benchmark }}% benchmark</span>
+                {% elif kav_value >= kav_benchmark * 0.9 %}
+                    <span class="metric-benchmark status-good">vs {{ kav_benchmark }}% benchmark</span>
+                {% else %}
+                    <span class="metric-benchmark status-warning">⚠️ vs {{ kav_benchmark }}% benchmark</span>
+                {% endif %}
+            </div>
+            
+            <div class="summary-metric-card">
+                <span class="big-number">{{ kav_data.revenue.get("attributed", 0)|format_currency }}</span>
+                <span class="metric-label">Attributed Revenue</span>
+                <span class="metric-period">Last 12 months</span>
+            </div>
+            
+            <div class="summary-metric-card">
+                <span class="big-number">{{ kav_data.revenue.get("total_website", 0)|format_currency }}</span>
+                <span class="metric-label">Total Website Revenue</span>
+                <span class="metric-period">Last 12 months</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Top 3 Priorities -->
+        {% if strategic_recommendations_data and strategic_recommendations_data.quick_wins %}
+        <div class="top-priorities-section">
+            <h2 class="subsection-title">Top 3 Priorities</h2>
+            
+            <div class="priorities-list">
+                {% for priority in strategic_recommendations_data.quick_wins[:3] %}
+                <div class="priority-item">
+                    <span class="priority-number">{{ loop.index }}</span>
+                    <div class="priority-content">
+                        {% if priority is mapping %}
+                            <h3 class="priority-title">{{ priority.get("title", priority.get("recommendation", "Priority " + loop.index|string)) }}</h3>
+                            <p class="priority-description">{{ priority.get("description", priority.get("action", "")) }}</p>
+                            {% if priority.get("impact") %}
+                            <span class="priority-impact">Impact: {{ priority.get("impact") }}</span>
+                            {% endif %}
+                        {% else %}
+                            <h3 class="priority-title">{{ priority }}</h3>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Total Opportunity -->
+        {% if strategic_recommendations_data and strategic_recommendations_data.total_revenue_impact %}
+        <div class="total-opportunity-section">
+            <div class="opportunity-card">
+                <h3 class="opportunity-title">Total Revenue Opportunity</h3>
+                <span class="opportunity-amount">{{ strategic_recommendations_data.total_revenue_impact|format_currency }}</span>
+                <p class="opportunity-description">
+                    Based on implementing the top priorities above, this represents the potential 
+                    additional revenue opportunity over the next 12 months.
+                </p>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Strategic Overview -->
+        {% if strategic_recommendations_data and strategic_recommendations_data.executive_summary %}
+        <div class="strategic-overview-section">
+            <h2 class="subsection-title">Strategic Overview</h2>
+            <div class="overview-text">
+                {{ strategic_recommendations_data.executive_summary|safe }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<style>
+.exec-summary-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.summary-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin: 2rem 0 3rem 0;
+}
+
+.summary-metric-card {
+    background: #F9FAFB;
+    padding: 2rem;
+    border-left: 4px solid #65DA4F;
+    text-align: center;
+}
+
+.big-number {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    color: #000000;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+}
+
+.metric-label {
+    display: block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #262626;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.metric-benchmark {
+    display: block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+}
+
+.metric-period {
+    display: block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+.subsection-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.75rem;
+    color: #000000;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 3rem 0 1.5rem 0;
+    border-bottom: 2px solid #65DA4F;
+    padding-bottom: 0.5rem;
+}
+
+.top-priorities-section {
+    margin: 3rem 0;
+}
+
+.priorities-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.priority-item {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-left: 4px solid #65DA4F;
+}
+
+.priority-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    color: #65DA4F;
+    font-weight: bold;
+    min-width: 60px;
+    text-align: center;
+    line-height: 1;
+}
+
+.priority-content {
+    flex: 1;
+}
+
+.priority-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 0.5rem;
+}
+
+.priority-description {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #262626;
+    margin-bottom: 0.75rem;
+}
+
+.priority-impact {
+    display: inline-block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #65DA4F;
+    background: rgba(101, 218, 79, 0.1);
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+}
+
+.total-opportunity-section {
+    margin: 3rem 0;
+}
+
+.opportunity-card {
+    background: linear-gradient(135deg, #65DA4F 0%, #4CAF50 100%);
+    padding: 2.5rem;
+    border-radius: 8px;
+    text-align: center;
+    color: #FFFFFF;
+}
+
+.opportunity-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    color: #FFFFFF;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+}
+
+.opportunity-amount {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    color: #FFFFFF;
+    margin: 1rem 0;
+    line-height: 1;
+}
+
+.opportunity-description {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.95);
+    margin-top: 1rem;
+}
+
+.strategic-overview-section {
+    margin: 3rem 0;
+}
+
+.overview-text {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    line-height: 1.8;
+    color: #262626;
+}
+</style>
+

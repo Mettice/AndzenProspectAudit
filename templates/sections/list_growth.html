@@ -18,6 +18,28 @@
         {% endif %}
     </div>
     
+    <!-- Comprehensive Subsections (Enhanced Format) -->
+    {% if list_growth_data.list_growth_overview %}
+    <div class="list-growth-section">
+        <h4 class="subsection-title">List Growth Overview</h4>
+        <div class="narrative-text">{{ list_growth_data.list_growth_overview|safe }}</div>
+    </div>
+    {% endif %}
+    
+    {% if list_growth_data.growth_drivers %}
+    <div class="list-growth-section">
+        <h4 class="subsection-title">Growth Drivers</h4>
+        <div class="narrative-text">{{ list_growth_data.growth_drivers|safe }}</div>
+    </div>
+    {% endif %}
+    
+    {% if list_growth_data.attrition_sources %}
+    <div class="list-growth-section">
+        <h4 class="subsection-title">Attrition Sources</h4>
+        <div class="narrative-text">{{ list_growth_data.attrition_sources|safe }}</div>
+    </div>
+    {% endif %}
+    
     <!-- List-Revenue Correlation -->
     {% if list_growth_data.list_correlation %}
     <div class="list-correlation-section">
@@ -47,11 +69,15 @@
                         <span class="chart-metric-value">{{ "{:,}".format(list_growth_data.current_total) }}</span>
                         <span class="chart-metric-label">Total members</span>
                     </div>
-                    {% set chart_id = "list_size_chart" %}
-                    {% set chart_type = "bar" %}
-                    {% set height = 180 %}
-                    {% set data = list_growth_data.chart_data if list_growth_data.chart_data else {} %}
-                    {% include "components/chart_placeholder.html" %}
+                    {% if list_growth_data.engagement_chart_image_base64 %}
+                    <div class="generated-chart">
+                        <img src="{{ list_growth_data.engagement_chart_image_base64 }}" alt="List Growth Chart" style="width: 100%; height: auto; border-radius: 4px;">
+                    </div>
+                    {% else %}
+                    <div class="chart-error" style="padding: 1rem; text-align: center; color: #666; font-size: 0.9em;">
+                        Chart data not available
+                    </div>
+                    {% endif %}
                 </div>
                 
                 <!-- Net Change Chart -->
@@ -61,11 +87,15 @@
                         <span class="chart-metric-value">{{ "{:,}".format(list_growth_data.net_change) }}</span>
                         <span class="chart-metric-label">Net membership change</span>
                     </div>
-                    {% set chart_id = "net_change_chart" %}
-                    {% set chart_type = "bar" %}
-                    {% set height = 180 %}
-                    {% set data = list_growth_data.net_change_chart_data if list_growth_data.net_change_chart_data else {} %}
-                    {% include "components/chart_placeholder.html" %}
+                    {% if list_growth_data.engagement_chart_image_base64 %}
+                    <div class="generated-chart">
+                        <img src="{{ list_growth_data.engagement_chart_image_base64 }}" alt="Net Change Chart" style="width: 100%; height: auto; border-radius: 4px;">
+                    </div>
+                    {% else %}
+                    <div class="chart-error" style="padding: 1rem; text-align: center; color: #666; font-size: 0.9em;">
+                        Chart data not available
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

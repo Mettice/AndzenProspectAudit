@@ -49,19 +49,20 @@
             </div>
         </div>
         
-        <!-- Revenue Chart Placeholder -->
+        <!-- Revenue Chart - Show generated image if available, otherwise Chart.js placeholder -->
         <div class="kav-chart">
-            {% set chart_id = 'kav_revenue_chart' %}
-            {% set chart_type = 'bar_line' %}
-            {% set title = 'Revenue & Recipients Over Time' %}
-            {% set height = 280 %}
-            {% set data = kav_data.chart_data if kav_data.chart_data else {} %}
-            {% include "components/chart_placeholder.html" %}
-            <div class="chart-legend">
-                <span class="legend-item"><span class="legend-color" style="background: #3B82F6;"></span> Attributed revenue</span>
-                <span class="legend-item"><span class="legend-color" style="background: #65DA4F;"></span> Unattributed revenue</span>
-                <span class="legend-item"><span class="legend-color legend-line" style="background: #FCD34D;"></span> Total Recipients</span>
+            {% if kav_data.kav_revenue_chart %}
+            <!-- Generated KAV Revenue Chart (Campaigns vs Flows) -->
+            <div class="generated-chart">
+                <img src="{{ kav_data.kav_revenue_chart }}" alt="KAV Revenue: Campaigns vs Flows" style="width: 100%; max-width: 1000px; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <p class="chart-caption" style="text-align: center; margin-top: 10px; font-size: 0.9em; color: #666;">The chart above provides a visual breakdown of your revenue distribution between campaigns and flows.</p>
             </div>
+            {% else %}
+            <!-- Fallback message if chart generation failed -->
+            <div class="chart-error" style="padding: 2rem; text-align: center; color: #666; border: 1px dashed #ccc; border-radius: 8px;">
+                <p>Chart generation failed. Please check the logs for details.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
     
@@ -129,16 +130,18 @@
             
             <!-- Message Type Chart Placeholder -->
             <div class="kav-chart">
-                {% set chart_id = 'kav_message_type_chart' %}
-                {% set chart_type = 'bar' %}
-                {% set title = 'Campaigns vs Flows Revenue Over Time' %}
-                {% set height = 280 %}
-                {% set data = kav_data.chart_data if kav_data.chart_data else {} %}
-                {% include "components/chart_placeholder.html" %}
-                <div class="chart-legend">
-                    <span class="legend-item"><span class="legend-color" style="background: #3B82F6;"></span> Campaigns</span>
-                    <span class="legend-item"><span class="legend-color" style="background: #65DA4F;"></span> Flows</span>
+                {% if kav_data.kav_revenue_chart %}
+                <!-- Generated KAV Revenue Chart (Campaigns vs Flows) -->
+                <div class="generated-chart">
+                    <img src="{{ kav_data.kav_revenue_chart }}" alt="KAV Revenue: Campaigns vs Flows" style="width: 100%; max-width: 1000px; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <p class="chart-caption" style="text-align: center; margin-top: 10px; font-size: 0.9em; color: #666;">The chart above provides a visual breakdown of your revenue distribution between campaigns and flows.</p>
                 </div>
+                {% else %}
+                <!-- Fallback message if chart generation failed -->
+                <div class="chart-error" style="padding: 2rem; text-align: center; color: #666; border: 1px dashed #ccc; border-radius: 8px;">
+                    <p>Chart generation failed. Please check the logs for details.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -203,7 +206,10 @@
                 {% set title = 'Email vs SMS vs Push Revenue Over Time' %}
                 {% set height = 280 %}
                 {% set data = kav_data.chart_data if kav_data.chart_data else {} %}
-                {% include "components/chart_placeholder.html" %}
+                <!-- Chart removed - using matplotlib-generated images only -->
+                <div class="chart-error" style="padding: 2rem; text-align: center; color: #666; border: 1px dashed #ccc; border-radius: 8px;">
+                    <p>Chart generation failed. Please check the logs for details.</p>
+                </div>
                 <div class="chart-legend">
                     <span class="legend-item"><span class="legend-color" style="background: #3B82F6;"></span> Email</span>
                     {% if kav_data.channel_breakdown.sms.revenue > 0 %}
@@ -271,6 +277,42 @@
             </div>
             {% endif %}
             
+            <!-- Comprehensive Subsections (Enhanced Format) -->
+            {% if kav_data.growth_overview %}
+            <div class="narrative-section">
+                <h4 class="narrative-header">Growth Overview & Insights</h4>
+                <div class="narrative-text">{{ kav_data.growth_overview|safe }}</div>
+            </div>
+            {% endif %}
+            
+            {% if kav_data.campaigns_vs_flows %}
+            <div class="narrative-section">
+                <h4 class="narrative-header">Campaigns vs. Flows</h4>
+                <div class="narrative-text">{{ kav_data.campaigns_vs_flows|safe }}</div>
+            </div>
+            {% endif %}
+            
+            {% if kav_data.flow_performance_insights %}
+            <div class="narrative-section">
+                <h4 class="narrative-header">Flow Performance Insights</h4>
+                <div class="narrative-text">{{ kav_data.flow_performance_insights|safe }}</div>
+            </div>
+            {% endif %}
+            
+            {% if kav_data.campaign_performance_insights %}
+            <div class="narrative-section">
+                <h4 class="narrative-header">Campaign Performance Insights</h4>
+                <div class="narrative-text">{{ kav_data.campaign_performance_insights|safe }}</div>
+            </div>
+            {% endif %}
+            
+            {% if kav_data.kav_implications %}
+            <div class="narrative-section">
+                <h4 class="narrative-header">What This Means for KAV Performance</h4>
+                <div class="narrative-text">{{ kav_data.kav_implications|safe }}</div>
+            </div>
+            {% endif %}
+            
             {% if kav_data.business_context %}
             <div class="context-indicators">
                 {% if kav_data.business_context.has_campaign_gap %}
@@ -291,6 +333,43 @@
                 <div class="context-indicator opportunity">
                     <span class="indicator-icon">💎</span>
                     <span class="indicator-text">Untapped List Potential</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {# Growing Your KAV Section (Enhanced Format) #}
+            {% if kav_data.growing_your_kav and kav_data.growing_your_kav is mapping %}
+            <div class="growing-kav-section" style="margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #E5E7EB;">
+                <h3 class="analysis-title" style="margin-bottom: 1.5rem;">Growing Your KAV</h3>
+                
+                {% if kav_data.growing_your_kav.reignite_campaigns %}
+                <div class="kav-recommendation-card" style="background: #F8F9FA; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #65DA4F;">
+                    <h4 class="narrative-header" style="margin-top: 0;">Reignite Campaign Performance</h4>
+                    {% if kav_data.growing_your_kav.reignite_campaigns.objective %}
+                    <p style="font-weight: 600; margin-bottom: 1rem; color: #262626;">{{ kav_data.growing_your_kav.reignite_campaigns.objective }}</p>
+                    {% endif %}
+                    {% if kav_data.growing_your_kav.reignite_campaigns.actions %}
+                    <ul style="margin: 0; padding-left: 1.5rem;">
+                        {% for action in kav_data.growing_your_kav.reignite_campaigns.actions %}
+                        <li style="margin-bottom: 0.75rem; line-height: 1.6;">{{ action }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                {% if kav_data.growing_your_kav.strengthen_flows %}
+                <div class="narrative-section">
+                    <h4 class="narrative-header">Strengthen and Expand Flow Strategy</h4>
+                    <div class="narrative-text">{{ kav_data.growing_your_kav.strengthen_flows|safe }}</div>
+                </div>
+                {% endif %}
+                
+                {% if kav_data.growing_your_kav.foundation_for_growth %}
+                <div class="narrative-section">
+                    <h4 class="narrative-header">Set the Foundation for Scalable Growth</h4>
+                    <div class="narrative-text">{{ kav_data.growing_your_kav.foundation_for_growth|safe }}</div>
                 </div>
                 {% endif %}
             </div>

@@ -4,6 +4,7 @@ Automation overview data preparer.
 from typing import Dict, Any, Optional, List
 import logging
 from .helpers import generate_flow_strategic_summary, create_flow_implementation_roadmap
+from ..html_formatter import format_llm_output
 
 logger = logging.getLogger(__name__)
 
@@ -381,29 +382,25 @@ async def prepare_automation_data(
         )
         
         primary_text = strategic_insights.get("primary", narrative)
-        # Format as HTML paragraphs
+        # Format as HTML with markdown conversion
         if primary_text:
-            paragraphs = [p.strip() for p in primary_text.split('\n\n') if p.strip()]
-            narrative = '\n'.join([f'<p>{p}</p>' for p in paragraphs])
+            narrative = format_llm_output(primary_text)
         else:
             narrative = narrative if narrative else ""
         
         analysis_text = strategic_insights.get("secondary", "")
         if analysis_text:
-            paragraphs = [p.strip() for p in analysis_text.split('\n\n') if p.strip()]
-            analysis_text = '\n'.join([f'<p>{p}</p>' for p in paragraphs])
+            analysis_text = format_llm_output(analysis_text)
         
         narrative_text = strategic_insights.get("narrative_text", "")
         if narrative_text:
-            paragraphs = [p.strip() for p in narrative_text.split('\n\n') if p.strip()]
-            narrative_text = '\n'.join([f'<p>{p}</p>' for p in paragraphs])
+            narrative_text = format_llm_output(narrative_text)
         
     except Exception as e:
         logger.warning(f"LLM service unavailable for automation overview, using fallback: {e}")
         # Format existing narrative as HTML if it exists
         if narrative:
-            paragraphs = [p.strip() for p in narrative.split('\n\n') if p.strip()]
-            narrative = '\n'.join([f'<p>{p}</p>' for p in paragraphs])
+            narrative = format_llm_output(narrative)
         analysis_text = ""
         narrative_text = ""
     

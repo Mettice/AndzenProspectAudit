@@ -4,6 +4,7 @@ Strategic recommendations preparer using LLM.
 from typing import Dict, Any, Optional
 import logging
 import json
+from ..html_formatter import format_llm_output
 
 logger = logging.getLogger(__name__)
 
@@ -145,10 +146,9 @@ Return only the JSON object, no additional text."""
                 flow_issues
             )
         
-        # Format as HTML paragraphs
+        # Format as HTML with markdown conversion
         if thesis_text:
-            paragraphs = [p.strip() for p in thesis_text.split('\n\n') if p.strip()]
-            thesis_html = '\n'.join([f'<p>{p}</p>' for p in paragraphs])
+            thesis_html = format_llm_output(thesis_text)
             logger.info(f"Strategic thesis generated successfully ({len(thesis_html)} characters)")
         else:
             logger.warning("Strategic thesis text is empty, using fallback")
@@ -299,13 +299,14 @@ def _generate_fallback_thesis(
     if missing_count > 0:
         thesis_parts.append(f"Missing {missing_count} critical automation flows represents a significant revenue opportunity.")
     
-    # Combine into paragraphs
+    # Combine into paragraphs and format
     if thesis_parts:
         thesis_text = " ".join(thesis_parts)
-        paragraphs = [p.strip() for p in thesis_text.split('. ') if p.strip()]
-        return '\n'.join([f'<p>{p}.</p>' for p in paragraphs if p])
+        # Use format_llm_output to handle any markdown in the text
+        return format_llm_output(thesis_text)
     else:
-        return '<p>Strategic analysis indicates opportunities for optimization across automation, segmentation, and data capture strategies.</p>'
+        fallback_text = 'Strategic analysis indicates opportunities for optimization across automation, segmentation, and data capture strategies.'
+        return format_llm_output(fallback_text)
 
 
 async def prepare_strategic_recommendations(audit_data: Dict[str, Any], prepared_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -554,6 +555,17 @@ def _generate_fallback_summary(audit_data: Dict[str, Any]) -> str:
 
 def _generate_fallback_quick_wins(audit_data: Dict[str, Any]) -> list:
     """Generate fallback quick wins from audit data."""
+    
+    # Calculate revenue impacts based on actual data
+    kav_data = audit_data.get("kav_data", {})
+    campaign_revenue = kav_data.get("campaign_revenue", 0) if kav_data else 0
+    total_revenue = kav_data.get("total_revenue", 0) if kav_data else 0
+    
+    # Conservative estimates: 5-15% improvement on current revenue
+    send_time_impact = max(int(campaign_revenue * 0.10), 0) if campaign_revenue > 0 else 0
+    segmentation_impact = max(int(total_revenue * 0.08), 0) if total_revenue > 0 else 0
+    ab_test_impact = max(int(campaign_revenue * 0.05), 0) if campaign_revenue > 0 else 0
+    
     quick_wins = [
         {
             "title": "Optimize Email Send Times",
@@ -561,7 +573,7 @@ def _generate_fallback_quick_wins(audit_data: Dict[str, Any]) -> list:
             "impact": "15-20% increase in open rates",
             "timeline": "1-2 weeks",
             "effort": "Low",
-            "revenue_impact": 5000
+            "revenue_impact": send_time_impact
         },
         {
             "title": "Improve Segmentation Strategy", 
@@ -569,7 +581,7 @@ def _generate_fallback_quick_wins(audit_data: Dict[str, Any]) -> list:
             "impact": "10-15% increase in click rates",
             "timeline": "2-3 weeks",
             "effort": "Medium",
-            "revenue_impact": 8000
+            "revenue_impact": segmentation_impact
         },
         {
             "title": "Subject Line A/B Testing",
@@ -577,7 +589,7 @@ def _generate_fallback_quick_wins(audit_data: Dict[str, Any]) -> list:
             "impact": "5-10% improvement in open rates",
             "timeline": "1 week",
             "effort": "Low",
-            "revenue_impact": 3000
+            "revenue_impact": ab_test_impact
         }
     ]
     
@@ -589,16 +601,20 @@ def _generate_fallback_quick_wins(audit_data: Dict[str, Any]) -> list:
             flow_name = flow.get("flow_name", "")
             flow_metrics = flow.get("metrics", {})
             open_rate = flow_metrics.get("open_rate", 0)
+            flow_revenue = flow_metrics.get("revenue", 0)
             
             # Add quick win for low-performing flows
             if open_rate < 30 and flow_name:  # Below average open rate
+                # Calculate potential impact: 20% improvement on flow revenue
+                flow_impact = max(int(flow_revenue * 0.20), 0) if flow_revenue > 0 else 0
+                
                 quick_wins.append({
                     "title": f"Optimize {flow_name} Flow",
                     "description": f"Improve {flow_name} content and timing to boost engagement",
                     "impact": f"Target 25-35% open rate vs current {open_rate:.1f}%",
                     "timeline": "1-2 weeks",
                     "effort": "Medium",
-                    "revenue_impact": 4000
+                    "revenue_impact": flow_impact
                 })
     
     return quick_wins[:5]  # Limit to 5 quick wins
@@ -666,9 +682,11 @@ def _calculate_fallback_revenue_impact(audit_data: Dict[str, Any]) -> float:
         # 1. KAV improvement opportunity (benchmark vs current)
         kav_data = audit_data.get("kav_data", {})
         if kav_data:
-            current_kav = kav_data.get("kav_percentage", 0)
+            # Access nested revenue data structure
+            revenue_data = kav_data.get("revenue", {})
+            current_kav = revenue_data.get("attributed_percentage", kav_data.get("kav_percentage", 0))
             benchmark_kav = kav_data.get("benchmark_percentage", 45)  # Industry average ~45%
-            total_revenue = kav_data.get("total_revenue", 0)
+            total_revenue = revenue_data.get("total_website", kav_data.get("total_revenue", 0))
             
             if current_kav < benchmark_kav and total_revenue > 0:
                 # Conservative estimate: 50% of gap to benchmark
@@ -677,31 +695,48 @@ def _calculate_fallback_revenue_impact(audit_data: Dict[str, Any]) -> float:
                 total_impact += kav_opportunity
         
         # 2. Flow optimization opportunities
-        flows_data = audit_data.get("flows_data", {})
-        if flows_data:
-            flows = flows_data.get("flows", [])
-            for flow in flows:
-                flow_metrics = flow.get("metrics", {})
+        # Check automation_overview_data first, then fall back to flows_data
+        automation_data = audit_data.get("automation_overview_data", {})
+        flows_list = automation_data.get("flows", [])
+        
+        if not flows_list:
+            # Fallback to older structure
+            flows_data = audit_data.get("flows_data", {})
+            flows_list = flows_data.get("flows", [])
+        
+        if flows_list:
+            for flow in flows_list:
+                # Handle both structures: direct metrics or nested metrics
+                flow_metrics = flow.get("metrics", flow)  # Try nested first, then direct
                 current_revenue = flow_metrics.get("revenue", 0)
                 recipients = flow_metrics.get("recipients", 0)
                 
                 # Estimate 15-25% improvement for underperforming flows
                 if current_revenue > 0 and recipients > 0:
-                    revenue_per_recipient = current_revenue / recipients
                     # Conservative 15% improvement estimate
                     flow_opportunity = current_revenue * 0.15
                     total_impact += flow_opportunity
         
         # 3. Campaign optimization opportunities
-        campaigns_data = audit_data.get("campaigns_data", {})
-        if campaigns_data:
-            campaign_metrics = campaigns_data.get("metrics", {})
-            campaign_revenue = campaign_metrics.get("revenue", 0)
+        campaign_perf_data = audit_data.get("campaign_performance_data", {})
+        if campaign_perf_data:
+            campaign_revenue = campaign_perf_data.get("total_revenue", 0)
             
             # Conservative 10-15% improvement through optimization
             if campaign_revenue > 0:
                 campaign_opportunity = campaign_revenue * 0.12
                 total_impact += campaign_opportunity
+        else:
+            # Fallback to older structure
+            campaigns_data = audit_data.get("campaigns_data", {})
+            if campaigns_data:
+                campaign_metrics = campaigns_data.get("metrics", {})
+                campaign_revenue = campaign_metrics.get("revenue", 0)
+                
+                # Conservative 10-15% improvement through optimization
+                if campaign_revenue > 0:
+                    campaign_opportunity = campaign_revenue * 0.12
+                    total_impact += campaign_opportunity
         
         # 4. List growth impact (new subscriber value)
         list_growth_data = audit_data.get("list_growth_data", {})
@@ -711,7 +746,8 @@ def _calculate_fallback_revenue_impact(audit_data: Dict[str, Any]) -> float:
             
             # Estimate value per subscriber based on KAV data
             if kav_data and current_subscribers > 0:
-                attributed_revenue = kav_data.get("attributed_revenue", 0)
+                revenue_data = kav_data.get("revenue", {})
+                attributed_revenue = revenue_data.get("attributed", kav_data.get("attributed_revenue", 0))
                 value_per_subscriber = attributed_revenue / current_subscribers if current_subscribers > 0 else 0
                 
                 # Conservative estimate: 20% improvement in acquisition rate
@@ -721,18 +757,20 @@ def _calculate_fallback_revenue_impact(audit_data: Dict[str, Any]) -> float:
         
         # Cap the total impact at reasonable bounds (max 50% of current revenue)
         if kav_data:
-            total_revenue = kav_data.get("total_revenue", 0)
+            revenue_data = kav_data.get("revenue", {})
+            total_revenue = revenue_data.get("total_website", kav_data.get("total_revenue", 0))
             if total_revenue > 0:
                 max_impact = total_revenue * 0.5  # Max 50% improvement
                 total_impact = min(total_impact, max_impact)
         
-        # Ensure minimum impact for presentation purposes
-        if total_impact < 1000:
-            total_impact = max(total_impact, 5000)  # Minimum $5K impact for small accounts
+        # Only apply minimum if we have no data at all
+        if total_impact == 0:
+            logger.warning("No revenue data available for impact calculation, using minimum estimate")
+            total_impact = 5000  # Minimum estimate when no data available
             
     except Exception as e:
         logger.error(f"Error calculating fallback revenue impact: {e}")
-        # Default fallback impact
-        total_impact = 25000  # Default $25K impact
+        # Default fallback impact only on error
+        total_impact = 5000  # Conservative default on calculation error
     
     return round(total_impact, 0)

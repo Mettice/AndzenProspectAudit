@@ -1,7 +1,7 @@
 """
 Report model for storing audit reports.
 """
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, Text, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -32,11 +32,15 @@ class Report(Base):
     file_path_pdf = Column(String, nullable=True)
     file_path_word = Column(String, nullable=True)
     
+    # Report content (for editing)
+    html_content = Column(Text, nullable=True)  # Full HTML content for editing
+    
     # Metadata
     status = Column(Enum(ReportStatus), default=ReportStatus.PROCESSING, nullable=False)
     klaviyo_api_key_hash = Column(String, nullable=True)  # Hashed for security
     llm_provider = Column(String, nullable=True)
     llm_model = Column(String, nullable=True)
+    llm_config = Column(JSON, nullable=True)  # Store LLM config for chat
     
     # Relationships
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Made nullable for async jobs

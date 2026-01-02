@@ -9,19 +9,18 @@
     <h2 class="section-subtitle">Segmentation Strategy</h2>
     
     <div class="segmentation-intro">
-        <p>
-            In our roadmap, we'll fine tune your segments and explore the various tracks you should establish 
-            depending on engagement levels to achieve the best email outcomes.
-        </p>
-        {% if segmentation_data.recommended_strategy %}
-        <p>
-            {{ segmentation_data.recommended_strategy }}
-        </p>
-        {% else %}
-        <p>
-            The segmentation strategy below outlines recommended engagement tracks based on subscriber behavior.
-        </p>
+        {% if segmentation_data.reason %}
+        <div class="segmentation-recommendation-alert">
+            <p><strong>Why Segmentation is Recommended:</strong> {{ segmentation_data.reason }}</p>
+            {% if segmentation_data.priority %}
+            <p><strong>Priority:</strong> <span class="priority-badge priority-{{ segmentation_data.priority|lower }}">{{ segmentation_data.priority }}</span></p>
+            {% endif %}
+        </div>
         {% endif %}
+        <p>
+            Based on your campaign performance analysis, the segmentation strategy below outlines recommended engagement tracks 
+            to optimize email outcomes and improve deliverability.
+        </p>
     </div>
     
     <!-- Segmentation Table -->
@@ -31,36 +30,29 @@
                 <tr>
                     <th>Segment Name</th>
                     <th>Recommended Cadence</th>
+                    {% if segmentation_data.tracks and segmentation_data.tracks[0].get("criteria") %}
+                    <th>Criteria</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
-                {% for track in segmentation_data.tracks %}
-                <tr>
-                    <td>{{ track.name }}</td>
-                    <td>{{ track.cadence }}</td>
-                </tr>
+                {% if segmentation_data.tracks %}
+                    {% for track in segmentation_data.tracks %}
+                    <tr>
+                        <td>{{ track.name }}</td>
+                        <td>{{ track.get("recommended_cadence") or track.get("cadence") or "Not specified" }}</td>
+                        {% if track.get("criteria") %}
+                        <td>{{ track.criteria }}</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
                 {% else %}
-                <tr>
-                    <td>Track A: Highly Engaged</td>
-                    <td>Daily</td>
-                </tr>
-                <tr>
-                    <td>Track B: Moderately Engaged</td>
-                    <td>2-3x/week</td>
-                </tr>
-                <tr>
-                    <td>Track C: Broad Engaged</td>
-                    <td>1x/week</td>
-                </tr>
-                <tr>
-                    <td>Track D: Unengaged</td>
-                    <td>Goes through Sunset Flow then suppressed if remains unengaged in a few days</td>
-                </tr>
-                <tr>
-                    <td>Track E: For Suppression</td>
-                    <td>Do not send. Needs to be suppressed</td>
-                </tr>
-                {% endfor %}
+                    <tr>
+                        <td colspan="2" style="text-align: center; color: #666; font-style: italic;">
+                            No segmentation tracks available. Segmentation will be recommended based on campaign performance analysis.
+                        </td>
+                    </tr>
+                {% endif %}
             </tbody>
         </table>
     </div>

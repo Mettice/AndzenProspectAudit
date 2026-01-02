@@ -7,7 +7,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def generate_form_recommendations(form: Dict[str, Any], all_forms_data: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+def generate_form_recommendations(
+    form: Dict[str, Any], 
+    all_forms_data: Optional[List[Dict[str, Any]]] = None,
+    account_context: Optional[Dict[str, Any]] = None
+) -> List[Dict[str, Any]]:
     """
     Generate form-specific recommendations with context, effort estimates, and expected impact.
     
@@ -174,20 +178,35 @@ def generate_form_recommendations(form: Dict[str, Any], all_forms_data: Optional
             "priority": "low"
         })
     
-    # Calculate expected revenue impact (if we can estimate email LTV)
+    # Calculate expected revenue impact based on actual subscriber value
     if recommendations and impressions > 0:
         # Estimate: moving from current rate to target rate
         target_rate = min(5.0, avg_submit_rate * 1.2) if avg_submit_rate > 0 else 4.0
         if submit_rate < target_rate:
             potential_lift = target_rate - submit_rate
             additional_subscribers = int(impressions * potential_lift / 100)
-            # Estimate revenue: $50-100 LTV per email subscriber (conservative for fashion)
-            revenue_low = additional_subscribers * 50
-            revenue_high = additional_subscribers * 100
             
-            # Add summary recommendation
+            # Calculate email LTV from actual account data (KAV revenue / subscriber count)
+            # This gives us the actual value per subscriber for THIS client
+            subscriber_ltv = 50  # Fallback conservative estimate
+            if account_context:
+                kav_data = account_context.get("kav_data", {})
+                list_data = account_context.get("list_growth_data", {})
+                if kav_data and list_data:
+                    attributed_revenue = kav_data.get("attributed_revenue", 0)
+                    total_subscribers = list_data.get("current_total", 0)
+                    if attributed_revenue > 0 and total_subscribers > 0:
+                        # Annualized LTV per subscriber from actual data
+                        subscriber_ltv = int((attributed_revenue / total_subscribers) * 4)  # Quarterly * 4 = annual
+                        subscriber_ltv = max(subscriber_ltv, 25)  # Minimum $25 floor
+            
+            # Calculate revenue range: conservative (80% of LTV) to optimistic (120% of LTV)
+            revenue_low = int(additional_subscribers * subscriber_ltv * 0.8)
+            revenue_high = int(additional_subscribers * subscriber_ltv * 1.2)
+            
+            # Add summary recommendation with calculated impact
             recommendations.insert(0, {
-                "recommendation": f"EXPECTED IMPACT: Moving '{form_name_display}' from {submit_rate:.2f}% to {target_rate:.1f}% (matching high performers) = +{additional_subscribers:,} additional subscribers monthly = ~${revenue_low:,}-${revenue_high:,} additional revenue based on typical email LTV",
+                "recommendation": f"EXPECTED IMPACT: Moving '{form_name_display}' from {submit_rate:.2f}% to {target_rate:.1f}% (matching high performers) = +{additional_subscribers:,} additional subscribers monthly = ~${revenue_low:,}-${revenue_high:,} additional revenue based on your account's subscriber value",
                 "effort": "Combined effort from recommendations below",
                 "expected_impact": f"+{potential_lift:.1f}% submit rate = +{additional_subscribers:,} subscribers/month",
                 "priority": "high"
@@ -241,7 +260,7 @@ def categorize_forms(forms_data: List[Dict[str, Any]]) -> Dict[str, Any]:
             })
         elif submit_rate < 3 and impressions > 100:
             # Generate form-specific recommendations with context from all forms
-            recommendations = generate_form_recommendations(form, forms_data)
+            recommendations = generate_form_recommendations(form, forms_data, None)
             # Calculate performance gap for context
             other_forms = [f for f in forms_data if f.get("name") != form.get("name")]
             avg_rate = sum(f.get("submit_rate", 0) for f in other_forms) / len(other_forms) if other_forms else 0
@@ -552,6 +571,13 @@ async def prepare_data_capture_data(
             context=formatted_data.get("context", {})
         )
         
+        # Extract comprehensive subsections (new enhanced format)
+        from ..html_formatter import format_llm_output
+        
+        form_performance_overview = strategic_insights.get("form_performance_overview", "")
+        high_performers_analysis = strategic_insights.get("high_performers_analysis", "")
+        optimization_opportunities = strategic_insights.get("optimization_opportunities", "")
+        
         # Format analysis text as HTML paragraphs - filter out raw JSON strings
         primary_text = strategic_insights.get("primary", "")
         if isinstance(primary_text, str) and (primary_text.strip().startswith('{') or (primary_text.strip().startswith('"') and '"primary"' in primary_text[:100])):
@@ -559,11 +585,15 @@ async def prepare_data_capture_data(
             primary_text = ""
         
         if primary_text:
-            # Split into paragraphs and wrap in <p> tags
-            paragraphs = [p.strip() for p in primary_text.split('\n\n') if p.strip()]
-            analysis_text = '\n'.join([f'<p>{p}</p>' for p in paragraphs])
+            # Use format_llm_output for consistent formatting
+            analysis_text = format_llm_output(primary_text)
         else:
             analysis_text = ""
+        
+        # Format all subsections
+        form_performance_overview = format_llm_output(form_performance_overview) if form_performance_overview else ""
+        high_performers_analysis = format_llm_output(high_performers_analysis) if high_performers_analysis else ""
+        optimization_opportunities = format_llm_output(optimization_opportunities) if optimization_opportunities else ""
         
         recommendations = strategic_insights.get("recommendations", [])
         if not isinstance(recommendations, list):
@@ -589,6 +619,9 @@ async def prepare_data_capture_data(
     except Exception as e:
         # Fallback if LLM fails
         logger.warning(f"LLM service unavailable for data capture analysis, using fallback: {e}")
+        form_performance_overview = ""
+        high_performers_analysis = ""
+        optimization_opportunities = ""
         analysis_text = ""
         recommendations = []
         areas_of_opportunity = []
@@ -600,6 +633,10 @@ async def prepare_data_capture_data(
         "forms": forms,
         "categorized_forms": categorized_forms,  # Form categorization (high_performers, underperformers, inactive)
         "analysis_text": analysis_text,
+        # Comprehensive subsections (new enhanced format)
+        "form_performance_overview": form_performance_overview if 'form_performance_overview' in locals() else "",
+        "high_performers_analysis": high_performers_analysis if 'high_performers_analysis' in locals() else "",
+        "optimization_opportunities": optimization_opportunities if 'optimization_opportunities' in locals() else "",
         "recommendations": recommendations,
         "areas_of_opportunity": areas_of_opportunity if isinstance(areas_of_opportunity, list) else [],
         "root_cause_analysis": root_cause_analysis,  # LLM-generated root cause analysis

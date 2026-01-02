@@ -3,6 +3,8 @@ KAV data preparer.
 """
 from typing import Dict, Any, Optional
 import logging
+from ..chart_generator import get_chart_generator
+from ..html_formatter import format_llm_output
 
 logger = logging.getLogger(__name__)
 
@@ -178,14 +180,10 @@ async def prepare_kav_data(
                 logger.warning("Primary narrative appears to be JSON string, JSON parsing may have failed")
                 primary_narrative = ""
             else:
-                # Format as HTML paragraphs (split on double newlines)
-                if primary_raw:
-                    paragraphs = [p.strip() for p in primary_raw.split('\n\n') if p.strip()]
-                    primary_narrative = '\n'.join([f'<p>{p}</p>' for p in paragraphs])
-                else:
-                    primary_narrative = ""
+                # Format as HTML using the formatter
+                primary_narrative = format_llm_output(primary_raw) if primary_raw else ""
         else:
-            primary_narrative = str(primary_raw) if primary_raw else ""
+            primary_narrative = format_llm_output(str(primary_raw)) if primary_raw else ""
         
         secondary_raw = strategic_narratives.get("secondary", "")
         if isinstance(secondary_raw, str):
@@ -193,16 +191,47 @@ async def prepare_kav_data(
                 logger.warning("Secondary narrative appears to be JSON string, JSON parsing may have failed")
                 secondary_narrative = ""
             else:
-                # Format as HTML paragraphs (split on double newlines)
-                if secondary_raw:
-                    paragraphs = [p.strip() for p in secondary_raw.split('\n\n') if p.strip()]
-                    secondary_narrative = '\n'.join([f'<p>{p}</p>' for p in paragraphs])
-                else:
-                    secondary_narrative = ""
+                # Format as HTML using the formatter
+                secondary_narrative = format_llm_output(secondary_raw) if secondary_raw else ""
         else:
-            secondary_narrative = str(secondary_raw) if secondary_raw else ""
+            secondary_narrative = format_llm_output(str(secondary_raw)) if secondary_raw else ""
         
         strategic_focus = strategic_narratives.get("strategic_focus", "optimization")
+        
+        # Extract comprehensive subsections (new enhanced format)
+        growth_overview_raw = strategic_narratives.get("growth_overview", "")
+        campaigns_vs_flows_raw = strategic_narratives.get("campaigns_vs_flows", "")
+        flow_performance_insights_raw = strategic_narratives.get("flow_performance_insights", "")
+        campaign_performance_insights_raw = strategic_narratives.get("campaign_performance_insights", "")
+        kav_implications_raw = strategic_narratives.get("kav_implications", "")
+        growing_your_kav = strategic_narratives.get("growing_your_kav", {})
+        
+        # Format all subsections as HTML
+        growth_overview = format_llm_output(growth_overview_raw) if growth_overview_raw else ""
+        campaigns_vs_flows = format_llm_output(campaigns_vs_flows_raw) if campaigns_vs_flows_raw else ""
+        flow_performance_insights = format_llm_output(flow_performance_insights_raw) if flow_performance_insights_raw else ""
+        campaign_performance_insights = format_llm_output(campaign_performance_insights_raw) if campaign_performance_insights_raw else ""
+        kav_implications = format_llm_output(kav_implications_raw) if kav_implications_raw else ""
+        
+        # Fallback: Generate kav_implications from other data if LLM didn't provide it
+        if not kav_implications and kav_pct > 0:
+            kav_benchmark = 30.0
+            total_website_revenue = revenue.get("total_website", 0)
+            attributed_revenue = revenue.get("attributed", 0)
+            
+            if kav_pct >= kav_benchmark:
+                kav_implications = format_llm_output(
+                    f"**Above Benchmark Performance:** With {kav_pct:.1f}% KAV exceeding the {kav_benchmark}% industry benchmark, {client_name} is in a strong competitive position. The focus should shift from catching up to maintaining leadership while exploring incremental gains.\n\n"
+                    f"**Strategic Priority:** Maintain the strong automation foundation (flows generating {flow_pct:.1f}% of revenue) while strategically expanding campaign sophistication to capture additional opportunity in shifting the revenue balance.\n\n"
+                    f"**Key Action Items:** (1) Implement consistent campaign calendar with 2-3 weekly sends to engaged segments, (2) Expand flow library with winback, back-in-stock, and VIP flows, (3) Optimize existing flows with dynamic product recommendations and extended sequences."
+                )
+            else:
+                potential_revenue = (total_website_revenue * (kav_benchmark/100)) - attributed_revenue
+                kav_implications = format_llm_output(
+                    f"**Below Benchmark Performance:** At {kav_pct:.1f}% KAV, {client_name} has opportunity to reach the {kav_benchmark}% industry benchmark, representing potential additional revenue of ${potential_revenue:,.0f}.\n\n"
+                    f"**Strategic Priority:** Focus on both flow optimization and campaign development. The current {flow_pct:.1f}% flows to {campaign_pct:.1f}% campaigns split suggests {('automation underinvestment' if campaign_pct > flow_pct * 1.2 else 'balanced approach')}.\n\n"
+                    f"**Key Action Items:** (1) Add missing critical flows (welcome, abandoned cart, post-purchase), (2) Implement consistent campaign sends with better segmentation, (3) Optimize existing flows to improve conversion rates."
+                )
         
         # Extract recommendations (can be list of strings or list of dicts)
         recommendations = strategic_narratives.get("recommendations", [])
@@ -235,6 +264,12 @@ async def prepare_kav_data(
         primary_narrative = kav_raw.get("narrative", "")
         secondary_narrative = kav_raw.get("secondary_narrative", "")
         strategic_focus = "optimization"
+        growth_overview = ""
+        campaigns_vs_flows = ""
+        flow_performance_insights = ""
+        campaign_performance_insights = ""
+        kav_implications = ""
+        growing_your_kav = {}
         recommendations = []
         areas_of_opportunity = []
         root_cause_analysis = {}
@@ -354,6 +389,34 @@ async def prepare_kav_data(
         "total_attributed": attributed_revenue
     }
     
+    # Generate KAV revenue chart
+    try:
+        print(f"🎨 [KAV CHART] Attempting to generate with campaign_rev={campaign_revenue}, flow_rev={flow_revenue}")
+        logger.info(f"Attempting to generate KAV chart with data: campaign_rev={campaign_revenue}, flow_rev={flow_revenue}")
+        chart_gen = get_chart_generator()
+        kav_chart_data = {
+            "campaign_revenue": campaign_revenue,
+            "flow_revenue": flow_revenue,
+            "campaign_pct": campaign_pct,
+            "flow_pct": flow_pct,
+            "total_revenue": attributed_revenue
+        }
+        chart_image = chart_gen.generate_kav_revenue_chart(kav_chart_data, client_name=client_name)
+        if chart_image:
+            kav_revenue_chart = chart_image
+            print(f"✅ [KAV CHART] Successfully generated! Length: {len(chart_image)} chars")
+            logger.info(f"✓ Successfully generated KAV revenue chart for {client_name} ({len(chart_image)} chars)")
+        else:
+            print(f"⚠️ [KAV CHART] Generation returned empty string!")
+            logger.warning(f"✗ KAV chart generation returned empty string")
+            kav_revenue_chart = ""
+    except Exception as e:
+        import traceback
+        print(f"❌ [KAV CHART] ERROR: {e}")
+        print(traceback.format_exc())
+        logger.error(f"✗ Error generating KAV chart: {e}\n{traceback.format_exc()}")
+        kav_revenue_chart = ""
+    
     return {
         "period": {
             "start_date": period.get("start_date", "N/A"),
@@ -376,9 +439,17 @@ async def prepare_kav_data(
         "message_type_breakdown": message_type_breakdown,
         "channel_breakdown": channel_breakdown,
         "chart_data": kav_raw.get("chart_data", {}),
+        "kav_revenue_chart": kav_revenue_chart,
         "narrative": primary_narrative,
         "secondary_narrative": secondary_narrative,
         "strategic_focus": strategic_focus,
+        # Comprehensive subsections (new enhanced format)
+        "growth_overview": growth_overview,
+        "campaigns_vs_flows": campaigns_vs_flows,
+        "flow_performance_insights": flow_performance_insights,
+        "campaign_performance_insights": campaign_performance_insights,
+        "kav_implications": kav_implications,
+        "growing_your_kav": growing_your_kav if isinstance(growing_your_kav, dict) else {},
         "recommendations": recommendations if isinstance(recommendations, list) else [],
         "areas_of_opportunity": areas_of_opportunity if isinstance(areas_of_opportunity, list) else [],
         "root_cause_analysis": root_cause_analysis,

@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
-from api.routes import audit, auth, reports, admin
+from api.routes import auth, reports, admin, chat
+from api.routes.audit.router import router as audit_router
 from api.database import init_db
 
 # Load environment variables
@@ -119,4 +120,5 @@ async def test_ui():
 app.include_router(auth.router, prefix="/api", tags=["authentication"])
 app.include_router(reports.router, prefix="/api", tags=["reports"])
 app.include_router(admin.router, prefix="/api", tags=["admin"])
-app.include_router(audit.router, prefix="/api/audit", tags=["audit"])
+app.include_router(audit_router, prefix="/api/audit", tags=["audit"])
+app.include_router(chat.router, tags=["chat"])  # Chat routes already have /api/audit prefix

@@ -107,8 +107,17 @@ class DataExtractionOrchestrator:
         """
         if not date_range:
             # Use proper timezone-aware date calculation
+            # IMPORTANT: Set end_date to current time, but ensure it's not in the future
+            # Some APIs reject timestamps that are too close to "now" or in the future
             end_date = datetime.now(timezone.utc)
-            start_date = end_date - timedelta(days=365)
+            
+            # For safety, cap end_date to yesterday at 23:59:59 to avoid any future timestamp issues
+            # This ensures we never request data from "today" which might not be complete
+            yesterday = end_date.replace(hour=23, minute=59, second=59, microsecond=0) - timedelta(days=1)
+            if end_date > yesterday:
+                end_date = yesterday
+            
+            start_date = end_date - timedelta(days=364)  # 364 days + end date = 365 days total
             date_range = {
                 "start": start_date.isoformat(),
                 "end": end_date.isoformat()
@@ -123,11 +132,14 @@ class DataExtractionOrchestrator:
             end_dt = parse_iso_date(date_range["end"])
             now_dt = datetime.now(timezone.utc)
             
-            # Check if end date is in the future (more than 1 day ahead)
-            if end_dt > now_dt + timedelta(days=1):
-                logger.warning(f"⚠️  WARNING: End date is in the future! {end_dt.isoformat()} > {now_dt.isoformat()}")
-                logger.warning(f"   Adjusting end date to current time: {now_dt.isoformat()}")
-                end_dt = now_dt
+            # ALWAYS cap end_date to yesterday at 23:59:59 to avoid API rejections
+            # Klaviyo API rejects requests with timestamps that are too recent or incomplete
+            yesterday_eod = now_dt.replace(hour=23, minute=59, second=59, microsecond=0) - timedelta(days=1)
+            
+            if end_dt > yesterday_eod:
+                logger.warning(f"⚠️  WARNING: End date ({end_dt.isoformat()}) is too recent or in future")
+                logger.warning(f"   Capping to yesterday EOD: {yesterday_eod.isoformat()}")
+                end_dt = yesterday_eod
                 date_range["end"] = end_dt.isoformat()
             
             # Check if start date is after end date
@@ -566,24 +578,9 @@ class DataExtractionOrchestrator:
                 raw_data.get("campaigns", [])
             ),
             
-            # Segmentation Strategy
-            "segmentation_data": {
-                "tracks": [
-                    {"name": "Track A: Highly Engaged", "cadence": "Daily", "criteria": "Opened/clicked in last 30 days"},
-                    {"name": "Track B: Moderately Engaged", "cadence": "2-3x/week", "criteria": "Opened/clicked in last 60 days"},
-                    {"name": "Track C: Broad Engaged", "cadence": "1x/week", "criteria": "Opened/clicked in last 90 days"},
-                    {"name": "Track D: Unengaged", "cadence": "Goes through Sunset Flow then suppressed", "criteria": "No engagement in 90+ days"},
-                    {"name": "Track E: For Suppression", "cadence": "Do not send. Needs to be suppressed", "criteria": "Hard bounces, complaints, unsubscribes"}
-                ],
-                "send_strategy": {
-                    "smart_send_time": True,
-                    "description": "Use Klaviyo Smart Send Time for optimal delivery"
-                },
-                "current_implementation": {
-                    "segments_exist": False,
-                    "tracks_configured": 0
-                }
-            },
+            # Segmentation Strategy - Will be generated dynamically in campaign_preparer based on performance
+            # Do not hardcode - let campaign_preparer.recommend_segmentation() determine if needed
+            "segmentation_data": None,
             
             # Browse Abandonment Data - only include if flow exists and has data
             "browse_abandonment_data": self.flow_formatter.prepare_browse_abandonment_data(core_flows),

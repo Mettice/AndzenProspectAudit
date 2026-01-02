@@ -264,6 +264,7 @@ async def _process_audit_background(
             html_url = generated_report.get("html_url")
             pdf_url = generated_report.get("pdf_url")
             word_url = generated_report.get("word_url")
+            html_content = generated_report.get("html_content")
             
             # Store just filenames (not full paths) for download endpoint
             report.filename = generated_report.get("filename", report.filename)
@@ -273,6 +274,12 @@ async def _process_audit_background(
                 report.file_path_pdf = Path(pdf_url).name if pdf_url else None
             if word_url:
                 report.file_path_word = Path(word_url).name if word_url else None
+            # Store HTML content in database for editing
+            if html_content:
+                report.html_content = html_content
+            # Store LLM config for chat
+            if llm_config:
+                report.llm_config = llm_config
             report.status = ReportStatus.COMPLETED
             
             # Store HTML content in cache and set final progress
@@ -382,7 +389,7 @@ async def generate_audit(request: AuditRequest, background_tasks: BackgroundTask
             api_key_hash = hashlib.sha256(request.api_key.encode()).hexdigest() if request.api_key else None
             
             # Try to create report with created_by_id=None
-            # If it fails due to NOT NULL constraint, try to run migration automatically
+            # If it fails due to missing column, try to run migration automatically
             try:
                 db_report = Report(
                     filename=f"audit_{request.client_name}_pending",
@@ -395,6 +402,7 @@ async def generate_audit(request: AuditRequest, background_tasks: BackgroundTask
                     klaviyo_api_key_hash=api_key_hash,
                     llm_provider=request.llm_provider,
                     llm_model=request.claude_model or request.openai_model or request.gemini_model,
+                    llm_config=llm_config,  # Save LLM config immediately so chat can use it
                     created_by_id=None
                 )
                 db.add(db_report)
@@ -402,11 +410,86 @@ async def generate_audit(request: AuditRequest, background_tasks: BackgroundTask
                 db.refresh(db_report)
                 report_id = db_report.id
                 print(f"✓ Created report record with ID: {report_id}")
+                print(f"✓ Saved LLM config: provider={llm_config.get('provider')}, has_api_key={bool(llm_config.get('anthropic_api_key') or llm_config.get('openai_api_key') or llm_config.get('gemini_api_key'))}")
             except Exception as db_error:
                 error_str = str(db_error)
-                if "created_by_id" in error_str and "not-null" in error_str.lower():
+                # Check for missing columns
+                if "html_content" in error_str or "llm_config" in error_str:
+                    # Missing columns - try to add them automatically
+                    print("⚠️  Database schema needs migration. Attempting automatic migration for html_content/llm_config...")
+                    try:
+                        from sqlalchemy import text
+                        from api.database import IS_POSTGRES
+                        
+                        # Use raw connection for DDL operations
+                        with db.connection() as conn:
+                            # Check if columns exist and add if missing
+                            if IS_POSTGRES:
+                                # PostgreSQL - check and add html_content
+                                check_html = conn.execute(text("""
+                                    SELECT column_name 
+                                    FROM information_schema.columns 
+                                    WHERE table_name='reports' AND column_name='html_content'
+                                """))
+                                if not check_html.fetchone():
+                                    conn.execute(text("ALTER TABLE reports ADD COLUMN html_content TEXT;"))
+                                    print("✓ Added html_content column")
+                                
+                                # Check and add llm_config
+                                check_llm = conn.execute(text("""
+                                    SELECT column_name 
+                                    FROM information_schema.columns 
+                                    WHERE table_name='reports' AND column_name='llm_config'
+                                """))
+                                if not check_llm.fetchone():
+                                    conn.execute(text("ALTER TABLE reports ADD COLUMN llm_config JSONB;"))
+                                    print("✓ Added llm_config column")
+                            else:
+                                # SQLite - check and add columns
+                                pragma = conn.execute(text("PRAGMA table_info(reports)"))
+                                columns = [row[1] for row in pragma.fetchall()]
+                                
+                                if 'html_content' not in columns:
+                                    conn.execute(text("ALTER TABLE reports ADD COLUMN html_content TEXT;"))
+                                    print("✓ Added html_content column")
+                                
+                                if 'llm_config' not in columns:
+                                    conn.execute(text("ALTER TABLE reports ADD COLUMN llm_config TEXT;"))
+                                    print("✓ Added llm_config column")
+                            
+                            conn.commit()
+                        print("✓ Migration applied. Retrying report creation...")
+                        
+                        # Retry creating the report
+                        db_report = Report(
+                            filename=f"audit_{request.client_name}_pending",
+                            client_name=request.client_name,
+                            auditor_name=request.auditor_name,
+                            client_code=getattr(request, 'client_code', None),
+                            industry=request.industry,
+                            analysis_period_days=request.days,
+                            status=ReportStatus.PROCESSING,
+                            klaviyo_api_key_hash=api_key_hash,
+                            llm_provider=request.llm_provider,
+                            llm_model=request.claude_model or request.openai_model or request.gemini_model,
+                            llm_config=llm_config,  # Save LLM config immediately so chat can use it
+                            created_by_id=None
+                        )
+                        db.add(db_report)
+                        db.commit()
+                        db.refresh(db_report)
+                        report_id = db_report.id
+                        print(f"✓ Created report record with ID: {report_id}")
+                        print(f"✓ Saved LLM config: provider={llm_config.get('provider')}, has_api_key={bool(llm_config.get('anthropic_api_key') or llm_config.get('openai_api_key') or llm_config.get('gemini_api_key'))}")
+                    except Exception as migrate_error:
+                        db.rollback()
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Database migration required. Please run: python scripts/migrate_add_html_content.py. Error: {str(migrate_error)}"
+                        )
+                elif "created_by_id" in error_str and "not-null" in error_str.lower():
                     # Database still has NOT NULL constraint - try to fix it
-                    print("⚠️  Database schema needs migration. Attempting automatic migration...")
+                    print("⚠️  Database schema needs migration. Attempting automatic migration for created_by_id...")
                     try:
                         from sqlalchemy import text
                         # Use raw connection for DDL operations
@@ -427,6 +510,7 @@ async def generate_audit(request: AuditRequest, background_tasks: BackgroundTask
                             klaviyo_api_key_hash=api_key_hash,
                             llm_provider=request.llm_provider,
                             llm_model=request.claude_model or request.openai_model or request.gemini_model,
+                            llm_config=llm_config,  # Save LLM config immediately so chat can use it
                             created_by_id=None
                         )
                         db.add(db_report)
@@ -434,6 +518,7 @@ async def generate_audit(request: AuditRequest, background_tasks: BackgroundTask
                         db.refresh(db_report)
                         report_id = db_report.id
                         print(f"✓ Created report record with ID: {report_id}")
+                        print(f"✓ Saved LLM config: provider={llm_config.get('provider')}, has_api_key={bool(llm_config.get('anthropic_api_key') or llm_config.get('openai_api_key') or llm_config.get('gemini_api_key'))}")
                     except Exception as migrate_error:
                         db.rollback()
                         raise HTTPException(
@@ -924,7 +1009,25 @@ async def download_file(path: str, report_id: Optional[int] = None):
 @router.get("/test-connection")
 async def test_connection(api_key: str):
     """
-    Test Klaviyo API connection.
+    Test Klaviyo API connection (GET with query parameter).
+    """
+    return await _test_klaviyo_connection(api_key)
+
+
+@router.post("/test-klaviyo")
+async def test_klaviyo_post(request: dict):
+    """
+    Test Klaviyo API connection (POST with JSON body).
+    """
+    api_key = request.get("api_key")
+    if not api_key:
+        raise HTTPException(status_code=400, detail="API key is required in request body")
+    return await _test_klaviyo_connection(api_key)
+
+
+async def _test_klaviyo_connection(api_key: str):
+    """
+    Internal function to test Klaviyo API connection.
     """
     if not api_key or not api_key.strip():
         raise HTTPException(status_code=400, detail="API key is required")
@@ -998,47 +1101,47 @@ async def test_connection(api_key: str):
 
 
 @router.post("/test-llm")
-async def test_llm(
-    provider: str,
-    api_key: str,
-    model: Optional[str] = None
-):
+async def test_llm(request: dict):
     """
     Test LLM API connection (Claude, OpenAI, or Gemini).
     
-    Query Parameters:
+    Request Body (JSON):
         provider: LLM provider ("claude", "openai", or "gemini")
         api_key: API key for the provider
         model: Optional model name (uses default if not provided)
     """
+    provider = request.get("provider")
+    api_key = request.get("api_key")
+    model = request.get("model")
+    
+    if not provider:
+        raise HTTPException(status_code=400, detail="Provider is required")
+    if not api_key:
+        raise HTTPException(status_code=400, detail="API key is required")
     try:
         from api.services.llm import LLMService
         
-        # Create LLM service with the provided API key
-        llm_config = {
-            "provider": provider,
-            f"{provider}_api_key": api_key
-        }
-        
+        # Initialize LLM service with correct parameters
         if provider == "claude":
-            llm_config["anthropic_api_key"] = api_key
-            if model:
-                llm_config["claude_model"] = model
+            llm_service = LLMService(
+                default_provider="claude",
+                anthropic_api_key=api_key,
+                claude_model=model
+            )
         elif provider == "openai":
-            llm_config["openai_api_key"] = api_key
-            if model:
-                llm_config["openai_model"] = model
+            llm_service = LLMService(
+                default_provider="openai",
+                openai_api_key=api_key,
+                openai_model=model
+            )
         elif provider == "gemini":
-            llm_config["gemini_api_key"] = api_key
-            if model:
-                llm_config["gemini_model"] = model
+            llm_service = LLMService(
+                default_provider="gemini",
+                gemini_api_key=api_key,
+                gemini_model=model
+            )
         else:
             raise HTTPException(status_code=400, detail=f"Invalid provider: {provider}")
-        
-        llm_service = LLMService(
-            default_provider=provider,
-            llm_config=llm_config
-        )
         
         # Test by generating a simple response
         test_data = {"test": "This is a test connection"}

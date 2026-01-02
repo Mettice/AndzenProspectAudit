@@ -94,10 +94,40 @@ async def generate_pdf_playwright(html_path: Path) -> Optional[Path]:
                 return pdf_path
             
             # Run sync Playwright in a thread pool to avoid asyncio issues
-            loop = asyncio.get_event_loop()
-            with ThreadPoolExecutor() as executor:
-                result = await loop.run_in_executor(executor, _generate_sync)
-                return result
+            # Use a new event loop in the thread to avoid Windows asyncio subprocess issues
+            import threading
+            
+            def _run_in_thread():
+                """Create a new event loop in a thread for Windows compatibility."""
+                import asyncio
+                # Create a new event loop for this thread
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    return _generate_sync()
+                finally:
+                    new_loop.close()
+            
+            # Run in a separate thread with its own event loop
+            result_future = None
+            result_value = None
+            exception_occurred = None
+            
+            def _thread_target():
+                nonlocal result_value, exception_occurred
+                try:
+                    result_value = _run_in_thread()
+                except Exception as e:
+                    exception_occurred = e
+            
+            thread = threading.Thread(target=_thread_target)
+            thread.start()
+            thread.join()
+            
+            if exception_occurred:
+                raise Exception(f"Playwright sync PDF generation failed: {exception_occurred}")
+            
+            return result_value
                 
         except ImportError:
             raise ImportError("Playwright not installed. Install with: pip install playwright && playwright install chromium")

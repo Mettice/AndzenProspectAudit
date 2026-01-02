@@ -40,14 +40,22 @@ LIST-REVENUE CORRELATION:
 - Revenue Impact: {list_revenue_correlation.get("revenue_impact", "N/A")}
 - Opportunity: {list_revenue_correlation.get("opportunity", "N/A")}
 
-PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
+PROVIDE COMPREHENSIVE ANALYSIS IN JSON FORMAT WITH MULTIPLE SUBSECTIONS:
 
 {{
+    "list_growth_overview": "A detailed 2-3 paragraph analysis of email list growth. Current subscriber count {current_total:,} with {growth_subscribers:,} new subscribers and {lost_subscribers:,} lost over {period_months} months. Explain what these numbers mean for {client_name}'s list health. Include specific growth rate calculations and period-over-period comparisons if available.",
+    
+    "growth_drivers": "A detailed 1-2 paragraph analysis of growth drivers. Where are new subscribers coming from? Break down signup sources (forms, campaigns, integrations, etc.) with specific numbers and percentages. Explain which sources are performing best.",
+    
+    "attrition_sources": "A detailed 1-2 paragraph analysis of attrition sources. Where are subscribers being lost? Break down churn sources (unsubscribes, manual suppressions, bounces, etc.) with specific numbers. Explain what the {churn_rate:.1f}% churn rate means and identify the biggest churn drivers.",
+    
     "primary": "List growth overview: Current subscriber count {current_total:,} with {growth_subscribers:,} new subscribers and {lost_subscribers:,} lost over {period_months} months. Churn rate at {churn_rate:.1f}% indicates [assess list health]. **Performance Status:** [Healthy/Concerning/Critical based on growth vs churn]. **Quick Wins:** [2-3 immediate opportunities to reduce churn or increase acquisition]. **Risk Flags:** [Any critical list health issues].",
+    
     "secondary": "Strategic list growth recommendations: **Growth Optimization:** [Specific strategies to increase acquisition]. **Churn Reduction:** [Tactics to improve retention]. **Expected Impact:** [Estimate subscriber and revenue impact of optimizations]."
 }}
 
 GUIDELINES:
+- Each subsection should be 2-3 paragraphs (not just 1 sentence)
 - Compare growth rate to industry standards 
 - Assess churn rate health (ideal is <2% monthly)
 - Be specific with numbers and percentages
@@ -140,14 +148,22 @@ FORM CATEGORIZATION:
 - Underperformers: {len(underperformers)} form(s) (<3% submit rate with >100 impressions)
 - Inactive Forms: {len(inactive)} form(s) (0 impressions)
 
-PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
+PROVIDE COMPREHENSIVE ANALYSIS IN JSON FORMAT WITH MULTIPLE SUBSECTIONS:
 
 {{
+    "form_performance_overview": "A detailed 2-3 paragraph analysis of form performance. Total {section_data.get('total_forms', 0)} forms with {section_data.get('total_impressions', 0):,} impressions and {section_data.get('total_submissions', 0):,} submissions. Average submit rate {section_data.get('avg_submit_rate', 0):.2f}%. Explain what these numbers mean for {client_name}'s data capture effectiveness.",
+    
+    "high_performers_analysis": "A detailed 1-2 paragraph analysis of high-performing forms ({len(high_performers)} forms with ≥5% submit rate). What makes these forms successful? Identify common patterns, design elements, or targeting strategies that drive performance.",
+    
+    "optimization_opportunities": "A detailed 2-3 paragraph analysis of optimization opportunities. Focus on underperforming forms ({len(underperformers)} forms with <3% submit rate) and inactive forms ({len(inactive)} forms with 0 impressions). What specific improvements could be made?",
+    
     "primary": "Form performance overview: Analyze form conversion rates, signup sources, and data capture effectiveness. **Performance Highlights:** [Top performing forms with conversion rates]. **Quick Wins:** [2-3 immediate form optimization opportunities]. **Issues:** [Any underperforming forms needing attention].",
+    
     "secondary": "Strategic form recommendations: **Optimization Priorities:** [Rank form improvements by impact]. **New Opportunities:** [Additional forms or targeting strategies]. **Expected Impact:** [Estimate conversion and list growth improvements]."
 }}
 
 GUIDELINES:
+- Each subsection should be 2-3 paragraphs (not just 1 sentence)
 - Focus on form conversion rates and effectiveness
 - Identify optimization opportunities
 - Embed strategic recommendations within narrative text

@@ -108,7 +108,29 @@
         </table>
     </div>
     
-    <!-- Performance Analysis -->
+    <!-- Comprehensive Performance Analysis (Enhanced Format) -->
+    {% if browse_abandonment_data.performance_overview %}
+    <div class="flow-analysis-section">
+        <h4 class="subsection-title">Performance Overview</h4>
+        <div class="narrative-text">{{ browse_abandonment_data.performance_overview|safe }}</div>
+    </div>
+    {% endif %}
+    
+    {% if browse_abandonment_data.benchmark_comparison %}
+    <div class="flow-analysis-section">
+        <h4 class="subsection-title">Benchmark Comparison</h4>
+        <div class="narrative-text">{{ browse_abandonment_data.benchmark_comparison|safe }}</div>
+    </div>
+    {% endif %}
+    
+    {% if browse_abandonment_data.optimization_opportunities %}
+    <div class="flow-analysis-section">
+        <h4 class="subsection-title">Optimization Opportunities</h4>
+        <div class="narrative-text">{{ browse_abandonment_data.optimization_opportunities|safe }}</div>
+    </div>
+    {% endif %}
+    
+    <!-- Performance Analysis (Legacy) -->
     <div class="flow-analysis">
         {% if browse_abandonment_data.secondary_narrative %}
             {{ browse_abandonment_data.secondary_narrative|safe }}
@@ -118,23 +140,24 @@
             </p>
         {% endif %}
         
+        <!-- Areas of Opportunity Table -->
         {% if browse_abandonment_data.areas_of_opportunity %}
         <div class="areas-of-opportunity-section">
             <h4 class="subsection-title">Areas of Opportunity</h4>
-            <table class="opportunity-table">
+            <table class="opportunity-table data-table-green">
                 <thead>
                     <tr>
-                        <th>Opportunity</th>
-                        <th>Recommended Action</th>
-                        <th>Why it Matters</th>
+                        <th>Optimization/Expansion Opportunity</th>
+                        <th>Recommended Action / Quick Fix</th>
+                        <th>Why it Matters (Impact & Rationale)</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for opp in browse_abandonment_data.areas_of_opportunity %}
                     <tr>
-                        <td>{{ opp.opportunity }}</td>
-                        <td>{{ opp.recommended_action }}</td>
-                        <td>{{ opp.why_it_matters }}</td>
+                        <td><strong>{{ opp.get('opportunity', opp.get('Opportunity', 'N/A')) }}</strong></td>
+                        <td>{{ opp.get('recommended_action', opp.get('Recommended Action', opp.get('action', 'N/A'))) }}</td>
+                        <td>{{ opp.get('impact_rationale', opp.get('Why it Matters', opp.get('why_it_matters', opp.get('impact', 'N/A')))) }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

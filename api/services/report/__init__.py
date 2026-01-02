@@ -174,6 +174,11 @@ class EnhancedReportService:
         # Load the main audit report template
         template = self.env.get_template("audit_report.html")
         
+        # Load CSS content for embedding
+        css_path = self.template_dir / "assets" / "styles.css"
+        with open(css_path, 'r', encoding='utf-8') as f:
+            css_content = f.read()
+        
         # Prepare cover data
         cover_data = {
             "client_name": client_name,
@@ -202,6 +207,9 @@ class EnhancedReportService:
         context = {
             # Cover page
             "cover_data": cover_data,
+            
+            # CSS content for embedding
+            "css_content": css_content,
             "client_name": client_name,
             
             # KAV Analysis (Pages 2-3)
@@ -279,23 +287,35 @@ class EnhancedReportService:
                 client_name,
                 account_context
             ),
-            
-            # Segmentation Strategy (Page 18)
-            "segmentation_data": audit_data.get("segmentation_data", {
-                "tracks": [
-                    {"name": "Track A: Highly Engaged", "cadence": "Daily"},
-                    {"name": "Track B: Moderately Engaged", "cadence": "2-3x/week"},
-                    {"name": "Track C: Broad Engaged", "cadence": "1x/week"},
-                    {"name": "Track D: Unengaged", "cadence": "Goes through Sunset Flow then suppressed"},
-                    {"name": "Track E: For Suppression", "cadence": "Do not send. Needs to be suppressed"}
-                ]
-            })
         }
+        
+        # Add segmentation data AFTER campaign_performance_data is prepared
+        # Get segmentation recommendation from campaign performance data
+        campaign_segmentation = context.get("campaign_performance_data", {}).get("segmentation_recommendation", {})
+        if campaign_segmentation.get("needed", False):
+            # Use tracks from recommendation (which pulls from benchmarks or generates dynamically)
+            context["segmentation_data"] = {
+                "needed": True,
+                "reason": campaign_segmentation.get("reason", ""),
+                "priority": campaign_segmentation.get("priority", ""),
+                "tracks": campaign_segmentation.get("tracks", []),
+                "recommended_strategy": campaign_segmentation.get("reason", "")
+            }
+        else:
+            # Only include if explicitly provided in audit_data (for manual overrides)
+            if audit_data.get("segmentation_data"):
+                context["segmentation_data"] = audit_data.get("segmentation_data")
+            else:
+                context["segmentation_data"] = None
         
         # Phase 3: Strategic Recommendations (Enhanced Intelligence)
         # Pass prepared context so strategic thesis can access kav_interpretation, pattern_diagnosis, etc.
         # Must be added AFTER context is fully built
         context["strategic_recommendations_data"] = await prepare_strategic_recommendations(audit_data, prepared_context=context)
+        
+        # Add data for new sections
+        context["why_andzen_data"] = {"show": True}  # Always show Why Andzen section
+        context["next_steps_data"] = {"show": True}  # Always show Next Steps section
         
         # Render HTML
         html_content = template.render(**context)

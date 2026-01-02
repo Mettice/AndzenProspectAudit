@@ -3,6 +3,8 @@ Flow data preparer.
 """
 from typing import Dict, Any, Optional
 import logging
+from ..chart_generator import get_chart_generator
+from ..html_formatter import format_llm_output
 
 logger = logging.getLogger(__name__)
 
@@ -282,10 +284,63 @@ async def prepare_flow_data(
             context=formatted_data.get("context", {})
         )
         
+        # Extract comprehensive subsections (new enhanced format)
+        performance_overview = strategic_insights.get("performance_overview", "")
+        benchmark_comparison = strategic_insights.get("benchmark_comparison", "")
+        optimization_opportunities = strategic_insights.get("optimization_opportunities", "")
+        areas_of_opportunity = strategic_insights.get("areas_of_opportunity", [])
+        
         narrative = strategic_insights.get("primary", "")
         secondary_narrative = strategic_insights.get("secondary", "")
         performance_status = strategic_insights.get("performance_status", "needs_improvement")
-        areas_of_opportunity = strategic_insights.get("areas_of_opportunity", [])
+        
+        # Format all narratives for clean HTML display
+        if performance_overview:
+            performance_overview = format_llm_output(performance_overview)
+        if benchmark_comparison:
+            benchmark_comparison = format_llm_output(benchmark_comparison)
+        if optimization_opportunities:
+            optimization_opportunities = format_llm_output(optimization_opportunities)
+        if narrative:
+            narrative = format_llm_output(narrative)
+        if secondary_narrative:
+            secondary_narrative = format_llm_output(secondary_narrative)
+        
+        # Fallback: Generate subsections from narrative if LLM didn't provide them
+        flow_perf = flow_raw.get("performance", {})
+        open_rate = flow_perf.get("open_rate", 0)
+        click_rate = flow_perf.get("click_rate", 0)
+        conversion_rate = flow_perf.get("conversion_rate", flow_perf.get("placed_order_rate", 0))
+        revenue = flow_perf.get("revenue", 0)
+        recipients = flow_perf.get("recipients", 0)
+        
+        if not performance_overview and narrative:
+            # Extract key metrics from narrative or generate from data
+            performance_overview = format_llm_output(
+                f"The {flow_raw.get('flow_name', flow_type.replace('_', ' ').title())} flow is showing {open_rate:.1f}% open rate, {click_rate:.1f}% click rate, and {conversion_rate:.1f}% conversion rate. "
+                f"This flow has generated ${revenue:,.2f} in revenue from {recipients:,} recipients. "
+                f"These metrics indicate {'strong' if conversion_rate > 2 else 'moderate' if conversion_rate > 1 else 'needs improvement'} performance that {'exceeds' if conversion_rate > 2 else 'meets' if conversion_rate > 1 else 'falls below'} typical industry standards for this flow type."
+            )
+        
+        if not benchmark_comparison and benchmark:
+            bench_open = benchmark.get("open_rate", 0)
+            bench_click = benchmark.get("click_rate", 0)
+            bench_conv = benchmark.get("conversion_rate", 0)
+            benchmark_comparison = format_llm_output(
+                f"Comparing performance to industry benchmarks: Open rate is {open_rate:.1f}% vs {bench_open:.1f}% benchmark ({'+' if open_rate >= bench_open else ''}{open_rate - bench_open:.1f} percentage points), "
+                f"click rate is {click_rate:.1f}% vs {bench_click:.1f}% benchmark ({'+' if click_rate >= bench_click else ''}{click_rate - bench_click:.1f} percentage points), "
+                f"and conversion rate is {conversion_rate:.1f}% vs {bench_conv:.1f}% benchmark ({'+' if conversion_rate >= bench_conv else ''}{conversion_rate - bench_conv:.1f} percentage points). "
+                f"{'The flow is performing above benchmark' if conversion_rate >= bench_conv and open_rate >= bench_open else 'There are opportunities to improve performance to meet or exceed benchmarks'}."
+            )
+        
+        if not optimization_opportunities and (open_rate < benchmark.get("open_rate", 0) or click_rate < benchmark.get("click_rate", 0) or conversion_rate < benchmark.get("conversion_rate", 0)):
+            optimization_opportunities = format_llm_output(
+                f"Key optimization opportunities include: "
+                f"{'Improving open rates through subject line testing and send time optimization. ' if open_rate < benchmark.get('open_rate', 0) else ''}"
+                f"{'Enhancing click rates by improving CTA placement, button design, and email content relevance. ' if click_rate < benchmark.get('click_rate', 0) else ''}"
+                f"{'Increasing conversion rates through better product recommendations, incentive strategies, and flow timing optimization. ' if conversion_rate < benchmark.get('conversion_rate', 0) else ''}"
+                f"Focusing on these areas could help the flow reach or exceed industry benchmark performance."
+            )
         
     except Exception as e:
         # Fallback - log error but still try to provide minimal analysis
@@ -297,6 +352,9 @@ async def prepare_flow_data(
         narrative = f"<p>Your {flow_raw.get('flow_name', 'flow')} flow demonstrates {open_rate:.1f}% open rate and {click_rate:.1f}% click rate. Review the metrics above to identify optimization opportunities.</p>"
         secondary_narrative = ""
         performance_status = "needs_improvement"
+        performance_overview = ""
+        benchmark_comparison = ""
+        optimization_opportunities = ""
         areas_of_opportunity = []
     
     # Get benchmark for this flow type
@@ -309,7 +367,7 @@ async def prepare_flow_data(
         "revenue_per_recipient": flow_benchmarks.get("revenue_per_recipient", {}).get("average", 0)
     }
     
-    return {
+    result = {
         "flow_name": flow_raw.get("flow_name", flow_type.replace("_", " ").title()),
         "status": flow_raw.get("status", "unknown"),
         "email_count": flow_raw.get("email_count", 0),
@@ -321,6 +379,41 @@ async def prepare_flow_data(
         "narrative": narrative,  # LLM-generated narrative
         "secondary_narrative": secondary_narrative,  # LLM-generated secondary insights
         "performance_status": performance_status,  # LLM-determined status
+        # Comprehensive subsections (new enhanced format)
+        "performance_overview": performance_overview if 'performance_overview' in locals() else "",
+        "benchmark_comparison": benchmark_comparison if 'benchmark_comparison' in locals() else "",
+        "optimization_opportunities": optimization_opportunities if 'optimization_opportunities' in locals() else "",
         "areas_of_opportunity": areas_of_opportunity if isinstance(areas_of_opportunity, list) else []  # LLM-generated areas of opportunity table
     }
+    
+    # Generate flow performance chart
+    try:
+        chart_gen = get_chart_generator()
+        flow_perf = flow_raw.get("performance", {})
+        chart_flow_data = {
+            "open_rate": flow_perf.get("open_rate", 0),
+            "click_rate": flow_perf.get("click_rate", 0),
+            "conversion_rate": flow_perf.get("conversion_rate", flow_perf.get("placed_order_rate", 0))
+        }
+        chart_benchmarks = {
+            "average": benchmark,
+            "top_10": {
+                "open_rate": flow_benchmarks.get("open_rate", {}).get("top_10", 0),
+                "click_rate": flow_benchmarks.get("click_rate", {}).get("top_10", 0),
+                "conversion_rate": flow_benchmarks.get("conversion_rate", {}).get("top_10", 0)
+            }
+        }
+        chart_image = chart_gen.generate_flow_performance_chart(
+            chart_flow_data, 
+            chart_benchmarks,
+            flow_name=flow_raw.get("flow_name", flow_type.replace("_", " ").title())
+        )
+        if chart_image:
+            result["performance_chart"] = chart_image
+            logger.info(f"Generated performance chart for {flow_raw.get('flow_name', flow_type)}")
+    except Exception as e:
+        logger.error(f"Error generating flow performance chart: {e}")
+        result["performance_chart"] = ""
+    
+    return result
 

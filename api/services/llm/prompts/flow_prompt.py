@@ -64,16 +64,42 @@ FLOW INTENT ANALYSIS:
 - Recommended Timing: {intent_analysis.get("recommended_timing", "N/A")}
 - Messaging Strategy: {intent_analysis.get("messaging_strategy", "N/A")}
 
-PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
+PROVIDE COMPREHENSIVE ANALYSIS IN JSON FORMAT WITH MULTIPLE SUBSECTIONS:
 
 {{
+    "performance_overview": "A detailed 2-3 paragraph analysis of {flow_name} performance. Compare current metrics ({open_rate:.1f}% open, {click_rate:.1f}% click, {conversion_rate:.1f}% conversion) to industry benchmarks ({benchmark_open:.1f}% open, {benchmark_click:.1f}% click, {benchmark_conv:.1f}% conversion). Explain what these numbers mean for {client_name}'s {flow_name} effectiveness. Include specific revenue context: {currency_symbol}{revenue:,.0f} from {recipients:,} recipients.",
+    
+    "benchmark_comparison": "A detailed 1-2 paragraph analysis comparing performance to benchmarks. Are we above, at, or below benchmark? What does this indicate about flow optimization? Include specific percentage point gaps and what they mean.",
+    
+    "optimization_opportunities": "A 2-3 paragraph analysis of the biggest optimization opportunities. What specific improvements could be made? Focus on actionable items with estimated impact.",
+    
+    "areas_of_opportunity": [
+        {{
+            "opportunity": "Specific optimization or expansion opportunity (e.g., 'Add 14-day touchpoint to capture late converters')",
+            "recommended_action": "Specific action to take (e.g., 'Create email 4 with social proof and limited-time offer')",
+            "impact_rationale": "Why it matters and expected impact (e.g., 'Captures 15-20% of late converters, estimated $25K+ annual lift')"
+        }},
+        {{
+            "opportunity": "Another specific opportunity",
+            "recommended_action": "Specific action",
+            "impact_rationale": "Impact explanation"
+        }},
+        {{
+            "opportunity": "Third specific opportunity",
+            "recommended_action": "Specific action",
+            "impact_rationale": "Impact explanation"
+        }}
+    ],
+    
     "primary": "Flow performance analysis: {flow_name} showing {open_rate:.1f}% open rate vs {benchmark_open:.1f}% benchmark and {click_rate:.1f}% click rate vs {benchmark_click:.1f}% benchmark. Generated {currency_symbol}{revenue:,.0f} in revenue from {recipients:,} recipients. **Performance Status:** [Assess as Excellent/Good/Needs Improvement/Poor based on benchmarks]. **Quick Wins:** [List 2-3 immediate optimization opportunities with effort estimates like '2 hours to fix subject lines' and impact like '$5K potential']. **Risk Flags:** [Any critical issues like broken flows or zero conversions with severity levels].",
+    
     "secondary": "Strategic recommendations with implementation guidance: **Top Priorities:** [Rank 3 optimization areas by ROI potential]. **Revenue Impact:** Optimizing to benchmark performance could generate additional {currency_symbol}{revenue_opportunity:,.0f}. **Next Steps:** [Specific actionable recommendations with timelines and expected results]. Include email timing, content optimization, segmentation opportunities, or flow expansion recommendations."
 }}
 
 GUIDELINES:
+- Each subsection should be 2-3 paragraphs (not just 1 sentence)
 - Include specific numbers and benchmark comparisons
-- Embed strategic elements (Quick Wins, Risk Flags, Top Priorities) within narrative text using **bold headers**
+- "areas_of_opportunity" should be an array of 3-5 opportunity objects
 - Professional consultant tone with actionable insights
 - Estimate revenue impact and implementation effort where relevant
 - Focus on the biggest opportunities first

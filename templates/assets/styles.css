@@ -47,7 +47,7 @@ body {
 /* Typography Hierarchy */
 h1 {
     font-family: var(--font-primary);
-    font-size: 3rem;
+    font-size: 3.5rem; /* Increased from 3rem for better visual hierarchy */
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--andzen-charcoal);
@@ -836,6 +836,80 @@ button:focus {
     background: #FAFAFA;
 }
 
+/* Table Status Indicators */
+.metric-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.metric-value {
+    font-family: var(--font-secondary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--andzen-charcoal);
+}
+
+.metric-vs {
+    font-size: 0.75rem;
+    color: #666;
+    font-style: italic;
+}
+
+.status-indicator {
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+}
+
+.status-excellent {
+    color: #65DA4F;
+}
+
+.status-good {
+    color: #4CAF50;
+}
+
+.status-warning {
+    color: #F59E0B;
+}
+
+.status-critical {
+    color: #EF4444;
+}
+
+.status-badge-inline {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+.status-badge-inline.excellent {
+    background: rgba(101, 218, 79, 0.1);
+    color: #65DA4F;
+}
+
+.status-badge-inline.good {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+}
+
+.status-badge-inline.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #F59E0B;
+}
+
+.status-badge-inline.critical {
+    background: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+}
+
 /* Table Title Bar */
 .table-title-bar {
     background: var(--andzen-green);
@@ -1237,5 +1311,202 @@ button:focus {
     
     .no-print {
         display: none !important;
+    }
+}
+
+/* ============================================================
+   ENHANCED VISUAL DESIGN - Andzen Brand Elevation
+   ============================================================ */
+
+/* Enhanced Metric Cards with Shadow & Border */
+.metric-card {
+    transition: all 0.3s ease;
+    border: 2px solid var(--andzen-grey);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    border-color: var(--andzen-green);
+}
+
+.metric-card.highlight {
+    box-shadow: 0 4px 12px rgba(101, 218, 79, 0.2);
+    border: 3px solid var(--andzen-green);
+}
+
+/* Spray Paint Effect Decorative Elements */
+.section::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    right: 20px;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(101, 218, 79, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(20px);
+}
+
+/* Enhanced Section Titles with Green Accent Line */
+.section h1::after {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--andzen-green) 0%, transparent 100%);
+    margin-top: 0.5rem;
+}
+
+/* Data Table Enhancement - Bold Green Headers */
+.data-table-green thead {
+    background: linear-gradient(180deg, var(--andzen-green) 0%, #4CAF50 100%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.data-table-green th {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+/* Flow Card Hover Enhancement */
+.flow-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.flow-card:hover {
+    transform: translateX(8px);
+    box-shadow: -6px 6px 0 rgba(101, 218, 79, 0.3);
+    border-left-width: 6px;
+}
+
+/* Status Badge Enhancement */
+.pill,
+.status-badge {
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced Strengths/Opportunities Boxes */
+.strengths,
+.opportunities {
+    box-shadow: -4px 0 0 0 var(--andzen-green);
+    transition: all 0.2s ease;
+}
+
+.opportunities {
+    box-shadow: -4px 0 0 0 var(--andzen-orange);
+}
+
+.strengths:hover,
+.opportunities:hover {
+    transform: translateX(4px);
+}
+
+/* KAV Chart Container Enhancement */
+.kav-chart {
+    background: #FAFAFA;
+    padding: 2rem;
+    border-left: 4px solid var(--andzen-green);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.kav-chart img {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    display: block;
+}
+
+/* Flow Chart Container */
+.flow-chart {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: #FAFAFA;
+    border-left: 4px solid var(--andzen-green);
+}
+
+.flow-chart img {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    display: block;
+}
+
+/* Recommendation Card Enhancement */
+.recommendation-card {
+    transition: all 0.2s ease;
+}
+
+.recommendation-card:hover {
+    transform: translateX(4px);
+    box-shadow: -4px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Number Badge for Lists */
+.strengths ol,
+.opportunities ol {
+    counter-reset: item;
+    list-style: none;
+    margin-left: 0;
+}
+
+.strengths li,
+.opportunities li {
+    counter-increment: item;
+    position: relative;
+    padding-left: 3rem;
+    margin-bottom: 1.5rem;
+}
+
+.strengths li::before,
+.opportunities li::before {
+    content: counter(item);
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: var(--andzen-green);
+    color: var(--andzen-charcoal);
+    font-family: var(--font-primary);
+    font-size: 1.2rem;
+    font-weight: bold;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--andzen-charcoal);
+}
+
+.opportunities li::before {
+    background: var(--andzen-orange);
+}
+
+/* Enhanced Progress Bars */
+.progress-bar {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.progress-fill {
+    box-shadow: 0 1px 2px rgba(101, 218, 79, 0.4);
+}
+
+/* Print Color Preservation */
+@media print {
+    .metric-card.highlight,
+    .data-table-green thead,
+    .pill,
+    .status-badge,
+    .strengths li::before,
+    .opportunities li::before,
+    .flow-card,
+    .recommendation-card {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
     }
 }

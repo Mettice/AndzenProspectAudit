@@ -1,0 +1,157 @@
+{# 
+  Table of Contents Section
+  Should appear after "Why Andzen?" section
+#}
+
+<section class="section page" data-page="toc">
+    <h1 class="section-title">Table of Contents</h1>
+    
+    <div class="toc-container">
+        <div class="toc-list">
+            {% if why_andzen_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">3</span>
+                <span class="toc-section-name">Why Andzen?</span>
+            </div>
+            {% endif %}
+            
+            <div class="toc-item">
+                <span class="toc-page-number">4</span>
+                <span class="toc-section-name">Executive Summary</span>
+            </div>
+            
+            {% if kav_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">5-6</span>
+                <span class="toc-section-name">KAV Performance</span>
+            </div>
+            {% endif %}
+            
+            {% if list_growth_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">7</span>
+                <span class="toc-section-name">List Growth</span>
+            </div>
+            {% endif %}
+            
+            {% if data_capture_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">8-9</span>
+                <span class="toc-section-name">Data Capture</span>
+            </div>
+            {% endif %}
+            
+            {% if automation_overview_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">10</span>
+                <span class="toc-section-name">Automation Overview</span>
+            </div>
+            {% endif %}
+            
+            {% if welcome_flow_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">11</span>
+                <span class="toc-section-name">Welcome Series</span>
+            </div>
+            {% endif %}
+            
+            {% if abandoned_cart_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">12-13</span>
+                <span class="toc-section-name">Abandoned Cart</span>
+            </div>
+            {% endif %}
+            
+            {% if browse_abandonment_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">14</span>
+                <span class="toc-section-name">Browse Abandonment</span>
+            </div>
+            {% endif %}
+            
+            {% if post_purchase_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">15-16</span>
+                <span class="toc-section-name">Post Purchase</span>
+            </div>
+            {% endif %}
+            
+            {% if campaign_performance_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">17</span>
+                <span class="toc-section-name">Campaign Performance</span>
+            </div>
+            {% endif %}
+            
+            {% if segmentation_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">18</span>
+                <span class="toc-section-name">Segmentation Strategy</span>
+            </div>
+            {% endif %}
+            
+            {% if strategic_recommendations_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">19</span>
+                <span class="toc-section-name">Strategic Recommendations</span>
+            </div>
+            {% endif %}
+            
+            {% if next_steps_data %}
+            <div class="toc-item">
+                <span class="toc-page-number">20</span>
+                <span class="toc-section-name">Next Steps (30/60/90 Day Plan)</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<style>
+.toc-container {
+    max-width: 700px;
+    margin: 2rem auto;
+}
+
+.toc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.toc-item {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid #E5E7EB;
+    transition: background 0.2s ease;
+}
+
+.toc-item:hover {
+    background: #F9FAFB;
+    padding-left: 0.5rem;
+}
+
+.toc-page-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #65DA4F;
+    min-width: 60px;
+    text-align: right;
+}
+
+.toc-section-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    color: #262626;
+    flex: 1;
+}
+
+.toc-item:hover .toc-section-name {
+    color: #000000;
+    font-weight: 600;
+}
+</style>
+

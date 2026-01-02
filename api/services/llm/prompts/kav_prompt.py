@@ -67,20 +67,42 @@ STRATEGIC INTERPRETATION:
 - KAV Opportunity: {kav_interpretation.get("kav_opportunity", "N/A")}
 - Priority: {kav_interpretation.get("priority", "N/A")}
 
-PROVIDE INSIGHTS IN SIMPLE JSON FORMAT:
+PROVIDE COMPREHENSIVE ANALYSIS IN JSON FORMAT WITH MULTIPLE SUBSECTIONS:
 
 {{
-    "primary": "A comprehensive KAV performance overview: Current performance at {kav_percentage:.1f}% KAV ({currency_symbol}{attributed_revenue:,.0f} attributed from {currency_symbol}{total_revenue:,.0f} total revenue) compared to {kav_benchmark}% industry benchmark. Flow vs Campaign split is {flow_percentage:.1f}% flows to {campaign_percentage:.1f}% campaigns. Analyze what this means for {client_name}'s email marketing effectiveness and identify the biggest opportunities for improvement. Include specific revenue impact estimates where possible.",
-    "secondary": "Strategic recommendations for improving KAV: Focus on the highest-impact optimizations that could move KAV closer to benchmark. Include specific next steps and estimated revenue impact. Keep recommendations practical and prioritized."
+    "growth_overview": "A detailed 2-3 paragraph analysis of KAV growth and performance trends. Include year-over-year or period-over-period comparisons if available. Explain what the current {kav_percentage:.1f}% KAV means in context of the industry benchmark ({kav_benchmark}%) and {client_name}'s business. Highlight key growth drivers and any concerning trends.",
+    
+    "campaigns_vs_flows": "A detailed 2-3 paragraph breakdown of the Campaign vs Flows revenue split ({campaign_percentage:.1f}% campaigns, {flow_percentage:.1f}% flows). Explain what this balance means for {client_name}'s marketing strategy. Is this optimal? What does the split indicate about automation maturity? Include specific revenue numbers: Campaign revenue {currency_symbol}{attributed_revenue * (campaign_percentage/100):,.2f}, Flow revenue {currency_symbol}{attributed_revenue * (flow_percentage/100):,.2f}.",
+    
+    "flow_performance_insights": "A dedicated 1-2 paragraph analysis specifically about flow performance. What do the flow metrics tell us about {client_name}'s automation effectiveness? Are flows performing well? What opportunities exist to expand or optimize flows?",
+    
+    "campaign_performance_insights": "A dedicated 1-2 paragraph analysis specifically about campaign performance. What do the campaign metrics tell us about {client_name}'s campaign strategy? Are campaigns performing well? What opportunities exist to improve campaign effectiveness?",
+    
+    "kav_implications": "A 2-3 bullet point analysis of 'What This Means for KAV Performance'. Connect the dots between the metrics and explain the strategic implications. What should {client_name} prioritize?",
+    
+    "growing_your_kav": {{
+        "reignite_campaigns": {{
+            "objective": "Clear objective statement for improving campaign performance",
+            "actions": ["Action item 1 with specific details", "Action item 2 with specific details", "Action item 3 with specific details"]
+        }},
+        "strengthen_flows": "A 2-paragraph strategic recommendation for strengthening and expanding flow strategy. Include specific flow types to add or optimize.",
+        "foundation_for_growth": "A detailed paragraph about setting the foundation for scalable growth. What foundational elements need to be in place?"
+    }},
+    
+    "primary": "A comprehensive 2-3 paragraph KAV performance overview summarizing the key findings from all subsections above.",
+    "secondary": "Strategic recommendations for improving KAV: Focus on the highest-impact optimizations that could move KAV closer to benchmark. Include specific next steps and estimated revenue impact."
 }}
 
 GUIDELINES:
 - Write clear, consultant-style insights like you would after reviewing dashboard screenshots
+- Each subsection should be 2-3 paragraphs (not just 1 sentence)
 - Be specific with numbers and percentages  
 - Compare to industry benchmarks
-- Identify 2-3 key opportunities with revenue estimates
+- Include year-over-year comparisons if data suggests trends
+- Identify 3-5 key opportunities with revenue estimates
 - Keep language professional but accessible
 - Focus on actionable insights
-- Return only the JSON object, no markdown formatting"""
+- Return only the JSON object, no markdown formatting
+- The "growing_your_kav" section should match the sample audit format with objectives and action items"""
 
     return prompt

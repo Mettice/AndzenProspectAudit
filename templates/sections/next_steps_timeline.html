@@ -1,0 +1,318 @@
+{# 
+  Next Steps Timeline Section - 30/60/90 Day Plan
+  Should appear near the end, before Strategic Recommendations
+#}
+
+<section class="section page" data-page="next-steps">
+    <h1 class="section-title">Next Steps: 30/60/90 Day Plan</h1>
+    
+    <div class="timeline-container">
+        <p class="timeline-intro">
+            This implementation roadmap prioritizes quick wins and high-impact opportunities, 
+            structured to deliver measurable results within 90 days.
+        </p>
+        
+        <!-- 30 Day Plan -->
+        <div class="timeline-phase">
+            <div class="phase-header">
+                <span class="phase-number">30</span>
+                <div class="phase-title-group">
+                    <h2 class="phase-title">Days 1-30: Foundation & Quick Wins</h2>
+                    <p class="phase-subtitle">Establish baseline and capture immediate opportunities</p>
+                </div>
+            </div>
+            
+            <div class="phase-tasks">
+                {% if strategic_recommendations_data and strategic_recommendations_data.quick_wins %}
+                    {% for quick_win in strategic_recommendations_data.quick_wins[:3] %}
+                    <div class="task-item">
+                        <div class="task-checkbox">☐</div>
+                        <div class="task-content">
+                            {% if quick_win is mapping %}
+                                <h4 class="task-title">{{ quick_win.get("title", quick_win.get("recommendation", "Quick Win")) }}</h4>
+                                <p class="task-description">{{ quick_win.get("description", quick_win.get("action", "")) }}</p>
+                            {% else %}
+                                <h4 class="task-title">{{ quick_win }}</h4>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="task-item">
+                        <div class="task-checkbox">☐</div>
+                        <div class="task-content">
+                            <h4 class="task-title">Technical Audit & Integration Verification</h4>
+                            <p class="task-description">Complete technical diagnostic to identify tracking gaps and verify all integrations are properly configured.</p>
+                        </div>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-checkbox">☐</div>
+                        <div class="task-content">
+                            <h4 class="task-title">Establish Baseline Metrics Dashboard</h4>
+                            <p class="task-description">Create custom dashboard tracking recipients, engagement rates, conversion paths, and revenue attribution.</p>
+                        </div>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-checkbox">☐</div>
+                        <div class="task-content">
+                            <h4 class="task-title">Implement Critical Flow Optimizations</h4>
+                            <p class="task-description">Address highest-impact flow improvements identified in audit, focusing on conversion rate optimization.</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 60 Day Plan -->
+        <div class="timeline-phase">
+            <div class="phase-header">
+                <span class="phase-number">60</span>
+                <div class="phase-title-group">
+                    <h2 class="phase-title">Days 31-60: Expansion & Optimization</h2>
+                    <p class="phase-subtitle">Scale successful initiatives and add new capabilities</p>
+                </div>
+            </div>
+            
+            <div class="phase-tasks">
+                <div class="task-item">
+                    <div class="task-checkbox">☐</div>
+                    <div class="task-content">
+                        <h4 class="task-title">Launch Campaign Calendar</h4>
+                        <p class="task-description">Establish consistent campaign cadence with 2-3 weekly sends to engaged segments, including new arrival announcements and strategic promotional moments.</p>
+                    </div>
+                </div>
+                <div class="task-item">
+                    <div class="task-checkbox">☐</div>
+                    <div class="task-content">
+                        <h4 class="task-title">Implement Advanced Segmentation</h4>
+                        <p class="task-description">Deploy engagement-based segmentation tracks to optimize deliverability and improve campaign relevance.</p>
+                    </div>
+                </div>
+                <div class="task-item">
+                    <div class="task-checkbox">☐</div>
+                    <div class="task-content">
+                        <h4 class="task-title">Expand Flow Library</h4>
+                        <p class="task-description">Add winback flows (90/120/180 day), back-in-stock flows, and VIP/loyalty flows to capture additional revenue opportunities.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 90 Day Plan -->
+        <div class="timeline-phase">
+            <div class="phase-header">
+                <span class="phase-number">90</span>
+                <div class="phase-title-group">
+                    <h2 class="phase-title">Days 61-90: Advanced Strategies & Scale</h2>
+                    <p class="phase-subtitle">Implement advanced tactics and prepare for long-term growth</p>
+                </div>
+            </div>
+            
+            <div class="phase-tasks">
+                <div class="task-item">
+                    <div class="task-checkbox">☐</div>
+                    <div class="task-content">
+                        <h4 class="task-title">Dynamic Product Recommendations</h4>
+                        <p class="task-description">Integrate product recommendation engine across flows and campaigns to increase average order value and cross-sell opportunities.</p>
+                    </div>
+                </div>
+                <div class="task-item">
+                    <div class="task-checkbox">☐</div>
+                    <div class="task-content">
+                        <h4 class="task-title">A/B Testing Framework</h4>
+                        <p class="task-description">Establish systematic testing program for subject lines, send times, content formats, and incentive strategies.</p>
+                    </div>
+                </div>
+                <div class="task-item">
+                    <div class="task-checkbox">☐</div>
+                    <div class="task-content">
+                        <h4 class="task-title">Performance Review & Optimization</h4>
+                        <p class="task-description">Conduct comprehensive 90-day performance review, analyze results against benchmarks, and refine strategy for next quarter.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Success Metrics -->
+        <div class="success-metrics-section">
+            <h2 class="subsection-title">Success Metrics to Track</h2>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <span class="metric-icon">📈</span>
+                    <span class="metric-name">KAV Percentage</span>
+                    <span class="metric-target">Target: 30%+</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-icon">💰</span>
+                    <span class="metric-name">Attributed Revenue</span>
+                    <span class="metric-target">Target: 15-20% increase</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-icon">📧</span>
+                    <span class="metric-name">Campaign Frequency</span>
+                    <span class="metric-target">Target: 2-3x weekly</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-icon">🔄</span>
+                    <span class="metric-name">Flow Conversion Rates</span>
+                    <span class="metric-target">Target: Meet/exceed benchmarks</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.timeline-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.timeline-intro {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    line-height: 1.8;
+    color: #262626;
+    margin-bottom: 3rem;
+    text-align: center;
+}
+
+.timeline-phase {
+    margin: 3rem 0;
+    padding: 2rem;
+    background: #F9FAFB;
+    border-left: 4px solid #65DA4F;
+}
+
+.phase-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.phase-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 4rem;
+    color: #65DA4F;
+    line-height: 1;
+    min-width: 80px;
+}
+
+.phase-title-group {
+    flex: 1;
+}
+
+.phase-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.75rem;
+    color: #000000;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.phase-subtitle {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    color: #666;
+    font-style: italic;
+}
+
+.phase-tasks {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.task-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 4px;
+}
+
+.task-checkbox {
+    font-size: 1.5rem;
+    color: #65DA4F;
+    line-height: 1;
+    margin-top: 0.25rem;
+}
+
+.task-content {
+    flex: 1;
+}
+
+.task-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 0.5rem;
+}
+
+.task-description {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #262626;
+}
+
+.subsection-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.75rem;
+    color: #000000;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 3rem 0 1.5rem 0;
+    border-bottom: 2px solid #65DA4F;
+    padding-bottom: 0.5rem;
+}
+
+.success-metrics-section {
+    margin: 4rem 0 2rem 0;
+    padding: 2rem;
+    background: #FFFFFF;
+    border: 2px solid #65DA4F;
+    border-radius: 8px;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.metric-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1rem;
+    background: #F9FAFB;
+    border-radius: 4px;
+}
+
+.metric-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.metric-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #000000;
+    margin-bottom: 0.25rem;
+}
+
+.metric-target {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    color: #65DA4F;
+    font-weight: 600;
+}
+</style>
+

@@ -18,6 +18,28 @@
         {% endif %}
     </div>
     
+    <!-- Comprehensive Subsections (Enhanced Format) -->
+    {% if data_capture_data.form_performance_overview %}
+    <div class="data-capture-section">
+        <h4 class="subsection-title">Form Performance Overview</h4>
+        <div class="narrative-text">{{ data_capture_data.form_performance_overview|safe }}</div>
+    </div>
+    {% endif %}
+    
+    {% if data_capture_data.high_performers_analysis %}
+    <div class="data-capture-section">
+        <h4 class="subsection-title">High Performers Analysis</h4>
+        <div class="narrative-text">{{ data_capture_data.high_performers_analysis|safe }}</div>
+    </div>
+    {% endif %}
+    
+    {% if data_capture_data.optimization_opportunities %}
+    <div class="data-capture-section">
+        <h4 class="subsection-title">Optimization Opportunities</h4>
+        <div class="narrative-text">{{ data_capture_data.optimization_opportunities|safe }}</div>
+    </div>
+    {% endif %}
+    
     <!-- Form Categorization Summary -->
     {% if data_capture_data.categorized_forms %}
     <div class="form-categorization-section">

@@ -3,6 +3,7 @@ Campaign performance data preparer.
 """
 from typing import Dict, Any, Optional
 import logging
+from ..html_formatter import format_llm_output
 
 logger = logging.getLogger(__name__)
 
@@ -341,10 +342,9 @@ async def prepare_campaign_performance_data(
                 logger.warning("Primary text appears to be JSON string, JSON parsing may have failed")
                 primary_text = ""
         
-        # Format as HTML paragraphs
+        # Format as HTML with markdown conversion
         if primary_text:
-            paragraphs = [p.strip() for p in primary_text.split('\n\n') if p.strip()]
-            narrative = '\n'.join([f'<p>{p}</p>' for p in paragraphs])
+            narrative = format_llm_output(primary_text)
         else:
             narrative = ""
         
@@ -356,8 +356,7 @@ async def prepare_campaign_performance_data(
                 secondary_text = ""
         
         if secondary_text:
-            paragraphs = [p.strip() for p in secondary_text.split('\n\n') if p.strip()]
-            secondary_narrative = '\n'.join([f'<p>{p}</p>' for p in paragraphs])
+            secondary_narrative = format_llm_output(secondary_text)
         else:
             secondary_narrative = ""
         

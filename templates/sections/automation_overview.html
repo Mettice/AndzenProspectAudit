@@ -168,10 +168,9 @@
                 {% set chart_type = "bar_line" %}
                 {% set height = 200 %}
                 {% set data = automation_overview_data.chart_data if automation_overview_data.chart_data else {} %}
-                {% include "components/chart_placeholder.html" %}
-                <div class="chart-legend">
-                    <span class="legend-item"><span class="legend-color" style="background: #65DA4F;"></span> Conversion Value</span>
-                    <span class="legend-item"><span class="legend-color legend-line"></span> Total Recipients</span>
+                <!-- Chart removed - using matplotlib-generated images only -->
+                <div class="chart-error" style="padding: 2rem; text-align: center; color: #666; border: 1px dashed #ccc; border-radius: 8px;">
+                    <p>Chart generation failed. Please check the logs for details.</p>
                 </div>
             </div>
         </div>

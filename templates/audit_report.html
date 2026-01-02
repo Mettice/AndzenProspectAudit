@@ -186,10 +186,21 @@
 {% block content %}
 <!-- Page 1: Cover -->
 {% include "sections/cover.html" with context %}
-
 <div class="page-break"></div>
 
-<!-- Pages 2-3: KAV Analysis -->
+<!-- Page 2: Why Andzen? -->
+{% include "sections/why_andzen.html" with context %}
+<div class="page-break"></div>
+
+<!-- Page 3: Table of Contents -->
+{% include "sections/table_of_contents.html" with context %}
+<div class="page-break"></div>
+
+<!-- Page 4: Executive Summary -->
+{% include "sections/executive_summary_enhanced.html" with context %}
+<div class="page-break"></div>
+
+<!-- Pages 5-6: KAV Analysis -->
 {% if kav_data %}
 {% include "sections/kav_analysis.html" with context %}
 <div class="page-break"></div>
@@ -265,9 +276,14 @@
 <div class="page-break"></div>
 {% endif %}
 
-<!-- Page 19: Phase 3 Strategic Recommendations -->
+<!-- Page 19: Next Steps Timeline (30/60/90 Day Plan) -->
+{% include "sections/next_steps_timeline.html" with context %}
+<div class="page-break"></div>
+
+<!-- Page 20: Phase 3 Strategic Recommendations -->
 {% if strategic_recommendations_data %}
 {% include "sections/strategic_recommendations_enhanced.html" with context %}
+<div class="page-break"></div>
 {% endif %}
 
 {% endblock %}

@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import logging
+from ..chart_generator import get_chart_generator
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +148,13 @@ async def prepare_list_growth_data(
             context=formatted_data.get("context", {})
         )
         
+        # Extract comprehensive subsections (new enhanced format)
+        from ..html_formatter import format_llm_output
+        
+        list_growth_overview = strategic_insights.get("list_growth_overview", "")
+        growth_drivers = strategic_insights.get("growth_drivers", "")
+        attrition_sources = strategic_insights.get("attrition_sources", "")
+        
         # Extract primary narrative - handle both string and dict formats
         primary_raw = strategic_insights.get("primary", "")
         if isinstance(primary_raw, str):
@@ -157,35 +165,16 @@ async def prepare_list_growth_data(
                 logger.warning("Primary narrative appears to be JSON string, JSON parsing may have failed")
                 analysis_text = ""  # Don't display raw JSON
             else:
-                # Format as HTML paragraphs (split on double newlines or single newlines)
-                if primary_str:
-                    # Try splitting on double newlines first, then single newlines
-                    if '\n\n' in primary_str:
-                        paragraphs = [p.strip() for p in primary_str.split('\n\n') if p.strip()]
-                    else:
-                        # Split on single newlines and group into paragraphs
-                        lines = [l.strip() for l in primary_str.split('\n') if l.strip()]
-                        paragraphs = []
-                        current_para = []
-                        for line in lines:
-                            if line.endswith('.') or line.endswith('!') or line.endswith('?'):
-                                current_para.append(line)
-                                paragraphs.append(' '.join(current_para))
-                                current_para = []
-                            else:
-                                current_para.append(line)
-                        if current_para:
-                            paragraphs.append(' '.join(current_para))
-                    
-                    if paragraphs:
-                        analysis_text = '\n'.join([f'<p>{p}</p>' for p in paragraphs])
-                    else:
-                        analysis_text = f'<p>{primary_str}</p>'  # Single paragraph
-                else:
-                    analysis_text = ""
+                # Use format_llm_output for consistent formatting
+                analysis_text = format_llm_output(primary_str) if primary_str else ""
         else:
             # Convert to string and format
-            analysis_text = f'<p>{str(primary_raw)}</p>' if primary_raw else ""
+            analysis_text = format_llm_output(str(primary_raw)) if primary_raw else ""
+        
+        # Format all subsections
+        list_growth_overview = format_llm_output(list_growth_overview) if list_growth_overview else ""
+        growth_drivers = format_llm_output(growth_drivers) if growth_drivers else ""
+        attrition_sources = format_llm_output(attrition_sources) if attrition_sources else ""
         
         recommendations = strategic_insights.get("recommendations", [])
         if not isinstance(recommendations, list):
@@ -233,6 +222,9 @@ async def prepare_list_growth_data(
         else:
             analysis_text = ""
         
+        list_growth_overview = ""
+        growth_drivers = ""
+        attrition_sources = ""
         recommendations = []
         areas_of_opportunity = []
         root_cause_analysis = {}
@@ -256,6 +248,10 @@ async def prepare_list_growth_data(
         "chart_data": list_raw.get("chart_data", {}),
         "net_change_chart_data": list_raw.get("net_change_chart_data", {}),
         "analysis_text": analysis_text,  # LLM-generated analysis
+        # Comprehensive subsections (new enhanced format)
+        "list_growth_overview": list_growth_overview if 'list_growth_overview' in locals() else "",
+        "growth_drivers": growth_drivers if 'growth_drivers' in locals() else "",
+        "attrition_sources": attrition_sources if 'attrition_sources' in locals() else "",
         "recommendations": recommendations if isinstance(recommendations, list) else [],
         "areas_of_opportunity": areas_of_opportunity if isinstance(areas_of_opportunity, list) else [],
         "root_cause_analysis": root_cause_analysis,  # LLM-generated root cause analysis
