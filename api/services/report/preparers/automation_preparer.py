@@ -404,6 +404,29 @@ async def prepare_automation_data(
         analysis_text = ""
         narrative_text = ""
     
+    # Generate flow revenue trend chart
+    flow_performance_chart = ""
+    try:
+        from ..chart_generator import get_chart_generator
+        chart_gen = get_chart_generator()
+        
+        # Prepare flow data for chart (top flows by revenue)
+        flows_for_chart = []
+        for flow in flows:
+            if flow.get("revenue", 0) > 0:
+                flows_for_chart.append({
+                    "name": flow.get("name", "Unknown Flow"),
+                    "revenue": flow.get("revenue", 0)
+                })
+        
+        if flows_for_chart:
+            flow_performance_chart = chart_gen.generate_flow_revenue_trend_chart(flows_for_chart, top_n=5)
+            if flow_performance_chart:
+                logger.info(f"Generated flow revenue trend chart for automation overview ({len(flow_performance_chart)} chars)")
+    except Exception as e:
+        import traceback
+        logger.error(f"Error generating flow performance chart for automation overview: {e}\n{traceback.format_exc()}")
+    
     return {
         "period_days": automation_raw.get("period_days", 90),
         "flows": flows,  # All flows should be included
@@ -415,6 +438,7 @@ async def prepare_automation_data(
             "recipients_vs_previous": automation_raw.get("summary", {}).get("recipients_vs_previous", 0)
         },
         "chart_data": automation_raw.get("chart_data", {}),
+        "flow_performance_chart": flow_performance_chart,  # Generated chart image
         "narrative": narrative,  # LLM-generated narrative (HTML formatted)
         "analysis_text": analysis_text,  # LLM-generated analysis (HTML formatted)
         "narrative_text": narrative_text,  # LLM-generated narrative text (HTML formatted)

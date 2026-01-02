@@ -239,7 +239,8 @@ class ChartGenerator:
             return self._fig_to_base64(fig)
             
         except Exception as e:
-            logger.error(f"Error generating flow performance chart: {e}")
+            import traceback
+            logger.error(f"Error generating flow performance chart: {e}\n{traceback.format_exc()}")
             return ""
     
     def generate_kav_revenue_chart(

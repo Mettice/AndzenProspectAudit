@@ -166,6 +166,7 @@
 .timeline-container {
     max-width: 1000px;
     margin: 0 auto;
+    padding: 0 2rem;
 }
 
 .timeline-intro {
@@ -174,14 +175,19 @@
     line-height: 1.8;
     color: #262626;
     margin-bottom: 3rem;
-    text-align: center;
+    padding-left: 0;
 }
 
 .timeline-phase {
     margin: 3rem 0;
-    padding: 2rem;
-    background: #F9FAFB;
-    border-left: 4px solid #65DA4F;
+    padding: 0;
+    background: #FFFFFF;
+    border-left: 5px solid #65DA4F;
+    position: relative;
+    padding-left: 2rem;
+    padding-right: 2rem;
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
 }
 
 .phase-header {
@@ -189,33 +195,49 @@
     align-items: flex-start;
     gap: 1.5rem;
     margin-bottom: 2rem;
+    position: relative;
 }
 
 .phase-number {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 4rem;
-    color: #65DA4F;
+    font-size: 3.5rem;
+    color: #FFFFFF;
+    background: #65DA4F;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     line-height: 1;
-    min-width: 80px;
+    font-weight: 700;
+    position: absolute;
+    left: -2.5rem;
+    top: 0;
+    box-shadow: 0 2px 8px rgba(101, 218, 79, 0.3);
 }
 
 .phase-title-group {
     flex: 1;
+    margin-left: 2rem;
 }
 
 .phase-title {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     color: #000000;
     text-transform: uppercase;
     margin-bottom: 0.5rem;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
 }
 
 .phase-subtitle {
     font-family: 'Montserrat', sans-serif;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: #666;
     font-style: italic;
+    margin-top: 0.25rem;
 }
 
 .phase-tasks {
@@ -227,17 +249,26 @@
 .task-item {
     display: flex;
     gap: 1rem;
-    padding: 1.25rem;
+    padding: 1rem 1.25rem;
     background: #FFFFFF;
     border: 1px solid #E5E7EB;
     border-radius: 4px;
+    margin-left: 2rem;
+    transition: all 0.2s ease;
+}
+
+.task-item:hover {
+    border-color: #65DA4F;
+    box-shadow: 0 2px 8px rgba(101, 218, 79, 0.1);
 }
 
 .task-checkbox {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     color: #65DA4F;
     line-height: 1;
     margin-top: 0.25rem;
+    min-width: 24px;
+    text-align: center;
 }
 
 .task-content {

@@ -102,6 +102,18 @@
                 </tr>
             </tbody>
         </table>
+        
+        <!-- Generated Performance Comparison Chart -->
+        {% if post_purchase_data.performance_chart %}
+        <div class="generated-chart" style="margin-top: 2rem;">
+            <img src="{{ post_purchase_data.performance_chart }}" alt="Post Purchase Performance vs Benchmarks" style="width: 100%; max-width: 1000px; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <p class="chart-caption" style="text-align: center; margin-top: 10px; font-size: 0.9em; color: #666;">The chart above compares your Post Purchase flow performance against industry averages and top 10% benchmarks.</p>
+        </div>
+        {% else %}
+        <div class="chart-error" style="padding: 1rem; text-align: center; color: #666; font-size: 0.9em; margin-top: 1rem;">
+            Chart data not available
+        </div>
+        {% endif %}
     </div>
     
     <!-- Comprehensive Performance Analysis (Enhanced Format) -->

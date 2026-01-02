@@ -390,29 +390,46 @@ async def prepare_flow_data(
     try:
         chart_gen = get_chart_generator()
         flow_perf = flow_raw.get("performance", {})
-        chart_flow_data = {
-            "open_rate": flow_perf.get("open_rate", 0),
-            "click_rate": flow_perf.get("click_rate", 0),
-            "conversion_rate": flow_perf.get("conversion_rate", flow_perf.get("placed_order_rate", 0))
-        }
-        chart_benchmarks = {
-            "average": benchmark,
-            "top_10": {
-                "open_rate": flow_benchmarks.get("open_rate", {}).get("top_10", 0),
-                "click_rate": flow_benchmarks.get("click_rate", {}).get("top_10", 0),
-                "conversion_rate": flow_benchmarks.get("conversion_rate", {}).get("top_10", 0)
+        
+        # Validate we have data to chart
+        open_rate = flow_perf.get("open_rate", 0)
+        click_rate = flow_perf.get("click_rate", 0)
+        conversion_rate = flow_perf.get("conversion_rate", flow_perf.get("placed_order_rate", 0))
+        
+        # Only generate chart if we have meaningful data
+        if open_rate > 0 or click_rate > 0 or conversion_rate > 0:
+            chart_flow_data = {
+                "open_rate": open_rate,
+                "click_rate": click_rate,
+                "conversion_rate": conversion_rate
             }
-        }
-        chart_image = chart_gen.generate_flow_performance_chart(
-            chart_flow_data, 
-            chart_benchmarks,
-            flow_name=flow_raw.get("flow_name", flow_type.replace("_", " ").title())
-        )
-        if chart_image:
-            result["performance_chart"] = chart_image
-            logger.info(f"Generated performance chart for {flow_raw.get('flow_name', flow_type)}")
+            chart_benchmarks = {
+                "average": benchmark,
+                "top_10": {
+                    "open_rate": flow_benchmarks.get("open_rate", {}).get("top_10", 0),
+                    "click_rate": flow_benchmarks.get("click_rate", {}).get("top_10", 0),
+                    "conversion_rate": flow_benchmarks.get("conversion_rate", {}).get("top_10", 0)
+                }
+            }
+            
+            logger.info(f"Generating performance chart for {flow_raw.get('flow_name', flow_type)} with data: {chart_flow_data}")
+            chart_image = chart_gen.generate_flow_performance_chart(
+                chart_flow_data, 
+                chart_benchmarks,
+                flow_name=flow_raw.get("flow_name", flow_type.replace("_", " ").title())
+            )
+            if chart_image and len(chart_image) > 100:  # Ensure we got actual image data
+                result["performance_chart"] = chart_image
+                logger.info(f"✓ Generated performance chart for {flow_raw.get('flow_name', flow_type)} ({len(chart_image)} chars)")
+            else:
+                logger.warning(f"Chart generation returned empty/invalid data for {flow_raw.get('flow_name', flow_type)}")
+                result["performance_chart"] = ""
+        else:
+            logger.info(f"Skipping chart generation for {flow_raw.get('flow_name', flow_type)} - no performance data")
+            result["performance_chart"] = ""
     except Exception as e:
-        logger.error(f"Error generating flow performance chart: {e}")
+        import traceback
+        logger.error(f"Error generating flow performance chart for {flow_raw.get('flow_name', flow_type)}: {e}\n{traceback.format_exc()}")
         result["performance_chart"] = ""
     
     return result

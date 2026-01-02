@@ -170,63 +170,92 @@ async def chat_about_report(
                     section_list.append(f"- {section_id}: {section_title.get_text().strip()[:50]}")
         
         # Build prompt with report context
-        # Use smarter context extraction - prioritize sections mentioned in chat history
+        # Extract structured text content from HTML (not raw HTML)
         report_context = ""
         if html_content:
-            # If user mentioned specific sections in history, prioritize those
-            mentioned_sections = []
-            for msg in formatted_history[-5:]:  # Check last 5 messages
-                if isinstance(msg, dict) and 'content' in msg:
-                    import re
-                    # Look for section mentions (e.g., "executive summary", "KAV analysis")
-                    section_patterns = [
-                        r'executive\s+summary', r'kav\s+analysis', r'campaign\s+performance',
-                        r'flow\s+performance', r'data\s+capture', r'segmentation',
-                        r'list\s+growth', r'automation', r'strategic\s+recommendations'
-                    ]
-                    for pattern in section_patterns:
-                        if re.search(pattern, msg['content'], re.IGNORECASE):
-                            mentioned_sections.append(pattern.replace(r'\s+', '_'))
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html_content, 'html.parser')
             
-            # Extract full report context (limit to 50k chars)
-            if len(html_content) <= 50000:
-                report_context = html_content
-            else:
-                # If too large, extract key sections first
-                from bs4 import BeautifulSoup
-                soup = BeautifulSoup(html_content, 'html.parser')
-                
-                # Priority sections to always include
-                priority_sections = ['executive_summary', 'kav_analysis', 'strategic_recommendations']
-                context_parts = []
-                
-                for section_id in priority_sections:
-                    section = soup.find('section', {'data-section': section_id}) or \
-                             soup.find('div', {'id': section_id})
-                    if section:
-                        context_parts.append(str(section)[:10000])  # 10k per priority section
-                
-                # Add remaining content up to limit
-                remaining = 50000 - sum(len(p) for p in context_parts)
-                if remaining > 0:
-                    # Get text content (strip HTML tags for more text)
-                    text_content = soup.get_text()[:remaining]
-                    context_parts.append(text_content)
-                
-                report_context = '\n\n'.join(context_parts)
+            # Extract key metrics and data from tables and sections
+            context_parts = []
+            
+            # Extract KAV metrics
+            kav_section = soup.find('section', {'data-section': 'kav_analysis'}) or \
+                         soup.find('div', {'id': 'kav_analysis'})
+            if kav_section:
+                kav_text = kav_section.get_text(separator='\n', strip=True)
+                # Extract key numbers
+                kav_tables = kav_section.find_all('table')
+                for table in kav_tables:
+                    rows = table.find_all('tr')
+                    for row in rows:
+                        cells = row.find_all(['td', 'th'])
+                        if len(cells) >= 2:
+                            context_parts.append(f"{cells[0].get_text(strip=True)}: {cells[1].get_text(strip=True)}")
+                context_parts.append(f"\nKAV Analysis Summary:\n{kav_text[:3000]}\n")
+            
+            # Extract Executive Summary
+            exec_section = soup.find('section', {'data-section': 'executive_summary'}) or \
+                          soup.find('div', {'id': 'executive_summary'})
+            if exec_section:
+                exec_text = exec_section.get_text(separator='\n', strip=True)
+                context_parts.append(f"\nExecutive Summary:\n{exec_text[:2000]}\n")
+            
+            # Extract Strategic Recommendations
+            strategic_section = soup.find('section', {'data-section': 'strategic_recommendations'}) or \
+                               soup.find('div', {'id': 'strategic_recommendations'})
+            if strategic_section:
+                strategic_text = strategic_section.get_text(separator='\n', strip=True)
+                context_parts.append(f"\nStrategic Recommendations:\n{strategic_text[:3000]}\n")
+            
+            # Extract flow performance data
+            flow_sections = soup.find_all('section', {'data-section': lambda x: x and ('flow' in x.lower() or 'welcome' in x.lower() or 'abandoned' in x.lower())})
+            for flow_section in flow_sections[:5]:  # Limit to 5 flows
+                flow_name = flow_section.get('data-section', 'Unknown Flow')
+                flow_text = flow_section.get_text(separator='\n', strip=True)
+                # Extract performance metrics from tables
+                flow_tables = flow_section.find_all('table')
+                flow_metrics = []
+                for table in flow_tables:
+                    rows = table.find_all('tr')
+                    for row in rows:
+                        cells = row.find_all(['td', 'th'])
+                        if len(cells) >= 2:
+                            flow_metrics.append(f"{cells[0].get_text(strip=True)}: {cells[1].get_text(strip=True)}")
+                if flow_metrics:
+                    context_parts.append(f"\n{flow_name} Performance:\n" + "\n".join(flow_metrics[:10]) + "\n")
+            
+            # Extract campaign performance
+            campaign_section = soup.find('section', {'data-section': 'campaign_performance'}) or \
+                              soup.find('div', {'id': 'campaign_performance'})
+            if campaign_section:
+                campaign_text = campaign_section.get_text(separator='\n', strip=True)
+                context_parts.append(f"\nCampaign Performance:\n{campaign_text[:2000]}\n")
+            
+            # Extract list growth data
+            list_section = soup.find('section', {'data-section': 'list_growth'}) or \
+                         soup.find('div', {'id': 'list_growth'})
+            if list_section:
+                list_text = list_section.get_text(separator='\n', strip=True)
+                context_parts.append(f"\nList Growth:\n{list_text[:1500]}\n")
+            
+            # Combine all context (limit to 40k chars for safety)
+            report_context = '\n'.join(context_parts)
+            if len(report_context) > 40000:
+                report_context = report_context[:40000] + "\n[... content truncated ...]"
         else:
             report_context = "Report content not available. Please ask general questions about Klaviyo audits."
         
-        prompt = f"""You are an expert email marketing consultant reviewing an audit report for a client.
+        prompt = f"""You are an expert email marketing consultant reviewing a Klaviyo audit report for a client named {report.client_name}.
 
-REPORT CONTEXT:
+AUDIT REPORT CONTEXT:
 {report_context}
 
 AVAILABLE SECTIONS IN REPORT:
 {chr(10).join(section_list) if section_list else "No sections identified"}
 
-CHAT HISTORY:
-{formatted_history[-10:]}  # Last 10 messages
+CHAT HISTORY (last 10 messages):
+{chr(10).join([f"{msg.get('role', 'unknown')}: {msg.get('content', msg.get('message', ''))}" for msg in formatted_history[-10:]])}
 
 CURRENT USER MESSAGE:
 {message.message}
@@ -235,33 +264,31 @@ CURRENT USER MESSAGE:
 {section_context if section_context else ""}
 
 INSTRUCTIONS:
-1. Answer the user's question based on the audit report content
-2. Reference specific sections and metrics when relevant - use the exact section_id from the list above
-3. If the user asks to edit something, suggest the edit but don't apply it yet
-4. Be conversational but professional
-5. If asked about opportunities, reference the "Areas of Opportunity" tables
-6. If asked about revenue, reference the KAV section
-7. If the user asks to "go to" or "show" a section, include it in section_references so the UI can navigate there
-8. You can suggest edits to any section - use the section_id from the available sections list
-9. When suggesting edits, provide the full HTML content for that section (preserve structure)
+1. Answer the user's question based on the audit report content above
+2. Reference specific sections and metrics when relevant - use the exact section_id from the available sections list
+3. If the user asks about KAV, revenue, or performance metrics, reference the specific numbers from the report context
+4. If asked about opportunities, reference the "Areas of Opportunity" or recommendations mentioned in the report
+5. Be conversational but professional - write as if you're explaining the audit findings to the client
+6. If the user asks to "go to" or "show" a section, include it in section_references so the UI can navigate there
+7. If the user asks to edit something, suggest the edit but don't apply it yet - include it in suggested_edits
+8. When suggesting edits, provide the full HTML content for that section (preserve structure)
 
-RESPOND IN JSON FORMAT:
+IMPORTANT: You MUST respond with valid JSON only. Do not include any text before or after the JSON object.
+
+RESPOND IN THIS EXACT JSON FORMAT (no markdown, no code blocks, just raw JSON):
 {{
-    "response": "Your conversational response to the user",
-    "suggested_edits": [  // Optional: if user requested edits
-        {{
-            "section_id": "executive_summary",  // Must match a section from the available sections list
-            "reason": "User asked to make it more concise",
-            "new_content": "<div>Updated HTML content...</div>"  // Full HTML for the section
-        }}
-    ],
-    "section_references": ["executive_summary", "kav_analysis"],  // Sections you referenced - UI will scroll to these
-    "navigation_actions": [  // Optional: if user wants to navigate
-        {{
-            "action": "scroll_to",  // or "highlight"
-            "section_id": "kav_analysis"
-        }}
-    ]
+    "response": "Your conversational response to the user based on the audit report context",
+    "suggested_edits": [],
+    "section_references": [],
+    "navigation_actions": []
+}}
+
+Example response for "why is the kav low?":
+{{
+    "response": "Based on the audit report, your KAV (Klaviyo Attributed Value) percentage is shown in the KAV Analysis section. This indicates that [explanation based on report context]. To improve this, I recommend [specific recommendations from the report].",
+    "suggested_edits": [],
+    "section_references": ["kav_analysis", "strategic_recommendations"],
+    "navigation_actions": [{{"action": "scroll_to", "section_id": "kav_analysis"}}]
 }}"""
         
         # Call LLM
@@ -579,10 +606,42 @@ async def generate_quote(
             ChatMessageModel.report_id == report_id
         ).order_by(ChatMessageModel.created_at.desc()).limit(10).all()
         
-        # Initialize LLM service
+        # Initialize LLM service (use report's LLM config if available)
         llm_config = {}
         if hasattr(report, 'llm_config') and report.llm_config:
-            llm_config = report.llm_config
+            # If llm_config is stored as JSON string (SQLite), parse it
+            if isinstance(report.llm_config, str):
+                import json
+                try:
+                    llm_config = json.loads(report.llm_config)
+                except (json.JSONDecodeError, TypeError):
+                    llm_config = {}
+            else:
+                llm_config = report.llm_config or {}
+        
+        # Fallback to environment variables if no config or missing API key
+        import os
+        provider = llm_config.get("provider", "claude")
+        
+        # Ensure we have an API key for the selected provider
+        if provider == "claude" and not llm_config.get("anthropic_api_key"):
+            llm_config["anthropic_api_key"] = os.getenv("ANTHROPIC_API_KEY")
+        elif provider == "openai" and not llm_config.get("openai_api_key"):
+            llm_config["openai_api_key"] = os.getenv("OPENAI_API_KEY")
+        elif provider == "gemini" and not llm_config.get("gemini_api_key"):
+            llm_config["gemini_api_key"] = os.getenv("GOOGLE_API_KEY")
+        
+        # Ensure provider is set
+        if not llm_config.get("provider"):
+            llm_config["provider"] = "claude"
+        
+        # Validate we have an API key
+        if provider == "claude" and not llm_config.get("anthropic_api_key"):
+            raise HTTPException(status_code=400, detail="Anthropic API key not found. Please ensure the API key was provided during audit generation.")
+        elif provider == "openai" and not llm_config.get("openai_api_key"):
+            raise HTTPException(status_code=400, detail="OpenAI API key not found. Please ensure the API key was provided during audit generation.")
+        elif provider == "gemini" and not llm_config.get("gemini_api_key"):
+            raise HTTPException(status_code=400, detail="Gemini API key not found. Please ensure the API key was provided during audit generation.")
         
         llm_service = LLMService(
             default_provider=llm_config.get("provider", "claude"),
@@ -594,21 +653,73 @@ async def generate_quote(
             gemini_model=llm_config.get("gemini_model")
         )
         
+        # Extract key metrics and opportunities from report HTML
+        from bs4 import BeautifulSoup
+        key_metrics = {}
+        opportunities = []
+        
+        if report.html_content:
+            soup = BeautifulSoup(report.html_content, 'html.parser')
+            
+            # Extract KAV percentage and revenue
+            kav_section = soup.find('section', {'data-section': 'kav_analysis'}) or \
+                         soup.find('div', {'id': 'kav_analysis'})
+            if kav_section:
+                kav_tables = kav_section.find_all('table')
+                for table in kav_tables:
+                    rows = table.find_all('tr')
+                    for row in rows:
+                        cells = row.find_all(['td', 'th'])
+                        if len(cells) >= 2:
+                            label = cells[0].get_text(strip=True).lower()
+                            value = cells[1].get_text(strip=True)
+                            if 'kav' in label or 'attributed' in label:
+                                key_metrics['kav_percentage'] = value
+                            if 'revenue' in label:
+                                key_metrics['revenue'] = value
+            
+            # Extract strategic recommendations and opportunities
+            strategic_section = soup.find('section', {'data-section': 'strategic_recommendations'}) or \
+                               soup.find('div', {'id': 'strategic_recommendations'})
+            if strategic_section:
+                # Extract recommendation cards or lists
+                recommendations = strategic_section.find_all(['div', 'li'], class_=lambda x: x and ('recommendation' in x.lower() or 'opportunity' in x.lower()))
+                for rec in recommendations[:10]:  # Limit to 10
+                    rec_text = rec.get_text(strip=True)
+                    if rec_text and len(rec_text) > 20:
+                        opportunities.append(rec_text)
+            
+            # Extract areas of opportunity from tables
+            opp_tables = soup.find_all('table', class_=lambda x: x and 'opportunity' in str(x).lower())
+            for table in opp_tables:
+                rows = table.find_all('tr')[1:]  # Skip header
+                for row in rows[:5]:  # Limit to 5
+                    cells = row.find_all('td')
+                    if len(cells) >= 2:
+                        opp_name = cells[0].get_text(strip=True)
+                        opp_value = cells[1].get_text(strip=True) if len(cells) > 1 else ""
+                        if opp_name:
+                            opportunities.append(f"{opp_name}: {opp_value}")
+        
         # Build quote generation prompt
         priorities_text = ""
         if quote_request.priorities:
             priorities_text = "\n".join([f"- {p}" for p in quote_request.priorities])
+        elif opportunities:
+            priorities_text = "\n".join([f"- {opp}" for opp in opportunities[:5]])
+        
+        metrics_summary = "\n".join([f"{k}: {v}" for k, v in key_metrics.items()])
         
         prompt = f"""You are a sales consultant creating a professional quote for {report.client_name} based on their Klaviyo audit.
 
-AUDIT REPORT SUMMARY:
-{report.html_content[:10000]}  # First 10k chars for context
+KEY METRICS FROM AUDIT:
+{metrics_summary if metrics_summary else "See audit report for detailed metrics"}
+
+KEY OPPORTUNITIES IDENTIFIED:
+{priorities_text if priorities_text else "Top 3-5 recommendations from the audit"}
 
 RECENT CHAT CONTEXT:
 {chr(10).join([f"{msg.role}: {msg.message}" for msg in chat_history[:5]])}
-
-PRIORITIES TO INCLUDE:
-{priorities_text if priorities_text else "Top 3-5 recommendations from the audit"}
 
 CUSTOM INSTRUCTIONS:
 {quote_request.custom_message or "Create a comprehensive quote covering the main opportunities identified in the audit."}
