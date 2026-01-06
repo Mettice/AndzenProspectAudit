@@ -237,6 +237,14 @@ async def process_audit_background(
             word_url = generated_report.get("word_url")
             html_content = generated_report.get("html_content")
             
+            # Extract revenue from audit_data for dashboard
+            kav_data = audit_data.get("kav_data", {})
+            revenue_data = kav_data.get("revenue", {})
+            totals = kav_data.get("totals", {})
+            
+            total_revenue = totals.get("total_revenue", 0) or revenue_data.get("total_website", 0)
+            attributed_revenue = totals.get("attributed_revenue", 0) or revenue_data.get("attributed", 0)
+            
             report.filename = generated_report.get("filename", report.filename)
             if html_url:
                 report.file_path_html = Path(html_url).name if html_url else None
@@ -248,6 +256,13 @@ async def process_audit_background(
                 report.html_content = html_content
             if llm_config:
                 report.llm_config = llm_config
+            
+            # Store revenue for dashboard
+            if total_revenue:
+                report.total_revenue = str(total_revenue)
+            if attributed_revenue:
+                report.attributed_revenue = str(attributed_revenue)
+            
             report.status = ReportStatus.COMPLETED
             
             html_filename = Path(html_url).name if html_url else None

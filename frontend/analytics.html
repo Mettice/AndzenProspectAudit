@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics Dashboard - Andzen Audit Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="components.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- Top Navigation -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="logo">
+          <span class="logo-icon">🚀</span>
+          <span class="logo-text">ANDZEN</span>
+          <span class="logo-subtitle">Analytics</span>
+        </div>
+      </div>
+      
+      <div class="nav-right">
+        <button class="btn-back" onclick="window.location.href='dashboard.html'">← Dashboard</button>
+      </div>
+    </header>
+
+    <!-- Main Analytics Content -->
+    <main class="dashboard">
+      
+      <!-- Revenue Trends Chart -->
+      <section class="analytics-section">
+        <div class="section-header">
+          <h2>Revenue Trends</h2>
+          <div class="period-selector">
+            <button class="period-btn active" data-period="month">Month</button>
+            <button class="period-btn" data-period="week">Week</button>
+            <button class="period-btn" data-period="day">Day</button>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="revenue-trends-chart"></canvas>
+        </div>
+      </section>
+
+      <!-- Client Performance Table -->
+      <section class="analytics-section">
+        <div class="section-header">
+          <h2>Top Clients by Revenue</h2>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Audits</th>
+                <th>Total Revenue</th>
+                <th>Attributed Revenue</th>
+                <th>Avg per Audit</th>
+                <th>Last Audit</th>
+              </tr>
+            </thead>
+            <tbody id="client-performance-table">
+              <tr>
+                <td colspan="6" class="loading">Loading client performance...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Industry Statistics -->
+      <section class="analytics-section">
+        <div class="section-header">
+          <h2>Performance by Industry</h2>
+        </div>
+        <div class="chart-container">
+          <canvas id="industry-chart"></canvas>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="js/analytics.js"></script>
+</body>
+</html>
+

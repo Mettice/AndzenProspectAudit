@@ -13,6 +13,7 @@ from api.models.report import Report, ReportStatus
 from api.services.klaviyo import KlaviyoService
 from api.services.report import EnhancedReportService
 from api.database import SessionLocal, IS_POSTGRES
+from api.utils.security import validate_prompt_data
 from .shared_state import get_report_cache, get_running_tasks
 from .background_tasks import process_audit_background
 
@@ -28,6 +29,25 @@ async def handle_generate_audit(request: AuditRequest, background_tasks: Backgro
     _running_tasks = get_running_tasks()
     
     try:
+        # Sanitize and validate user inputs to prevent injection attacks
+        try:
+            sanitized_data = validate_prompt_data({
+                "client_name": request.client_name,
+                "auditor_name": getattr(request, 'auditor_name', None),
+                "industry": getattr(request, 'industry', None),
+                "client_code": getattr(request, 'client_code', None)
+            })
+            # Update request with sanitized values
+            request.client_name = sanitized_data.get("client_name", request.client_name)
+            if hasattr(request, 'auditor_name') and sanitized_data.get("auditor_name"):
+                request.auditor_name = sanitized_data["auditor_name"]
+            if hasattr(request, 'industry') and sanitized_data.get("industry"):
+                request.industry = sanitized_data["industry"]
+            if hasattr(request, 'client_code') and sanitized_data.get("client_code"):
+                request.client_code = sanitized_data["client_code"]
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        
         print(f"🚀 Starting async audit generation for {request.client_name}...")
         
         # Get LLM API key from request (prioritize request over env vars)

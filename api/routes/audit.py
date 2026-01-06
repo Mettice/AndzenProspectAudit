@@ -366,7 +366,7 @@ async def generate_audit(request: AuditRequest, background_tasks: BackgroundTask
         llm_config = {
             "provider": request.llm_provider or "claude",
             "anthropic_api_key": request.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY"),
-            "claude_model": request.claude_model or os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5"),
+            "claude_model": request.claude_model or os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
             "openai_api_key": request.openai_api_key or os.getenv("OPENAI_API_KEY"),
             "openai_model": request.openai_model or os.getenv("OPENAI_MODEL", "gpt-4o"),
             "gemini_api_key": request.gemini_api_key or os.getenv("GOOGLE_API_KEY"),

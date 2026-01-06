@@ -2,29 +2,38 @@
 Base utilities for prompt generation.
 """
 from typing import Dict, Any
+from api.utils.security import validate_prompt_data, sanitize_prompt_input
 
 
-def format_data_for_prompt(data: Dict[str, Any], indent: int = 0) -> str:
+def format_data_for_prompt(data: Dict[str, Any], indent: int = 0, sanitize: bool = True) -> str:
     """
-    Format data dictionary for prompt readability.
+    Format data dictionary for prompt readability with optional sanitization.
     
     Args:
         data: Data dictionary to format
         indent: Indentation level
+        sanitize: Whether to sanitize user-controlled inputs
     
     Returns:
         Formatted string representation
     """
+    if sanitize:
+        # Sanitize user-controlled inputs before formatting
+        data = validate_prompt_data(data)
+    
     lines = []
     prefix = "  " * indent
     
     for key, value in data.items():
         if isinstance(value, dict):
             lines.append(f"{prefix}{key}:")
-            lines.append(format_data_for_prompt(value, indent + 1))
+            lines.append(format_data_for_prompt(value, indent + 1, sanitize=False))  # Already sanitized
         elif isinstance(value, list):
             lines.append(f"{prefix}{key}: {len(value)} items")
         else:
+            # Additional sanitization for string values in prompts
+            if isinstance(value, str) and sanitize:
+                value = sanitize_prompt_input(value, max_length=500)
             lines.append(f"{prefix}{key}: {value}")
     
     return "\n".join(lines)

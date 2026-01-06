@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Report | Andzen</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="report-viewer.css">
+  <!-- Audit report styles will be loaded dynamically by JavaScript -->
+  <style>
+    /* Viewer-specific overrides for report content */
+    /* These ensure report styles work within the viewer container */
+
+    /* Reset page-break styles that don't work in web viewer */
+    .page-content {
+      page-break-after: unset !important;
+      page-break-before: unset !important;
+    }
+
+    /* Ensure sections fit within viewer */
+    .page-content .section,
+    .page-content .cover-page,
+    .page-content [data-section] {
+      min-height: unset !important;
+      height: auto !important;
+      page-break-after: unset !important;
+    }
+
+    /* Optimized layout for better fit */
+    .page-content {
+      padding: 25px 40px 30px 40px !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Ensure content starts at top */
+    .page-content>*:first-child,
+    .page-content section:first-child>*:first-child {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
+
+    /* Optimize spacing for better fit */
+    .page-content h1,
+    .page-content h2 {
+      margin-top: 1rem !important;
+      margin-bottom: 1rem !important;
+    }
+
+    .page-content h1:first-child,
+    .page-content h2:first-child {
+      margin-top: 0 !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Page-by-Page Report Viewer -->
+  <div class="report-workspace">
+
+    <!-- Left Sidebar - Navigation -->
+    <aside class="report-sidebar">
+      <div class="report-header">
+        <button class="btn-back">← Dashboard</button>
+        <div class="report-title">
+          <h1>Loading...</h1>
+          <p>Loading report data...</p>
+        </div>
+      </div>
+
+      <nav class="section-nav">
+        <!-- Navigation will be dynamically populated based on report sections -->
+        <div class="nav-loading" style="padding: 20px; color: var(--text-muted); text-align: center;">
+          <p>Loading sections...</p>
+        </div>
+      </nav>
+
+      <!-- Export Options -->
+      <div class="export-section">
+        <h4>Export Report</h4>
+        <div class="export-buttons">
+          <button class="btn-export pdf">📄 PDF</button>
+          <button class="btn-export word">📝 Word</button>
+          <button class="btn-export html">🌐 HTML</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Report Content Area -->
+    <main class="report-content">
+
+      <!-- Page Container (Book-like Experience) - Dynamically populated -->
+      <div class="page-container" id="page-container">
+        <!-- Loading state -->
+        <div class="report-page active" id="page-loading">
+          <div class="page-content"
+            style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px;">
+            <div class="loading-spinner"
+              style="width: 50px; height: 50px; border: 4px solid var(--page-border); border-top-color: var(--andzen-green); border-radius: 50%; animation: spin 1s linear infinite;">
+            </div>
+            <p style="margin-top: 20px; color: var(--text-secondary);">Loading report...</p>
+          </div>
+        </div>
+      </div>
+
+      <style>
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      </style>
+
+      <!-- Page Navigation Controls -->
+      <div class="page-controls">
+        <button class="btn-nav prev" disabled>← Previous</button>
+
+        <div class="page-indicator">
+          <span class="current-page">1</span>
+          <span class="page-separator">/</span>
+          <span class="total-pages">...</span>
+        </div>
+
+        <button class="btn-nav next">Next →</button>
+      </div>
+
+    </main>
+
+    <!-- Right Sidebar - Chat + Quote Generation -->
+    <aside class="chat-sidebar">
+      <div class="sidebar-tabs">
+        <button class="tab-btn active" data-tab="chat">💬 AI Assistant</button>
+        <button class="tab-btn" data-tab="quotes">📋 Quote Builder</button>
+      </div>
+
+      <!-- Chat Interface -->
+      <div class="tab-content active" id="chat-content">
+        <div class="chat-header">
+          <h3>AI Audit Assistant</h3>
+          <p>Ask questions about this audit</p>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+          <div class="message assistant">
+            <div class="message-avatar">🤖</div>
+            <div class="message-content">
+              <p>Hi! I've analyzed this client's Klaviyo data. Ask me anything about their email marketing performance,
+                flows, campaigns, or strategic recommendations.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input">
+          <input type="text" placeholder="Ask about this audit..." id="chat-input">
+          <button class="btn-send">Send</button>
+        </div>
+      </div>
+
+      <!-- Quote Builder Interface -->
+      <div class="tab-content" id="quotes-content">
+        <div class="quote-header">
+          <h3>Strategic Quote Builder</h3>
+          <p>Build improvement proposal</p>
+        </div>
+
+        <div class="quote-items" id="quote-items">
+          <div class="quote-empty" style="padding: 20px; color: var(--text-muted); text-align: center;">
+            <p>No items in quote yet.</p>
+            <p style="font-size: 12px; margin-top: 8px;">Add items by clicking "Add to Quote" in the chat.</p>
+          </div>
+        </div>
+
+        <div class="quote-summary">
+          <div class="summary-totals">
+            <div class="total-effort">
+              <span class="label">Total Effort:</span>
+              <span class="value" id="total-effort">0 hours</span>
+            </div>
+            <div class="total-impact">
+              <span class="label">Monthly Impact:</span>
+              <span class="value" id="total-impact">$0</span>
+            </div>
+          </div>
+
+          <button class="btn-generate-quote">Generate Full Proposal</button>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Load modules in dependency order -->
+  <script src="js/report-modules/StyleManager.js"></script>
+  <script src="js/report-modules/TabSwitching.js"></script>
+  <script src="js/report-modules/ReportRenderer.js"></script>
+  <script src="js/report-modules/PageNavigator.js"></script>
+  <script src="js/report-modules/ChatInterface.js"></script>
+  <script src="js/report-modules/EditModal.js"></script>
+  <script src="js/report-modules/QuoteBuilder.js"></script>
+  <script src="js/report-modules/ExportManager.js"></script>
+
+  <!-- Main coordinator -->
+  <script src="js/ReportViewer.js"></script>
+</body>
+
+</html>

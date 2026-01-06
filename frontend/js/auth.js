@@ -73,23 +73,78 @@
 
   // Show login form
   function showLogin() {
-    document.getElementById('login-section').style.display = 'block';
-    document.getElementById('app-section').style.display = 'none';
-    document.getElementById('user-info').style.display = 'none';
+    // Hide all sections
+    const sections = document.querySelectorAll('main[id$="-section"]');
+    sections.forEach(section => {
+      section.style.display = 'none';
+    });
+    
+    // Show login section
+    const loginSection = document.getElementById('login-section');
+    if (loginSection) {
+      loginSection.style.display = 'flex';
+    }
+    
+    // Hide user info
+    const userInfo = document.getElementById('user-info');
+    if (userInfo) {
+      userInfo.style.display = 'none';
+    }
   }
 
-  // Show main application
+  // Show main application (dashboard)
   function showApp() {
-    document.getElementById('login-section').style.display = 'none';
-    document.getElementById('app-section').style.display = 'grid';
-    document.getElementById('user-info').style.display = 'flex';
+    // Hide login
+    const loginSection = document.getElementById('login-section');
+    if (loginSection) {
+      loginSection.style.display = 'none';
+    }
+    
+    // Show dashboard by default
+    const dashboardSection = document.getElementById('dashboard-section');
+    if (dashboardSection) {
+      dashboardSection.style.display = 'block';
+    }
+    
+    // Show user info
+    const userInfo = document.getElementById('user-info');
+    if (userInfo) {
+      userInfo.style.display = 'flex';
+    }
+    
+    // Set dashboard nav as active
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(nav => nav.classList.remove('active'));
+    const dashboardNav = document.querySelector('[data-section="dashboard"]');
+    if (dashboardNav) {
+      dashboardNav.classList.add('active');
+    }
   }
 
   // Update user info in header
   function updateUserInfo(user) {
-    document.getElementById('user-name').textContent = user.username;
-    document.getElementById('user-role').textContent = user.role.toUpperCase();
+    const userNameEl = document.getElementById('user-name');
+    const userRoleEl = document.getElementById('user-role');
+    const userInitialEl = document.getElementById('user-initial');
+    
+    if (userNameEl) {
+      userNameEl.textContent = user.username;
+    }
+    
+    if (userRoleEl) {
+      userRoleEl.textContent = user.role.toUpperCase();
+    }
+    
+    if (userInitialEl) {
+      userInitialEl.textContent = user.username.charAt(0).toUpperCase();
+    }
+    
     currentUser = user;
+  }
+
+  // Check if user is authenticated
+  function isAuthenticated() {
+    return !!getAuthToken();
   }
 
   // Login handler
@@ -151,6 +206,7 @@
     showApp,
     updateUserInfo,
     handleLogin,
+    isAuthenticated,
     getCurrentUserData: () => currentUser
   };
 

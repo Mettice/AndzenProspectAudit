@@ -331,7 +331,14 @@ class LLMService:
         """Create Claude client with API key from UI (not environment)."""
         try:
             from langchain_anthropic import ChatAnthropic
-            claude_model = self.claude_model or os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5")
+            # Use full version ID instead of alias for older LangChain versions
+            # Alias 'claude-sonnet-4-5' not recognized by langchain-anthropic < 0.2.0
+            claude_model = self.claude_model or os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5-20250929")
+            
+            # Update outdated Claude 3 models to Claude 4
+            if claude_model and "claude-3-" in claude_model:
+                logger.warning(f"Updating outdated Claude 3 model {claude_model} to Claude 4")
+                claude_model = "claude-sonnet-4-20250514"
             # Use environment variable temporarily during client creation
             # This is the only way langchain-anthropic accepts the key
             original_key = os.getenv("ANTHROPIC_API_KEY")

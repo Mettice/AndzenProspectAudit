@@ -4,6 +4,7 @@ Enhanced with strategic value elements: ROI, quick wins, risk flags, root cause 
 """
 from typing import Dict, Any
 from .base import get_currency_symbol, get_strategic_value_instructions, get_json_output_instructions
+from api.utils.security import validate_prompt_data, sanitize_prompt_input
 
 
 def get_kav_prompt(data: Dict[str, Any], context: Dict[str, Any]) -> str:
@@ -16,12 +17,15 @@ def get_kav_prompt(data: Dict[str, Any], context: Dict[str, Any]) -> str:
     - Risk flags
     - Root cause analysis
     """
+    # Sanitize user inputs to prevent prompt injection
+    context = validate_prompt_data(context)
+    
     metrics = data.get("metrics", {})
-    client_name = context.get("client_name", "the client")
-    industry = context.get("industry", "retail")
-    date_range = context.get("date_range", "the reporting period")
-    currency = context.get("currency", "USD")
-    timezone = context.get("timezone", "UTC")
+    client_name = sanitize_prompt_input(context.get("client_name", "the client"))
+    industry = sanitize_prompt_input(context.get("industry", "retail"))
+    date_range = context.get("date_range", "the reporting period")  # This is system-generated
+    currency = context.get("currency", "USD")  # This is system-controlled
+    timezone = context.get("timezone", "UTC")  # This is system-controlled
     
     currency_symbol = get_currency_symbol(currency)
     

@@ -3,246 +3,581 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Andzen Klaviyo Audit</title>
+  <title>Andzen Audit Studio - Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <!-- CSS path - use relative path that works for both local and production -->
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" id="main-stylesheet" />
-  <!-- API Configuration - Update this script tag with your Railway URL after deployment -->
+  <link rel="stylesheet" href="components.css" />
   <script>
-    // Set API URL for production (update this after Railway deployment)
     window.API_URL = window.API_URL || 'https://web-production-2ce0.up.railway.app';
   </script>
 </head>
 <body>
-  <div class="page">
-    <header class="hero">
-      <div class="brand">
-        <div class="logo-text">ANDZEN</div>
-        <div class="brand-text">
-          <p class="eyebrow">Internal Tool</p>
-          <h1>Prospect Audit Launcher</h1>
-          <p class="sub">Generate comprehensive Klaviyo audit reports with one click</p>
+  <div class="dashboard-layout">
+    <!-- Navigation Header -->
+    <header class="dashboard-header">
+      <div class="header-left">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 40 40" fill="currentColor">
+              <path d="M20 4C11.163 4 4 11.163 4 20s7.163 16 16 16 16-7.163 16-16S28.837 4 20 4zm8 18H22v6h-4v-6h-6v-4h6v-6h4v6h6v4z"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <div class="brand-name">ANDZEN</div>
+            <div class="brand-tagline">Audit Studio</div>
+          </div>
         </div>
       </div>
+      
+      <div class="header-center">
+        <nav class="main-nav">
+          <a href="#" class="nav-item active" data-section="dashboard">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">Dashboard</span>
+          </a>
+          <a href="#" class="nav-item" data-section="audits">
+            <span class="nav-icon">🔍</span>
+            <span class="nav-text">New Audit</span>
+          </a>
+          <a href="#" class="nav-item" data-section="reports">
+            <span class="nav-icon">📄</span>
+            <span class="nav-text">Reports</span>
+          </a>
+        </nav>
+      </div>
+
       <div class="header-right">
         <div class="user-info" id="user-info" style="display: none;">
-          <span class="user-name" id="user-name"></span>
-          <span class="user-role" id="user-role"></span>
-          <button class="btn-logout" id="btn-logout">Logout</button>
+          <div class="user-avatar">
+            <span id="user-initial">A</span>
+          </div>
+          <div class="user-details">
+            <span class="user-name" id="user-name"></span>
+            <span class="user-role" id="user-role"></span>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="btn-logout">Logout</button>
         </div>
-        <div class="status" id="status-pill">Idle</div>
+        <div class="connection-status" id="connection-status">
+          <span class="status-dot success"></span>
+          <span class="status-text">Connected</span>
+        </div>
       </div>
     </header>
 
-    <!-- Login Form -->
-    <main id="login-section" class="login-container" style="display: none;">
-      <section class="card login-card">
-        <h2>Login</h2>
-        <form id="login-form">
-          <label>
-            Username
-            <input type="text" name="username" placeholder="Enter your username" required autocomplete="username" />
-          </label>
-          <label>
-            Password
-            <input type="password" name="password" placeholder="Enter your password" required autocomplete="current-password" />
-          </label>
-          <button type="submit" id="login-btn">Login</button>
-          <div id="login-error" class="error" style="display: none; margin-top: 12px;"></div>
-        </form>
-      </section>
+    <!-- Login Section -->
+    <main id="login-section" class="login-page" style="display: none;">
+      <div class="login-container">
+        <div class="login-card card card-elevated">
+          <div class="login-header">
+            <div class="login-logo">
+              <div class="brand-icon">
+                <svg viewBox="0 0 40 40" fill="currentColor">
+                  <path d="M20 4C11.163 4 4 11.163 4 20s7.163 16 16 16 16-7.163 16-16S28.837 4 20 4zm8 18H22v6h-4v-6h-6v-4h6v-6h4v6h6v4z"/>
+                </svg>
+              </div>
+              <h1>ANDZEN</h1>
+              <p>Audit Studio</p>
+            </div>
+          </div>
+          
+          <form id="login-form" class="login-form">
+            <div class="form-group">
+              <label for="username">
+                <span class="label-text">Username</span>
+                <span class="label-required">*</span>
+              </label>
+              <input 
+                type="text" 
+                name="username" 
+                id="username"
+                class="input-base" 
+                placeholder="Enter your username" 
+                required 
+                autocomplete="username" 
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="password">
+                <span class="label-text">Password</span>
+                <span class="label-required">*</span>
+              </label>
+              <input 
+                type="password" 
+                name="password" 
+                id="password"
+                class="input-base" 
+                placeholder="Enter your password" 
+                required 
+                autocomplete="current-password" 
+              />
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-lg" id="login-btn">
+              Sign In
+            </button>
+            
+            <div id="login-error" class="error-message" style="display: none;"></div>
+          </form>
+        </div>
+      </div>
     </main>
 
-    <!-- Main Application (shown after login) -->
-    <main id="app-section" class="grid" style="display: none;">
-      <section class="card form-card">
-        <h2>Audit Inputs</h2>
-        <form id="audit-form">
-          <label>
-            Klaviyo API Key
-            <div class="input-with-test">
-              <input type="password" name="api_key" id="klaviyo-api-key" placeholder="Klaviyo private API key" required />
-              <button type="button" class="btn-test-api" onclick="testKlaviyoAPI()" title="Test Klaviyo API connection">
-                <span class="test-icon">🔌</span>
-                <span class="test-text">Test</span>
-              </button>
-              <span class="api-status" id="klaviyo-api-status"></span>
+    <!-- Dashboard Section -->
+    <main id="dashboard-section" class="dashboard-main" style="display: none;">
+      <div class="dashboard-content">
+        
+        <!-- Stats Overview -->
+        <section class="stats-section">
+          <div class="section-header">
+            <h2>Overview</h2>
+            <div class="stats-period">
+              <select class="input-base">
+                <option>Last 30 days</option>
+                <option>Last 90 days</option>
+                <option>Last year</option>
+              </select>
             </div>
-          </label>
-          
-          <div class="section-divider">
-            <h3>LLM Configuration (Optional)</h3>
           </div>
           
-          <label>
-            LLM Provider
-            <select name="llm_provider" id="llm-provider-select">
-              <option value="">Select a provider...</option>
-              <option value="claude">Claude (Anthropic)</option>
-              <option value="openai">OpenAI</option>
-              <option value="gemini">Gemini (Google)</option>
-            </select>
-          </label>
-          
-          <label id="claude-api-key-label" style="display: none;">
-            Claude API Key
-            <div class="input-with-test">
-              <input type="password" name="anthropic_api_key" id="claude-api-key" placeholder="Anthropic API key" />
-              <button type="button" class="btn-test-api" onclick="testLLMAPI('claude')" title="Test Claude API connection">
-                <span class="test-icon">🔌</span>
-                <span class="test-text">Test</span>
-              </button>
-              <span class="api-status" id="claude-api-status"></span>
+          <div class="stats-grid">
+            <div class="stat-card card">
+              <div class="stat-header">
+                <span class="stat-icon">📊</span>
+                <span class="stat-trend positive" id="audits-trend">—</span>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" id="audits-value">—</div>
+                <div class="stat-label">Total Audits</div>
+              </div>
             </div>
-          </label>
-          <label id="claude-model-label" style="display: none;">
-            Claude Model
-            <select name="claude_model" id="claude-model-select">
-              <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
-              <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-              <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-            </select>
-          </label>
-          
-          <label id="openai-api-key-label" style="display: none;">
-            OpenAI API Key
-            <div class="input-with-test">
-              <input type="password" name="openai_api_key" id="openai-api-key" placeholder="OpenAI API key" />
-              <button type="button" class="btn-test-api" onclick="testLLMAPI('openai')" title="Test OpenAI API connection">
-                <span class="test-icon">🔌</span>
-                <span class="test-text">Test</span>
-              </button>
-              <span class="api-status" id="openai-api-status"></span>
+            
+            <div class="stat-card card">
+              <div class="stat-header">
+                <span class="stat-icon">⚡</span>
+                <span class="stat-trend positive">—</span>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">—</div>
+                <div class="stat-label">Avg. Processing Time</div>
+              </div>
             </div>
-          </label>
-          <label id="openai-model-label" style="display: none;">
-            OpenAI Model
-            <select name="openai_model" id="openai-model-select">
-              <option value="gpt-4o">GPT-4o</option>
-              <option value="gpt-4-turbo">GPT-4 Turbo</option>
-              <option value="gpt-4">GPT-4</option>
-            </select>
-          </label>
-          
-          <label id="gemini-api-key-label" style="display: none;">
-            Gemini API Key
-            <div class="input-with-test">
-              <input type="password" name="gemini_api_key" id="gemini-api-key" placeholder="Gemini API key" />
-              <button type="button" class="btn-test-api" onclick="testLLMAPI('gemini')" title="Test Gemini API connection">
-                <span class="test-icon">🔌</span>
-                <span class="test-text">Test</span>
-              </button>
-              <span class="api-status" id="gemini-api-status"></span>
+            
+            <div class="stat-card card">
+              <div class="stat-header">
+                <span class="stat-icon">💼</span>
+                <span class="stat-trend positive" id="prospects-trend">—</span>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" id="prospects-value">—</div>
+                <div class="stat-label">Active Prospects</div>
+              </div>
             </div>
-          </label>
-          <label id="gemini-model-label" style="display: none;">
-            Gemini Model
-            <select name="gemini_model" id="gemini-model-select">
-              <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-              <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-            </select>
-          </label>
-          
-          <label>
-            Client Name
-            <input type="text" name="client_name" placeholder="Company name" required />
-          </label>
-          <label>
-            Client Code (Optional)
-            <input type="text" name="client_code" placeholder="Andzen client code" />
-          </label>
-          <label>
-            Industry
-            <select name="industry" id="industry-select">
-              <option value="apparel_accessories">Apparel & Accessories</option>
-              <option value="fashion_accessories">Fashion & Accessories</option>
-              <option value="toys_collectibles">Toys & Collectibles</option>
-              <option value="ecommerce_collections">E-commerce Collections</option>
-              <option value="beauty_cosmetics">Beauty & Cosmetics</option>
-              <option value="electronics">Electronics</option>
-              <option value="home_garden">Home & Garden</option>
-              <option value="food_beverage">Food & Beverage</option>
-              <option value="health_fitness">Health & Fitness</option>
-              <option value="retail">General Retail</option>
-              <option value="other">Other</option>
-            </select>
-          </label>
-          <label>
-            Analysis Period
-            <select name="period" id="period-select">
-              <option value="90">3 Months (90 days)</option>
-              <option value="180">6 Months (180 days)</option>
-              <option value="365">1 Year (365 days)</option>
-              <option value="ytd" id="ytd-option">Year to Date (YTD)</option>
-              <option value="custom">Custom Date Range</option>
-            </select>
-          </label>
-          <div class="two-col" id="custom-dates" style="display: none;">
-            <label>
-              Start Date
-              <input type="date" name="start_date" />
-            </label>
-            <label>
-              End Date
-              <input type="date" name="end_date" />
-            </label>
+            
+            <div class="stat-card card highlight">
+              <div class="stat-header">
+                <span class="stat-icon">💰</span>
+                <span class="stat-trend positive" id="revenue-trend">—</span>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value" id="revenue-value">—</div>
+                <div class="stat-label">Projected Revenue</div>
+              </div>
+            </div>
           </div>
-          <label>
-            Auditor Name
-            <input type="text" name="auditor_name" placeholder="Andzen Team" />
-          </label>
-          <button type="submit" id="submit-btn">Generate Audit</button>
-        </form>
-        <p class="hint">Tip: Select analysis period. System will automatically compare with previous period.</p>
-      </section>
+        </section>
 
-      <section class="card results-card">
-        <h2>Result</h2>
-        <div id="result-box" class="result-box">
-          <p class="muted">No audit run yet.</p>
-        </div>
-        <div id="progress-container" class="progress-container" style="display: none;">
-          <div class="progress-header">
-            <div class="progress-info">
-              <span class="progress-label">Processing Audit Report</span>
-              <span class="progress-time" id="progress-time">Estimated time: 25-30 minutes</span>
+        <!-- Quick Actions & Recent Audits -->
+        <section class="main-section">
+          <div class="section-grid">
+            
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+              <div class="section-header">
+                <h3>Quick Actions</h3>
+              </div>
+              
+              <div class="action-grid">
+                <button class="action-card card" data-action="new-audit">
+                  <div class="action-icon">🚀</div>
+                  <div class="action-content">
+                    <h4>Launch New Audit</h4>
+                    <p>Start a comprehensive Klaviyo analysis</p>
+                  </div>
+                  <div class="action-arrow">→</div>
+                </button>
+                
+                <button class="action-card card" data-action="bulk-export">
+                  <div class="action-icon">📦</div>
+                  <div class="action-content">
+                    <h4>Bulk Export</h4>
+                    <p>Export multiple reports</p>
+                  </div>
+                  <div class="action-arrow">→</div>
+                </button>
+                
+                <button class="action-card card" data-action="templates">
+                  <div class="action-icon">🎨</div>
+                  <div class="action-content">
+                    <h4>Report Templates</h4>
+                    <p>Manage audit templates</p>
+                  </div>
+                  <div class="action-arrow">→</div>
+                </button>
+                
+                <button class="action-card card" data-action="analytics">
+                  <div class="action-icon">📈</div>
+                  <div class="action-content">
+                    <h4>Usage Analytics</h4>
+                    <p>Track team performance</p>
+                  </div>
+                  <div class="action-arrow">→</div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Recent Audits -->
+            <div class="recent-audits">
+              <div class="section-header">
+                <h3>Recent Audits</h3>
+                <button class="btn btn-ghost btn-sm" onclick="window.location.href='clients.html'">View All</button>
+              </div>
+              
+              <div class="audit-list">
+                <div class="loading-placeholder" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                  Loading recent audits...
+                </div>
+              </div>
             </div>
           </div>
-          <div class="progress-bar-wrapper">
-            <div class="progress-bar" id="progress-bar">
-              <div class="progress-fill" id="progress-fill"></div>
-              <div class="progress-shine"></div>
-            </div>
-            <div class="progress-percentage" id="progress-percentage">0%</div>
-          </div>
-          <div class="progress-stages" id="progress-stages">
-            <div class="stage active" data-stage="0">
-              <div class="stage-icon">📊</div>
-              <div class="stage-label">Extracting Data</div>
-            </div>
-            <div class="stage" data-stage="1">
-              <div class="stage-icon">🤖</div>
-              <div class="stage-label">AI Analysis</div>
-            </div>
-            <div class="stage" data-stage="2">
-              <div class="stage-icon">📝</div>
-              <div class="stage-label">Generating Report</div>
-            </div>
-            <div class="stage" data-stage="3">
-              <div class="stage-icon">✅</div>
-              <div class="stage-label">Finalizing</div>
-            </div>
-          </div>
-        </div>
-        <div id="log-box" class="log-box" aria-live="polite"></div>
-      </section>
+        </section>
+      </div>
     </main>
+
+    <!-- New Audit Section -->
+    <main id="audits-section" class="audit-launcher" style="display: none;">
+      <div class="launcher-container">
+        <div class="launcher-header">
+          <button class="btn btn-ghost btn-back">← Dashboard</button>
+          <div class="launcher-title">
+            <h1>Launch New Audit</h1>
+            <p>Comprehensive Klaviyo analysis in minutes</p>
+          </div>
+          <div class="progress-indicator">
+            <span class="step active">1</span>
+            <span class="step">2</span>
+            <span class="step">3</span>
+          </div>
+        </div>
+
+        <div class="launcher-form">
+          <form id="audit-form">
+            <div class="form-section active" id="step-1">
+              <div class="section-header">
+                <h2>Client Information</h2>
+                <p>Basic details about your client</p>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group large">
+                  <label for="client-name">
+                    <span class="label-text">Client Name</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    name="client_name" 
+                    id="client-name"
+                    class="input-base" 
+                    placeholder="e.g., Morrison Athletic Supply Co." 
+                    required 
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="industry-select">
+                    <span class="label-text">Industry</span>
+                  </label>
+                  <select name="industry" id="industry-select" class="input-base">
+                    <option value="apparel_accessories">Apparel & Accessories</option>
+                    <option value="fashion_accessories">Fashion & Accessories</option>
+                    <option value="toys_collectibles">Toys & Collectibles</option>
+                    <option value="beauty_cosmetics">Beauty & Cosmetics</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="period-select">
+                    <span class="label-text">Analysis Period</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <select name="period" id="period-select" class="input-base" required>
+                    <option value="90">Last 90 Days (Recommended)</option>
+                    <option value="180">Last 180 Days</option>
+                    <option value="365">Last 365 Days</option>
+                    <option value="custom">Custom Date Range</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Custom Date Range (shown when "custom" is selected) -->
+              <div class="form-grid" id="custom-date-range" style="display: none;">
+                <div class="form-group">
+                  <label for="start-date">
+                    <span class="label-text">Start Date</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <input type="date" name="start_date" id="start-date" class="input-base" />
+                </div>
+                <div class="form-group">
+                  <label for="end-date">
+                    <span class="label-text">End Date</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <input type="date" name="end_date" id="end-date" class="input-base" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section" id="step-2">
+              <div class="section-header">
+                <h2>Klaviyo Integration</h2>
+                <p>Connect to the client's Klaviyo account</p>
+              </div>
+
+              <div class="form-group">
+                <label for="klaviyo-api-key">
+                  <span class="label-text">Klaviyo API Key</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-actions">
+                  <input 
+                    type="password" 
+                    name="api_key" 
+                    id="klaviyo-api-key" 
+                    class="input-base"
+                    placeholder="pk_live_..." 
+                    required 
+                  />
+                  <button type="button" class="btn btn-outline btn-sm" id="test-klaviyo-btn">
+                    Test Connection
+                  </button>
+                </div>
+                <div class="field-hint">
+                  <span>🔒 Securely encrypted and never stored</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section" id="step-3">
+              <div class="section-header">
+                <h2>AI Configuration</h2>
+                <p>Choose your AI provider (optional - uses default if not specified)</p>
+              </div>
+
+              <div class="form-group">
+                <label for="llm-provider-select">
+                  <span class="label-text">LLM Provider</span>
+                </label>
+                <select name="llm_provider" id="llm-provider-select" class="input-base">
+                  <option value="">Use Default AI</option>
+                  <option value="claude">Claude (Anthropic)</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="gemini">Gemini (Google)</option>
+                </select>
+              </div>
+
+              <!-- LLM API Key Fields (shown when provider is selected) -->
+              <div id="llm-api-key-group" style="display: none;">
+                <div class="form-group">
+                  <label id="llm-api-key-label">
+                    <span class="label-text">API Key</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <div class="input-with-actions">
+                    <input 
+                      type="password" 
+                      id="llm-api-key-input"
+                      class="input-base"
+                      placeholder="Enter API key..."
+                    />
+                    <button type="button" class="btn btn-outline btn-sm" id="test-llm-btn">
+                      Test Connection
+                    </button>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label id="llm-model-label">
+                    <span class="label-text">Model (Optional)</span>
+                  </label>
+                  <select id="llm-model-select" class="input-base">
+                    <option value="">Use default model</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="auditor-name">
+                  <span class="label-text">Auditor Name</span>
+                </label>
+                <input 
+                  type="text" 
+                  name="auditor_name" 
+                  id="auditor-name"
+                  class="input-base" 
+                  placeholder="Your name"
+                  value="Andzen Team" 
+                />
+              </div>
+            </div>
+            
+            <div class="form-navigation">
+              <button type="button" class="btn btn-ghost" id="btn-previous" disabled>
+                ← Previous
+              </button>
+              <div class="step-indicators">
+                <div class="indicator active"></div>
+                <div class="indicator"></div>
+                <div class="indicator"></div>
+              </div>
+              <button type="button" class="btn btn-primary" id="btn-next">
+                Next →
+              </button>
+              <button type="submit" class="btn btn-primary btn-lg" id="btn-launch" style="display: none;">
+                🚀 Generate Audit
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <!-- Reports Section -->
+    <main id="reports-section" class="reports-main" style="display: none;">
+      <div class="reports-content">
+        <div class="section-header">
+          <h2>Recent Reports</h2>
+          <div class="reports-actions">
+            <select class="input-base">
+              <option>All Reports</option>
+              <option>Completed</option>
+              <option>In Progress</option>
+            </select>
+            <button class="btn btn-outline">Export All</button>
+          </div>
+        </div>
+
+        <div class="reports-grid">
+          <div class="report-card card">
+            <div class="report-header">
+              <div class="report-client">
+                <h3>Morrison Athletic Supply</h3>
+                <span class="report-date">December 28, 2024</span>
+              </div>
+              <span class="badge badge-success">
+                <span class="status-dot success"></span>
+                Completed
+              </span>
+            </div>
+            <div class="report-preview">
+              <div class="preview-metrics">
+                <div class="preview-metric">
+                  <span class="metric-label">Revenue Impact</span>
+                  <span class="metric-value">+$47K/mo</span>
+                </div>
+                <div class="preview-metric">
+                  <span class="metric-label">Flows Analyzed</span>
+                  <span class="metric-value">18</span>
+                </div>
+              </div>
+            </div>
+            <div class="report-actions">
+              <button class="btn btn-ghost btn-sm">View Report</button>
+              <button class="btn btn-outline btn-sm">Download PDF</button>
+              <button class="btn btn-primary btn-sm">Share</button>
+            </div>
+          </div>
+
+          <div class="report-card card">
+            <div class="report-header">
+              <div class="report-client">
+                <h3>Dreamland Baby Co.</h3>
+                <span class="report-date">December 27, 2024</span>
+              </div>
+              <span class="badge badge-success">
+                <span class="status-dot success"></span>
+                Completed
+              </span>
+            </div>
+            <div class="report-preview">
+              <div class="preview-metrics">
+                <div class="preview-metric">
+                  <span class="metric-label">Revenue Impact</span>
+                  <span class="metric-value">+$32K/mo</span>
+                </div>
+                <div class="preview-metric">
+                  <span class="metric-label">Flows Analyzed</span>
+                  <span class="metric-value">24</span>
+                </div>
+              </div>
+            </div>
+            <div class="report-actions">
+              <button class="btn btn-ghost btn-sm">View Report</button>
+              <button class="btn btn-outline btn-sm">Download PDF</button>
+              <button class="btn btn-primary btn-sm">Share</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    
+    <!-- Progress/Loading Modal -->
+    <div class="loading-modal" id="loading-modal" style="display: none;">
+      <div class="loading-content">
+        <div class="loading-header">
+          <h3>Generating Your Audit</h3>
+          <p>Analyzing Klaviyo data and generating insights...</p>
+        </div>
+        
+        <div class="progress-circle">
+          <div class="progress-text">
+            <span class="progress-percent" id="progress-percent">0%</span>
+            <span class="progress-label" id="progress-label">Initializing</span>
+          </div>
+        </div>
+        
+        <div class="progress-steps">
+          <div class="progress-step active">
+            <span class="step-icon">🔗</span>
+            <span class="step-text">Connecting to Klaviyo</span>
+          </div>
+          <div class="progress-step">
+            <span class="step-icon">📊</span>
+            <span class="step-text">Extracting data</span>
+          </div>
+          <div class="progress-step">
+            <span class="step-icon">🧠</span>
+            <span class="step-text">AI analysis</span>
+          </div>
+          <div class="progress-step">
+            <span class="step-icon">📄</span>
+            <span class="step-text">Generating report</span>
+          </div>
+        </div>
+        
+        <div class="progress-actions">
+          <button class="btn btn-ghost" id="cancel-audit">Cancel</button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Modular JavaScript - Load in dependency order -->
+  <!-- JavaScript -->
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/ui.js"></script>
@@ -250,11 +585,5 @@
   <script src="js/chat.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/main.js"></script>
-  
-  <script>
-    // All JavaScript has been modularized into separate files
-    // See frontend/js/ directory for all modules
-    // Modules are loaded in dependency order above
-  </script>
 </body>
 </html>

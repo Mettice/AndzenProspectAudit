@@ -13,6 +13,24 @@
 
   // Initialize audit form
   function initAuditForm() {
+    // Check for old form structure (from the original layout)
+    const oldForm = document.querySelector('#app-section #audit-form');
+    const oldSubmitBtn = document.getElementById('submit-btn');
+    
+    // Check for new form structure (dashboard multi-step form)
+    const newForm = document.querySelector('#audits-section #audit-form');
+    
+    if (oldForm && oldSubmitBtn) {
+      // Initialize old form
+      initOldFormLogic();
+    } else if (newForm) {
+      // New form is mostly handled by main.js
+      // Just add any additional helpers needed
+      initNewFormHelpers();
+    }
+  }
+
+  function initOldFormLogic() {
     const form = document.getElementById('audit-form');
     const periodSelect = document.getElementById('period-select');
     const customDates = document.getElementById('custom-dates');
@@ -22,7 +40,7 @@
     updateYTDOption();
 
     // Handle period selection
-    if (periodSelect) {
+    if (periodSelect && customDates) {
       periodSelect.addEventListener('change', (e) => {
         if (e.target.value === 'custom') {
           customDates.style.display = 'block';
@@ -33,9 +51,15 @@
     }
 
     // Handle form submission
-    if (form) {
+    if (form && submitBtn) {
       form.addEventListener('submit', handleAuditSubmit);
     }
+  }
+
+  function initNewFormHelpers() {
+    // The new form doesn't need much initialization since main.js handles it
+    // Just update YTD option if it exists
+    updateYTDOption();
   }
 
   // Update YTD option label
@@ -43,7 +67,11 @@
     const today = new Date();
     const yearStart = new Date(today.getFullYear(), 0, 1);
     const daysSinceYearStart = Math.floor((today - yearStart) / (1000 * 60 * 60 * 24));
-    const ytdOption = document.getElementById('ytd-option');
+    
+    // Check both old and new form structures
+    const ytdOption = document.getElementById('ytd-option') || 
+                     document.querySelector('option[value="ytd"]');
+    
     if (ytdOption) {
       ytdOption.textContent = `Year to Date (YTD) - ${daysSinceYearStart} days`;
     }
@@ -55,6 +83,13 @@
     
     const form = e.target;
     const submitBtn = document.getElementById('submit-btn');
+    
+    // Check if submit button exists (old form structure)
+    if (!submitBtn) {
+      // New form structure - let main.js handle it
+      return;
+    }
+    
     submitBtn.disabled = true;
 
     try {
@@ -382,16 +417,25 @@
   // Export public API
   window.Audit = {
     initAuditForm,
-    getCurrentReportId: () => currentReportId
+    getCurrentReportId: () => currentReportId,
+    pollAuditStatus: pollStatus
   };
 
-  // Initialize on DOM ready
+  // Auto-initialize on DOM ready (only for old form structure)
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      initAuditForm();
+      // Only initialize if old form structure exists (has submit-btn)
+      const oldSubmitBtn = document.getElementById('submit-btn');
+      if (oldSubmitBtn) {
+        initAuditForm();
+      }
     });
   } else {
-    initAuditForm();
+    // Only initialize if old form structure exists (has submit-btn)
+    const oldSubmitBtn = document.getElementById('submit-btn');
+    if (oldSubmitBtn) {
+      initAuditForm();
+    }
   }
 })();
 

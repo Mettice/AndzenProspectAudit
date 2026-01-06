@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Andzen Audit Studio - Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <!-- Modern Dashboard Layout -->
+  <div class="app-layout">
+    
+    <!-- Top Navigation -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="logo">
+          <span class="logo-icon">🚀</span>
+          <span class="logo-text">ANDZEN</span>
+          <span class="logo-subtitle">Audit Studio</span>
+        </div>
+      </div>
+      
+      <div class="nav-center">
+        <div class="search-bar">
+          <input type="text" placeholder="Search audits, clients..." />
+          <button class="search-btn">🔍</button>
+        </div>
+      </div>
+      
+      <div class="nav-right">
+        <button class="btn-new-audit">
+          <span class="btn-icon">✨</span>
+          New Audit
+        </button>
+        <div class="user-menu">
+          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=andzen" alt="User" class="avatar">
+          <span class="user-name">Strategist</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Dashboard Content -->
+    <main class="dashboard">
+      
+      <!-- Stats Cards -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon audits">📊</div>
+          <div class="stat-content">
+            <div class="stat-number">23</div>
+            <div class="stat-label">Audits This Month</div>
+            <div class="stat-change positive">+12% from last month</div>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon revenue">💰</div>
+          <div class="stat-content">
+            <div class="stat-number">$847K</div>
+            <div class="stat-label">Revenue Analyzed</div>
+            <div class="stat-change positive">+18% avg growth</div>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon clients">👥</div>
+          <div class="stat-content">
+            <div class="stat-number">12</div>
+            <div class="stat-label">Active Clients</div>
+            <div class="stat-change neutral">3 new this week</div>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon quotes">📋</div>
+          <div class="stat-content">
+            <div class="stat-number">8</div>
+            <div class="stat-label">Quotes Generated</div>
+            <div class="stat-change positive">$127K total value</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Actions -->
+      <section class="quick-actions">
+        <h2>Quick Actions</h2>
+        <div class="action-grid">
+          <button class="action-card primary">
+            <div class="action-icon">🚀</div>
+            <div class="action-content">
+              <h3>Start New Audit</h3>
+              <p>Launch comprehensive Klaviyo analysis</p>
+            </div>
+          </button>
+          
+          <button class="action-card" onclick="window.location.href='analytics.html'">
+            <div class="action-icon">📊</div>
+            <div class="action-content">
+              <h3>View Analytics</h3>
+              <p>Platform usage and performance metrics</p>
+            </div>
+          </button>
+          
+          <button class="action-card" onclick="window.location.href='clients.html'">
+            <div class="action-icon">👥</div>
+            <div class="action-content">
+              <h3>Manage Clients</h3>
+              <p>Client database and audit history</p>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- Recent Audits -->
+      <section class="recent-audits">
+        <div class="section-header">
+          <h2>Recent Audits</h2>
+          <button class="btn-view-all">View All</button>
+        </div>
+        
+        <div class="audit-list">
+          <div class="audit-item">
+            <div class="audit-status completed"></div>
+            <div class="audit-info">
+              <h3>Morrison Athletic Supply Co.</h3>
+              <p>E-commerce • Completed 2 hours ago</p>
+            </div>
+            <div class="audit-metrics">
+              <span class="metric">$342K Revenue</span>
+              <span class="metric">18 Flows</span>
+            </div>
+            <div class="audit-actions">
+              <button class="btn-view">View</button>
+              <button class="btn-quote">Quote</button>
+            </div>
+          </div>
+          
+          <div class="audit-item">
+            <div class="audit-status in-progress"></div>
+            <div class="audit-info">
+              <h3>The Marshmallow Co.</h3>
+              <p>Food & Beverage • Processing...</p>
+            </div>
+            <div class="audit-metrics">
+              <span class="metric">$128K Revenue</span>
+              <span class="metric">12 Flows</span>
+            </div>
+            <div class="audit-actions">
+              <button class="btn-view" disabled>Processing</button>
+            </div>
+          </div>
+          
+          <div class="audit-item">
+            <div class="audit-status completed"></div>
+            <div class="audit-info">
+              <h3>Ritual Hockey</h3>
+              <p>Sports Equipment • Completed yesterday</p>
+            </div>
+            <div class="audit-metrics">
+              <span class="metric">$567K Revenue</span>
+              <span class="metric">24 Flows</span>
+            </div>
+            <div class="audit-actions">
+              <button class="btn-view">View</button>
+              <button class="btn-quote">Quote</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+  
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

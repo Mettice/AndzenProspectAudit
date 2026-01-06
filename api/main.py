@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from api.routes import auth, reports, admin, chat
 from api.routes.audit.router import router as audit_router
+from api.routes import dashboard, search, analytics, clients
 from api.database import init_db
 
 # Load environment variables
@@ -98,6 +99,16 @@ async def serve_css():
         return FileResponse(css_path, media_type="text/css")
     return {"error": "CSS not found"}
 
+# Route to serve template styles for report viewer fallback
+TEMPLATE_DIR = BASE_DIR / "templates"
+@app.get("/templates/assets/styles.css")
+async def serve_template_styles():
+    """Serve template styles.css for report viewer."""
+    css_path = TEMPLATE_DIR / "assets" / "styles.css"
+    if css_path.exists():
+        return FileResponse(css_path, media_type="text/css")
+    return {"error": "Template styles not found"}
+
 # Basic routes
 @app.get("/")
 async def root():
@@ -121,4 +132,8 @@ app.include_router(auth.router, prefix="/api", tags=["authentication"])
 app.include_router(reports.router, prefix="/api", tags=["reports"])
 app.include_router(admin.router, prefix="/api", tags=["admin"])
 app.include_router(audit_router, prefix="/api/audit", tags=["audit"])
-app.include_router(chat.router, tags=["chat"])  # Chat routes already have /api/audit prefix
+app.include_router(chat.router, tags=["chat"])
+app.include_router(dashboard.router, tags=["dashboard"])
+app.include_router(search.router, tags=["search"])
+app.include_router(analytics.router, tags=["analytics"])
+app.include_router(clients.router, tags=["clients"])  # Chat routes already have /api/audit prefix

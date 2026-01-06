@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Management - Andzen Audit Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="components.css">
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- Top Navigation -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="logo">
+          <span class="logo-icon">🚀</span>
+          <span class="logo-text">ANDZEN</span>
+          <span class="logo-subtitle">Client Management</span>
+        </div>
+      </div>
+      
+      <div class="nav-center">
+        <div class="search-bar">
+          <input type="text" id="client-search" placeholder="Search clients..." />
+          <button class="search-btn">🔍</button>
+        </div>
+      </div>
+      
+      <div class="nav-right">
+        <button class="btn-back" onclick="window.location.href='dashboard.html'">← Dashboard</button>
+        <select id="industry-filter" class="filter-select">
+          <option value="">All Industries</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard">
+      
+      <!-- Client List -->
+      <section class="clients-section">
+        <div class="section-header">
+          <h2>All Clients</h2>
+          <div class="client-stats">
+            <span id="client-count">0 clients</span>
+          </div>
+        </div>
+        
+        <div class="clients-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Client Name</th>
+                <th>Code</th>
+                <th>Industry</th>
+                <th>Audits</th>
+                <th>Total Revenue</th>
+                <th>Attributed Revenue</th>
+                <th>Last Audit</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="clients-table">
+              <tr>
+                <td colspan="9" class="loading">Loading clients...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="pagination" id="pagination">
+          <!-- Pagination will be generated here -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="js/clients.js"></script>
+</body>
+</html>
+

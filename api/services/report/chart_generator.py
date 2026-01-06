@@ -6,7 +6,9 @@ that can be embedded directly in HTML and Word documents.
 """
 import io
 import base64
+import gc
 import logging
+from contextlib import contextmanager
 from typing import Dict, List, Optional, Any
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
@@ -44,10 +46,16 @@ class ChartGenerator:
         'not_engaged': '#262626'        # Charcoal
     }
     
-    def __init__(self):
-        """Initialize chart generator with Andzen brand settings."""
-        self.dpi = 300  # High-quality charts
-        self.fig_size = (12, 7)  # Generous sizing
+    def __init__(self, web_mode=True):
+        """
+        Initialize chart generator with Andzen brand settings.
+        
+        Args:
+            web_mode: If True, use lower DPI for web display. If False, use high DPI for PDF.
+        """
+        self.web_mode = web_mode
+        self.dpi = 150 if web_mode else 300  # Optimize for web vs PDF
+        self.fig_size = (10, 6) if web_mode else (12, 7)  # Smaller for web
         # Use clean, minimal style that we'll customize
         plt.style.use('seaborn-v0_8-whitegrid')
         
@@ -74,19 +82,38 @@ class ChartGenerator:
         plt.rcParams['text.color'] = '#262626'
     
     def _fig_to_base64(self, fig) -> str:
-        """Convert matplotlib figure to base64 string."""
+        """Convert matplotlib figure to base64 string with proper memory cleanup."""
+        buffer = None
         try:
             buffer = io.BytesIO()
             fig.savefig(buffer, format='png', dpi=self.dpi, bbox_inches='tight', 
                        facecolor='white', edgecolor='none')
             buffer.seek(0)
-            image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
-            plt.close(fig)
+            image_data = buffer.read()
+            image_base64 = base64.b64encode(image_data).decode('utf-8')
             return f"data:image/png;base64,{image_base64}"
         except Exception as e:
             logger.error(f"Error converting figure to base64: {e}")
-            plt.close(fig)
             return ""
+        finally:
+            # Ensure proper cleanup regardless of success or failure
+            if buffer:
+                buffer.close()
+            plt.close(fig)
+            # Force garbage collection for large images
+            gc.collect()
+    
+    @contextmanager
+    def _create_figure(self):
+        """Context manager for creating and properly cleaning up matplotlib figures."""
+        fig = None
+        try:
+            fig, ax = plt.subplots(figsize=self.fig_size)
+            yield fig, ax
+        finally:
+            if fig:
+                plt.close(fig)
+            gc.collect()
     
     def generate_engagement_breakdown_chart(
         self, 

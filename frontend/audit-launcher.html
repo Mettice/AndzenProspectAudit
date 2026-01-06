@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Audit - Andzen Audit Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="audit-launcher.css">
+</head>
+<body>
+  
+  <!-- Enhanced Audit Input Form -->
+  <div class="audit-launcher">
+    
+    <!-- Header -->
+    <header class="launcher-header">
+      <button class="btn-back">← Dashboard</button>
+      <div class="launcher-title">
+        <h1>Launch New Audit</h1>
+        <p>Comprehensive Klaviyo analysis in minutes</p>
+      </div>
+      <div class="progress-indicator">
+        <span class="step active">1</span>
+        <span class="step">2</span>
+        <span class="step">3</span>
+      </div>
+    </header>
+
+    <!-- Multi-step Form -->
+    <main class="form-container">
+      
+      <!-- Step 1: Client Information -->
+      <section class="form-step active" id="step-1">
+        <div class="step-content">
+          <div class="step-header">
+            <h2>Client Information</h2>
+            <p>Tell us about your client to customize the audit experience</p>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group large">
+              <label for="client-name">
+                <span class="label-text">Client Name</span>
+                <span class="label-required">*</span>
+              </label>
+              <input 
+                type="text" 
+                id="client-name" 
+                name="client_name" 
+                placeholder="e.g., Morrison Athletic Supply Co." 
+                required
+                autocomplete="organization"
+              >
+              <div class="field-hint">This will appear on the audit report</div>
+            </div>
+
+            <div class="form-group">
+              <label for="client-type">
+                <span class="label-text">Client Type</span>
+                <span class="label-required">*</span>
+              </label>
+              <select id="client-type" name="client_type" required>
+                <option value="">Select type...</option>
+                <option value="prospect">Prospect</option>
+                <option value="existing">Existing Client</option>
+                <option value="internal">Internal Review</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="industry">
+                <span class="label-text">Industry</span>
+              </label>
+              <select id="industry" name="industry">
+                <option value="apparel_accessories">Apparel & Accessories</option>
+                <option value="beauty_cosmetics">Beauty & Cosmetics</option>
+                <option value="food_beverage">Food & Beverage</option>
+                <option value="home_garden">Home & Garden</option>
+                <option value="sports_outdoors">Sports & Outdoors</option>
+                <option value="health_wellness">Health & Wellness</option>
+                <option value="electronics">Electronics</option>
+                <option value="other">Other</option>
+              </select>
+              <div class="field-hint">Helps select appropriate benchmarks</div>
+            </div>
+
+            <div class="form-group">
+              <label for="client-code">
+                <span class="label-text">Client Code</span>
+              </label>
+              <input 
+                type="text" 
+                id="client-code" 
+                name="client_code" 
+                placeholder="Optional internal code"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="auditor-name">
+                <span class="label-text">Auditor Name</span>
+              </label>
+              <input 
+                type="text" 
+                id="auditor-name" 
+                name="auditor_name" 
+                placeholder="Your name"
+                autocomplete="name"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="analysis-period">
+                <span class="label-text">Analysis Period</span>
+                <span class="label-required">*</span>
+              </label>
+              <select id="analysis-period" name="days" required>
+                <option value="90">Last 90 Days (Recommended)</option>
+                <option value="180">Last 180 Days</option>
+                <option value="365">Last 365 Days</option>
+                <option value="custom">Custom Date Range</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Custom Date Range (hidden by default) -->
+          <div class="custom-date-range" id="custom-date-range" style="display: none;">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="start-date">Start Date</label>
+                <input type="date" id="start-date" name="start_date">
+              </div>
+              <div class="form-group">
+                <label for="end-date">End Date</label>
+                <input type="date" id="end-date" name="end_date">
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 2: Klaviyo Connection -->
+      <section class="form-step" id="step-2">
+        <div class="step-content">
+          <div class="step-header">
+            <h2>Klaviyo Integration</h2>
+            <p>Connect to the client's Klaviyo account for data extraction</p>
+          </div>
+
+          <!-- API Key Section -->
+          <div class="connection-card">
+            <div class="connection-header">
+              <div class="connection-icon klaviyo">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M13.54 12L8.47 16.06l-.94-.94L11.66 12L7.53 7.88l.94-.94L13.54 12z"/>
+                </svg>
+              </div>
+              <div class="connection-info">
+                <h3>Klaviyo API Access</h3>
+                <p>Private API key with read permissions</p>
+              </div>
+              <div class="connection-status" id="klaviyo-status">
+                <span class="status-dot pending"></span>
+                <span class="status-text">Not Connected</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="api-key">
+                <span class="label-text">Private API Key</span>
+                <span class="label-required">*</span>
+              </label>
+              <div class="input-with-actions">
+                <input 
+                  type="password" 
+                  id="api-key" 
+                  name="api_key" 
+                  placeholder="pk_live_..." 
+                  required
+                  autocomplete="off"
+                >
+                <button type="button" class="btn-toggle-visibility" id="toggle-api-key">
+                  <span class="icon-eye">👁️</span>
+                </button>
+                <button type="button" class="btn-test-connection" id="test-klaviyo">
+                  <span class="icon-test">🔗</span>
+                  <span class="btn-text">Test</span>
+                </button>
+              </div>
+              <div class="field-hint">
+                <span>🔒 Securely encrypted and never stored</span>
+                <a href="#" class="help-link">How to find your API key</a>
+              </div>
+            </div>
+
+            <!-- Connection Results -->
+            <div class="connection-results" id="connection-results" style="display: none;">
+              <div class="results-header">
+                <h4>✅ Connection Successful</h4>
+                <p>Preview of available data</p>
+              </div>
+              <div class="data-preview">
+                <div class="preview-metric">
+                  <span class="metric-label">Account Name:</span>
+                  <span class="metric-value" id="account-name">—</span>
+                </div>
+                <div class="preview-metric">
+                  <span class="metric-label">Total Subscribers:</span>
+                  <span class="metric-value" id="subscriber-count">—</span>
+                </div>
+                <div class="preview-metric">
+                  <span class="metric-label">Active Flows:</span>
+                  <span class="metric-value" id="flow-count">—</span>
+                </div>
+                <div class="preview-metric">
+                  <span class="metric-label">Revenue (90d):</span>
+                  <span class="metric-value" id="revenue-preview">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 3: AI Configuration -->
+      <section class="form-step" id="step-3">
+        <div class="step-content">
+          <div class="step-header">
+            <h2>AI Analysis Configuration</h2>
+            <p>Choose your preferred AI provider for generating insights (optional)</p>
+          </div>
+
+          <!-- Provider Selection -->
+          <div class="provider-selection">
+            <div class="provider-option" data-provider="default">
+              <div class="provider-header">
+                <div class="provider-icon default">🤖</div>
+                <div class="provider-info">
+                  <h3>Use Default AI</h3>
+                  <p>Pre-configured Claude AI via Andzen account</p>
+                </div>
+                <div class="provider-badge">Recommended</div>
+              </div>
+            </div>
+
+            <div class="provider-option" data-provider="custom">
+              <div class="provider-header">
+                <div class="provider-icon custom">⚙️</div>
+                <div class="provider-info">
+                  <h3>Custom AI Provider</h3>
+                  <p>Use your own API keys for enhanced control</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Custom Provider Configuration (hidden by default) -->
+          <div class="custom-ai-config" id="custom-ai-config" style="display: none;">
+            <div class="ai-providers">
+              
+              <div class="provider-card" data-provider="claude">
+                <div class="provider-logo">
+                  <div class="logo-anthropic">🧠</div>
+                </div>
+                <div class="provider-details">
+                  <h4>Claude (Anthropic)</h4>
+                  <p>Best for strategic analysis</p>
+                </div>
+                <div class="provider-actions">
+                  <button type="button" class="btn-select-provider">Select</button>
+                </div>
+              </div>
+
+              <div class="provider-card" data-provider="openai">
+                <div class="provider-logo">
+                  <div class="logo-openai">✨</div>
+                </div>
+                <div class="provider-details">
+                  <h4>OpenAI GPT-4</h4>
+                  <p>Great for detailed insights</p>
+                </div>
+                <div class="provider-actions">
+                  <button type="button" class="btn-select-provider">Select</button>
+                </div>
+              </div>
+
+              <div class="provider-card" data-provider="gemini">
+                <div class="provider-logo">
+                  <div class="logo-google">💎</div>
+                </div>
+                <div class="provider-details">
+                  <h4>Google Gemini</h4>
+                  <p>Fast processing</p>
+                </div>
+                <div class="provider-actions">
+                  <button type="button" class="btn-select-provider">Select</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- API Key Input (shown when provider selected) -->
+            <div class="ai-api-config" id="ai-api-config" style="display: none;">
+              <div class="form-group">
+                <label for="ai-api-key">
+                  <span class="label-text" id="ai-provider-label">API Key</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-actions">
+                  <input 
+                    type="password" 
+                    id="ai-api-key" 
+                    name="ai_api_key" 
+                    placeholder="Enter API key..."
+                  >
+                  <button type="button" class="btn-test-connection" id="test-ai">
+                    <span class="icon-test">🔗</span>
+                    <span class="btn-text">Test</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="ai-model">
+                  <span class="label-text">Model (Optional)</span>
+                </label>
+                <select id="ai-model" name="ai_model">
+                  <option value="">Use default model</option>
+                </select>
+                <div class="field-hint">Leave blank to use the recommended model</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Navigation & Actions -->
+    <footer class="form-footer">
+      <div class="footer-left">
+        <button type="button" class="btn-previous" id="btn-previous" disabled>
+          ← Previous Step
+        </button>
+      </div>
+
+      <div class="footer-center">
+        <div class="step-indicators">
+          <div class="indicator active"></div>
+          <div class="indicator"></div>
+          <div class="indicator"></div>
+        </div>
+      </div>
+
+      <div class="footer-right">
+        <button type="button" class="btn-next" id="btn-next">
+          Next Step →
+        </button>
+        <button type="button" class="btn-launch" id="btn-launch" style="display: none;">
+          🚀 Launch Audit
+        </button>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Loading Modal -->
+  <div class="loading-modal" id="loading-modal" style="display: none;">
+    <div class="loading-content">
+      <div class="loading-animation">
+        <div class="audit-progress">
+          <div class="progress-circle">
+            <div class="progress-text">
+              <span class="progress-percent">0%</span>
+              <span class="progress-label">Initializing</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h3>Generating Your Audit</h3>
+      <p id="progress-description">Connecting to Klaviyo and analyzing data...</p>
+      <div class="progress-steps">
+        <div class="progress-step active">
+          <span class="step-icon">🔗</span>
+          <span class="step-text">Connecting to Klaviyo</span>
+        </div>
+        <div class="progress-step">
+          <span class="step-icon">📊</span>
+          <span class="step-text">Extracting performance data</span>
+        </div>
+        <div class="progress-step">
+          <span class="step-icon">🧠</span>
+          <span class="step-text">AI analysis & insights</span>
+        </div>
+        <div class="progress-step">
+          <span class="step-icon">📄</span>
+          <span class="step-text">Generating report</span>
+        </div>
+      </div>
+      <button type="button" class="btn-cancel" id="cancel-audit">Cancel</button>
+    </div>
+  </div>
+
+  <script src="js/audit-launcher.js"></script>
+</body>
+</html>

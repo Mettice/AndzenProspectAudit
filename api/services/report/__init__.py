@@ -434,12 +434,16 @@ class EnhancedReportService:
             # Initialize HTML to DOCX converter
             new_parser = HtmlToDocx()
             
-            # Clean HTML content - remove script tags and style tags that might cause issues
+            # Clean HTML content - preserve as much formatting as possible
             import re
-            # Remove script tags
+            # Remove script tags only (preserve styles for better formatting)
             clean_html = re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL | re.IGNORECASE)
-            # Remove style tags (keep inline styles)
-            clean_html = re.sub(r'<style[^>]*>.*?</style>', '', clean_html, flags=re.DOTALL | re.IGNORECASE)
+            # Convert chart placeholders to static text descriptions instead of removing
+            clean_html = re.sub(r'<canvas[^>]*data-chart-type="([^"]*)"[^>]*></canvas>', 
+                               r'<p><strong>Chart: \1</strong> (Chart data available in HTML version)</p>', 
+                               clean_html, flags=re.IGNORECASE)
+            # Keep basic CSS for better formatting - only remove complex styles that break conversion
+            clean_html = re.sub(r'<style[^>]*>.*?@import.*?</style>', '', clean_html, flags=re.DOTALL | re.IGNORECASE)
             
             # Add HTML content to document
             new_parser.add_html_to_document(clean_html, doc)

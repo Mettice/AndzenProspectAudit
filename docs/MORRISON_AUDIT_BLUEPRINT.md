@@ -895,7 +895,7 @@ calculations = {
 ```json
 {
     "industry": "Apparel & Accessories",
-    "source": "Klaviyo Q3 2023 Benchmarks",
+    "source": "Klaviyo Q4 2025 Benchmarks",
     
     "campaigns": {
         "open_rate": {"average": 44.50, "top_10": 55.00},

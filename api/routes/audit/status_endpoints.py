@@ -39,26 +39,92 @@ async def get_report_status(report_id: int):
                     "word_url": f"/api/audit/download-file?path={report.file_path_word}" if report.file_path_word else None
                 }
             
-            # Get HTML content from cache, or fallback to reading from file
-            html_content = cached.get("html_content")
-            if not html_content and report.file_path_html:
-                # Cache miss - read from file on disk
+            # Get HTML content - ALWAYS prefer original file over database
+            # Database may contain edited/processed HTML, but we need the original for viewer
+            # Priority: 1. Cache (if original), 2. File on disk (original), 3. Database (fallback)
+            html_content = None
+            
+            # First, try to load from file (original HTML with styles and semantic IDs)
+            if report.file_path_html:
                 try:
                     reports_dir = Path(__file__).parent.parent.parent.parent / "data" / "reports"
-                    # Handle both full paths and just filenames
                     html_filename = Path(report.file_path_html).name
                     html_file_path = reports_dir / html_filename
                     if html_file_path.exists():
                         with open(html_file_path, "r", encoding="utf-8") as f:
                             html_content = f.read()
-                        # Store in cache for future requests
-                        if report_id not in _report_cache:
-                            _report_cache[report_id] = {}
-                        _report_cache[report_id]["html_content"] = html_content
-                        print(f"✓ Loaded HTML content from file for report {report_id}")
+                        
+                        # Verify it's the original HTML (has styles and semantic IDs)
+                        is_original = '<style>' in html_content and 'data-section=' in html_content
+                        if is_original:
+                            # Store in cache for future requests
+                            if report_id not in _report_cache:
+                                _report_cache[report_id] = {}
+                            _report_cache[report_id]["html_content"] = html_content
+                            # Update database with original HTML if it's missing or was overwritten
+                            if not report.html_content or not ('<style>' in report.html_content):
+                                report.html_content = html_content
+                                db.commit()
+                            print(f"✓ Loaded ORIGINAL HTML from file for report {report_id} ({len(html_content)} chars, has styles: {is_original})")
+                        else:
+                            print(f"⚠ File HTML appears to be processed (no styles), will try database...")
+                            html_content = None  # Try database instead
+                    else:
+                        print(f"⚠ HTML file not found: {html_file_path}")
                 except Exception as e:
                     print(f"⚠ Could not read HTML content from file: {e}")
+                    import traceback
+                    traceback.print_exc()
+            
+            # Fallback to cache if file didn't work
+            if not html_content:
+                html_content = cached.get("html_content")
+                if html_content and '<style>' in html_content:
+                    print(f"✓ Using cached original HTML ({len(html_content)} chars)")
+                elif html_content:
+                    print(f"⚠ Cached HTML appears processed, trying database...")
                     html_content = None
+            
+            # Fallback to database (may contain edited HTML, but better than nothing)
+            if not html_content:
+                try:
+                    db.refresh(report)  # Refresh to get latest data from DB
+                    if report.html_content:
+                        html_content = report.html_content
+                        # Check if it's original or processed
+                        is_original = '<style>' in html_content and 'data-section=' in html_content
+                        if is_original:
+                            # Store in cache
+                            if report_id not in _report_cache:
+                                _report_cache[report_id] = {}
+                            _report_cache[report_id]["html_content"] = html_content
+                            print(f"✓ Loaded HTML from database (original: {is_original}, {len(html_content)} chars)")
+                        else:
+                            print(f"⚠ Database HTML appears processed - missing styles/semantic IDs")
+                except Exception as e:
+                    print(f"⚠ Error reading html_content from database: {e}")
+                    import traceback
+                    traceback.print_exc()
+            
+            if not html_content:
+                print(f"⚠ No HTML content available for report {report_id} (checked cache, database, and file)")
+                # Last resort: try to load from download endpoint if file exists
+                if report.file_path_html:
+                    try:
+                        from .download_endpoints import download_file
+                        reports_dir = Path(__file__).parent.parent.parent.parent / "data" / "reports"
+                        html_filename = Path(report.file_path_html).name
+                        html_file_path = reports_dir / html_filename
+                        if html_file_path.exists():
+                            # Read directly
+                            with open(html_file_path, "r", encoding="utf-8") as f:
+                                html_content = f.read()
+                            # Save to database for next time
+                            report.html_content = html_content
+                            db.commit()
+                            print(f"✓ Loaded HTML from file and saved to database for report {report_id}")
+                    except Exception as e:
+                        print(f"⚠ Final fallback failed: {e}")
             
             return ReportStatusResponse(
                 report_id=report.id,

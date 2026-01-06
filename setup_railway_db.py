@@ -65,14 +65,9 @@ def setup_database():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
         print("✓ Indexes created")
         
-        # Insert admin user (password: admin123)
-        print("Creating admin user...")
-        cursor.execute("""
-            INSERT INTO users (username, email, password_hash, role, is_active) 
-            VALUES ('admin', 'admin@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBNSMhF2fAH9TW', 'admin', true)
-            ON CONFLICT (username) DO NOTHING
-        """)
-        print("✓ Admin user created")
+        # Note: This script creates tables only. Use init_railway_db.py for secure admin user creation
+        print("⚠️  Admin user creation skipped - use init_railway_db.py for secure admin setup")
+        print("   Run: python init_railway_db.py")
         
         # Commit changes
         conn.commit()
@@ -83,16 +78,11 @@ def setup_database():
         tables = cursor.fetchall()
         print(f"✓ Tables created: {[table[0] for table in tables]}")
         
-        cursor.execute("SELECT username, role FROM users WHERE username = 'admin'")
-        admin = cursor.fetchone()
-        if admin:
-            print(f"✓ Admin user verified: {admin[0]} ({admin[1]})")
-        
-        print("\n🎉 Database setup complete!")
-        print("\nLogin credentials:")
-        print("  Username: admin")
-        print("  Password: admin123")
-        print("  ⚠️  CHANGE THIS PASSWORD AFTER FIRST LOGIN!")
+        print("\n🎉 Database tables setup complete!")
+        print("\nNext steps:")
+        print("1. Run: python init_railway_db.py")
+        print("2. This will create a secure admin user with a random password")
+        print("3. Save the generated password shown in the output")
         
     except Exception as e:
         print(f"✗ Error setting up database: {e}")

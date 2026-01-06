@@ -5,14 +5,21 @@
   - abandoned_cart_data: dict with flows, benchmark, segmentation, recommendations
 #}
 
-<section class="section page" data-page="9-10">
+<section class="section page" data-page="9-10" data-section="flow_abandoned_cart" id="flow_abandoned_cart">
     <h1 class="section-title">ABANDONED CART & ADD TO CART</h1>
     
     <div class="flow-intro">
         {% if abandoned_cart_data.data_quality_issue %}
-            {# Show data quality warning instead of analysis #}
-            {{ abandoned_cart_data.data_quality_issue.warning_html|safe }}
+            {# Show data quality warning instead of analysis - HTML escaped for security #}
+            <div class="data-quality-warning">
+                <h3>⚠️ Data Quality Notice</h3>
+                <p>{{ abandoned_cart_data.data_quality_issue.issue_message }}</p>
+                {% if abandoned_cart_data.data_quality_issue.recommendation %}
+                <p><strong>Recommendation:</strong> {{ abandoned_cart_data.data_quality_issue.recommendation }}</p>
+                {% endif %}
+            </div>
         {% elif abandoned_cart_data.narrative %}
+            {# LLM-generated content - sanitized HTML #}
             {{ abandoned_cart_data.narrative|safe }}
         {% endif %}
     </div>
@@ -112,8 +119,8 @@
         {% endif %}
         
         <p class="benchmark-source">
-            <em>Klaviyo's Email Marketing Benchmarks by Industry for Q3'23 reference 
-            <a href="https://www.klaviyo.com/marketing-resources/email-marketing-benchmarks" target="_blank">here</a></em>
+            <em>Klaviyo's Q4 2025 Email Marketing Benchmarks by Industry reference 
+            <a href="https://www.klaviyo.com/marketing-resources/benchmark-report" target="_blank">here</a></em>
         </p>
     </div>
     

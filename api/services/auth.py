@@ -2,6 +2,9 @@
 Authentication and authorization service.
 """
 import os
+import re
+import secrets
+import string
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -16,7 +19,12 @@ from api.models.user import User, UserRole
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 # JWT settings
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production-use-env-var")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError(
+        "SECRET_KEY environment variable is required. "
+        "Generate a secure secret key using: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+    )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
@@ -32,8 +40,75 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 
+def generate_secure_password(length: int = 16) -> str:
+    """Generate a secure random password."""
+    # Define character sets
+    lowercase = string.ascii_lowercase
+    uppercase = string.ascii_uppercase
+    digits = string.digits
+    special_chars = "!@#$%^&*"
+    
+    # Ensure at least one character from each set
+    password = [
+        secrets.choice(lowercase),
+        secrets.choice(uppercase), 
+        secrets.choice(digits),
+        secrets.choice(special_chars)
+    ]
+    
+    # Fill the rest with random characters
+    all_chars = lowercase + uppercase + digits + special_chars
+    for _ in range(length - 4):
+        password.append(secrets.choice(all_chars))
+    
+    # Shuffle the password list
+    secrets.SystemRandom().shuffle(password)
+    return ''.join(password)
+
+
+def validate_password_strength(password: str) -> tuple[bool, str]:
+    """
+    Validate password meets security requirements.
+    Returns (is_valid, error_message)
+    """
+    if len(password) < 12:
+        return False, "Password must be at least 12 characters long"
+    
+    if not re.search(r'[a-z]', password):
+        return False, "Password must contain at least one lowercase letter"
+    
+    if not re.search(r'[A-Z]', password):
+        return False, "Password must contain at least one uppercase letter"
+    
+    if not re.search(r'\d', password):
+        return False, "Password must contain at least one digit"
+    
+    if not re.search(r'[!@#$%^&*]', password):
+        return False, "Password must contain at least one special character (!@#$%^&*)"
+    
+    # Check for common weak patterns
+    common_patterns = [
+        r'123456',
+        r'password',
+        r'qwerty',
+        r'admin',
+        r'(.)\1{3,}',  # Same character repeated 4+ times
+    ]
+    
+    for pattern in common_patterns:
+        if re.search(pattern, password.lower()):
+            return False, "Password contains common patterns and is not secure"
+    
+    return True, ""
+
+
 def get_password_hash(password: str) -> str:
     """Hash a password using bcrypt."""
+    # Validate password strength
+    is_valid, error_msg = validate_password_strength(password)
+    if not is_valid:
+        raise ValueError(f"Password does not meet security requirements: {error_msg}")
+    
     # bcrypt has a 72-byte limit, truncate if necessary
     password_bytes = password.encode('utf-8')
     if len(password_bytes) > 72:

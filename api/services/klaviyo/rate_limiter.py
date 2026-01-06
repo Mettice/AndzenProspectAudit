@@ -27,13 +27,13 @@ class RateLimiter:
     Defaults to Medium tier (10 req/sec, 150/min) for safety.
     """
     
-    def __init__(self, requests_per_second: float = 2.5, requests_per_minute: int = 50):
+    def __init__(self, requests_per_second: float = 8.0, requests_per_minute: int = 120):
         """
         Initialize rate limiter.
         
         Args:
-            requests_per_second: Max requests per second (default 9, optimized for M tier)
-            requests_per_minute: Max requests per minute (default 140, optimized for M tier)
+            requests_per_second: Max requests per second (default 8, 80% of Medium tier 10/sec)
+            requests_per_minute: Max requests per minute (default 120, 80% of Medium tier 150/min)
         """
         self.requests_per_second = requests_per_second
         self.requests_per_minute = requests_per_minute

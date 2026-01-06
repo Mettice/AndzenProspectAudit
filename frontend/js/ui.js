@@ -3,7 +3,7 @@
  * Handles progress bars, status updates, logging, and UI state management
  */
 
-(function() {
+(function () {
   'use strict';
 
   let progressInterval = null;
@@ -34,44 +34,83 @@
   }
 
   // Progress bar update
-  function updateProgress(percentage) {
+  function updateProgress(percentage, step = null) {
+    const clampedPercentage = Math.max(0, Math.min(100, percentage));
+
+    // Update old progress bar (if exists)
     const progressFill = document.getElementById('progress-fill');
     const progressPercentage = document.getElementById('progress-percentage');
-    
+
     if (progressFill && progressPercentage) {
-      const clampedPercentage = Math.max(0, Math.min(100, percentage));
       progressFill.style.width = `${clampedPercentage}%`;
       progressPercentage.textContent = `${Math.floor(clampedPercentage)}%`;
-      
-      // Update stages based on progress
-      const stages = document.querySelectorAll('.stage');
-      const stageIndex = Math.floor((clampedPercentage / 100) * stages.length);
-      stages.forEach((stage, idx) => {
-        if (idx < stageIndex) {
-          stage.classList.add('completed');
-          stage.classList.remove('active');
-        } else if (idx === stageIndex) {
-          stage.classList.add('active');
-          stage.classList.remove('completed');
-        } else {
-          stage.classList.remove('active', 'completed');
-        }
-      });
     }
+
+    // Update new dashboard modal progress (if exists)
+    const progressPercent = document.getElementById('progress-percent');
+    const progressLabel = document.getElementById('progress-label');
+
+    if (progressPercent) {
+      progressPercent.textContent = `${Math.floor(clampedPercentage)}%`;
+    }
+
+    if (progressLabel && step) {
+      progressLabel.textContent = step;
+    }
+
+    // Update progress steps based on percentage
+    updateProgressSteps(clampedPercentage);
+
+    // Update stages based on progress (old modal)
+    const stages = document.querySelectorAll('.stage');
+    const stageIndex = Math.floor((clampedPercentage / 100) * stages.length);
+    stages.forEach((stage, idx) => {
+      if (idx < stageIndex) {
+        stage.classList.add('completed');
+        stage.classList.remove('active');
+      } else if (idx === stageIndex) {
+        stage.classList.add('active');
+        stage.classList.remove('completed');
+      } else {
+        stage.classList.remove('active', 'completed');
+      }
+    });
+  }
+
+
+  // Update progress steps for new dashboard modal
+  function updateProgressSteps(percentage) {
+    const progressSteps = document.querySelectorAll('.progress-step');
+    if (!progressSteps.length) return;
+
+    // Define step thresholds
+    const stepThresholds = [10, 40, 80, 95]; // When each step becomes active
+
+    progressSteps.forEach((step, index) => {
+      step.classList.remove('active', 'completed');
+
+      if (percentage >= stepThresholds[index]) {
+        if (index === stepThresholds.length - 1 || percentage < stepThresholds[index + 1]) {
+          step.classList.add('active'); // Current step
+        } else {
+          step.classList.add('completed'); // Completed step
+        }
+      }
+    });
   }
 
   // Show progress container with initial animation
   function showProgress() {
     const progressContainer = document.getElementById('progress-container');
     const resultBox = document.getElementById('result-box');
-    
+
     if (resultBox) {
       resultBox.style.display = 'none';
     }
     if (progressContainer) {
       progressContainer.style.display = 'block';
     }
-    
+
     // Reset progress bar
     const progressFill = document.getElementById('progress-fill');
     const progressPercentage = document.getElementById('progress-percentage');
@@ -81,7 +120,7 @@
     if (progressPercentage) {
       progressPercentage.textContent = '0%';
     }
-    
+
     // Reset stages
     const stages = document.querySelectorAll('.stage');
     stages.forEach((stage, idx) => {
@@ -90,10 +129,10 @@
         stage.classList.add('active');
       }
     });
-    
+
     // Start countdown with default estimate (will be updated when server responds)
     startCountdownTimer(30);
-    
+
     setStatus('Processing', 'processing');
   }
 
@@ -105,17 +144,17 @@
       progressInterval = null;
     }
     stopCountdownTimer();
-    
+
     const progressContainer = document.getElementById('progress-container');
     const resultBox = document.getElementById('result-box');
-    
+
     if (progressContainer) {
       progressContainer.style.display = 'none';
     }
     if (resultBox) {
       resultBox.style.display = 'block';
     }
-    
+
     // Complete the progress bar
     const progressFill = document.getElementById('progress-fill');
     const progressPercentage = document.getElementById('progress-percentage');
@@ -125,14 +164,14 @@
     if (progressPercentage) {
       progressPercentage.textContent = '100%';
     }
-    
+
     // Mark all stages as completed
     const stages = document.querySelectorAll('.stage');
     stages.forEach(stage => {
       stage.classList.add('completed');
       stage.classList.remove('active');
     });
-    
+
     setStatus('Idle', 'idle');
   }
 
@@ -155,14 +194,14 @@
     stopCountdownTimer();
     currentTimeEstimate = initialMinutes;
     let remainingSeconds = Math.floor(initialMinutes * 60);
-    
+
     updateTimeDisplay(initialMinutes);
-    
+
     countdownInterval = setInterval(() => {
       remainingSeconds--;
       const minutes = Math.ceil(remainingSeconds / 60);
       updateTimeDisplay(minutes);
-      
+
       if (remainingSeconds <= 0) {
         stopCountdownTimer();
         updateTimeDisplay(0);
@@ -184,13 +223,13 @@
       console.error('No URL provided for download');
       return;
     }
-    
+
     const token = window.Auth.getAuthToken();
     const headers = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     // For HTTP URLs, use fetch and download
     fetch(url, { headers })
       .then(response => {
@@ -216,12 +255,71 @@
       });
   }
 
+  // Simple toast notification system
+  function showToast(message, type = 'info') {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.id = 'toast-container';
+      toastContainer.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        pointer-events: none;
+      `;
+      document.body.appendChild(toastContainer);
+    }
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      pointer-events: auto;
+      max-width: 300px;
+      word-wrap: break-word;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateX(100px);
+      transition: all 0.3s ease;
+    `;
+    toast.textContent = message;
+
+    toastContainer.appendChild(toast);
+
+    // Animate in
+    setTimeout(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateX(0)';
+    }, 10);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(100px)';
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
+    }, 5000);
+  }
+
   // Export public API
   window.UI = {
     log,
     setStatus,
     updateProgress,
     showProgress,
+    showToast,
     hideProgress,
     updateTimeDisplay,
     startCountdownTimer,

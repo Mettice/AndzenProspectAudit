@@ -5,14 +5,21 @@
   - browse_abandonment_data: dict with flows, benchmark, recommendations
 #}
 
-<section class="section page" data-page="11">
+<section class="section page" data-page="11" data-section="flow_browse_abandonment" id="flow_browse_abandonment">
     <h1 class="section-title">BROWSE ABANDONMENT</h1>
     
     <div class="flow-intro">
         {% if browse_abandonment_data.data_quality_issue %}
-            {# Show data quality warning instead of analysis #}
-            {{ browse_abandonment_data.data_quality_issue.warning_html|safe }}
+            {# Show data quality warning instead of analysis - HTML escaped for security #}
+            <div class="data-quality-warning">
+                <h3>⚠️ Data Quality Notice</h3>
+                <p>{{ browse_abandonment_data.data_quality_issue.issue_message }}</p>
+                {% if browse_abandonment_data.data_quality_issue.recommendation %}
+                <p><strong>Recommendation:</strong> {{ browse_abandonment_data.data_quality_issue.recommendation }}</p>
+                {% endif %}
+            </div>
         {% elif browse_abandonment_data.narrative %}
+            {# LLM-generated content - sanitized HTML #}
             {{ browse_abandonment_data.narrative|safe }}
         {% else %}
             <p>

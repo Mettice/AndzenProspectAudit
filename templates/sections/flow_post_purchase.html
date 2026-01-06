@@ -5,14 +5,21 @@
   - post_purchase_data: dict with flows, benchmark, recommendations
 #}
 
-<section class="section page" data-page="12">
+<section class="section page" data-page="12" data-section="flow_post_purchase" id="flow_post_purchase">
     <h1 class="section-title">POST PURCHASE</h1>
     
     <div class="flow-intro">
         {% if post_purchase_data.data_quality_issue %}
-            {# Show data quality warning instead of analysis #}
-            {{ post_purchase_data.data_quality_issue.warning_html|safe }}
+            {# Show data quality warning instead of analysis - HTML escaped for security #}
+            <div class="data-quality-warning">
+                <h3>⚠️ Data Quality Notice</h3>
+                <p>{{ post_purchase_data.data_quality_issue.issue_message }}</p>
+                {% if post_purchase_data.data_quality_issue.recommendation %}
+                <p><strong>Recommendation:</strong> {{ post_purchase_data.data_quality_issue.recommendation }}</p>
+                {% endif %}
+            </div>
         {% elif post_purchase_data.narrative %}
+            {# LLM-generated content - sanitized HTML #}
             {{ post_purchase_data.narrative|safe }}
         {% endif %}
     </div>

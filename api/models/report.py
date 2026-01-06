@@ -35,6 +35,10 @@ class Report(Base):
     # Report content (for editing)
     html_content = Column(Text, nullable=True)  # Full HTML content for editing
     
+    # Revenue metrics (for dashboard and analytics)
+    total_revenue = Column(String, nullable=True)  # Store as string to preserve formatting
+    attributed_revenue = Column(String, nullable=True)  # Store as string to preserve formatting
+    
     # Metadata
     status = Column(Enum(ReportStatus), default=ReportStatus.PROCESSING, nullable=False)
     klaviyo_api_key_hash = Column(String, nullable=True)  # Hashed for security

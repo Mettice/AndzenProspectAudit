@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from api.database import init_db, get_db, SessionLocal
 from api.models import User
 from api.models.user import UserRole
-from api.services.auth import get_password_hash
+from api.services.auth import get_password_hash, generate_secure_password
 
 def create_tables():
     """Create all database tables."""
@@ -30,7 +30,7 @@ def create_tables():
         return False
 
 def create_admin_user():
-    """Create initial admin user."""
+    """Create initial admin user with secure random password."""
     print("\nCreating admin user...")
     
     db = SessionLocal()
@@ -41,11 +41,14 @@ def create_admin_user():
             print("✓ Admin user already exists")
             return True
         
-        # Create admin user
+        # Generate secure password
+        secure_password = generate_secure_password(16)
+        
+        # Create admin user with secure password
         admin_user = User(
             username="admin",
-            email="admin@example.com",
-            hashed_password=get_password_hash("admin123"),  # Change this password!
+            email="admin@andzen.com",
+            hashed_password=get_password_hash(secure_password),
             role=UserRole.ADMIN,
             is_active=True
         )
@@ -54,8 +57,10 @@ def create_admin_user():
         db.commit()
         print("✓ Admin user created successfully")
         print("   Username: admin")
-        print("   Password: admin123")
-        print("   ⚠️  CHANGE THIS PASSWORD AFTER FIRST LOGIN!")
+        print("   Email: admin@andzen.com")
+        print(f"   Password: {secure_password}")
+        print("   🔐 SAVE THIS PASSWORD - it will not be shown again!")
+        print("   📝 Consider changing it after first login")
         return True
         
     except Exception as e:
@@ -94,8 +99,8 @@ def main():
     print("\n🎉 Database initialization complete!")
     print("\nYou can now:")
     print("1. Access your app at: https://your-railway-app.railway.app/ui")
-    print("2. Login with username: admin, password: admin123")
-    print("3. Change the admin password immediately!")
+    print("2. Login with the admin credentials shown above")
+    print("3. 🔐 Make sure you saved the admin password!")
 
 if __name__ == "__main__":
     main()
