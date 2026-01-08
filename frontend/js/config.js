@@ -15,11 +15,13 @@
       const apiPort = port === '8001' ? '8001' : '8000';
       return `http://${window.location.hostname}:${apiPort}`;
     }
-    // For production (Vercel):
-    // Option 1: Set window.API_URL via a script tag in index.html (see deployment guide)
-    // Option 2: Use Vercel environment variable (requires build step)
-    // For now, use a placeholder that you'll replace after deployment
-    return window.API_URL || 'https://web-production-2ce0.up.railway.app';
+    // For production:
+    // Check if window.API_URL is set and not a placeholder
+    if (window.API_URL && !window.API_URL.includes('your-app.railway.app')) {
+      return window.API_URL;
+    }
+    // Default to Railway deployment URL
+    return 'https://web-production-2ce0.up.railway.app';
   })();
 
   console.log('API Base URL:', window.API_BASE_URL);
