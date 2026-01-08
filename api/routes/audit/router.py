@@ -45,14 +45,27 @@ async def get_report_status_endpoint(report_id: int):
     """
     import logging
     logger = logging.getLogger(__name__)
+    print(f"🔵 GET /api/audit/status/{report_id} - Request received (type: {type(report_id)})")
     logger.info(f"GET /api/audit/status/{report_id} - Request received")
     try:
-        return await get_report_status(report_id)
-    except HTTPException:
+        result = await get_report_status(report_id)
+        print(f"✅ GET /api/audit/status/{report_id} - Success")
+        return result
+    except HTTPException as e:
+        print(f"❌ GET /api/audit/status/{report_id} - HTTPException: {e.status_code} - {e.detail}")
         raise
     except Exception as e:
-        from fastapi import HTTPException
+        print(f"❌ GET /api/audit/status/{report_id} - Exception: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error fetching report status: {str(e)}")
+
+# Add a simple test endpoint to verify routing works
+@router.get("/test")
+async def test_audit_route():
+    """Test endpoint to verify audit router is working."""
+    print("🔵 GET /api/audit/test - Test endpoint called")
+    return {"status": "ok", "message": "Audit router is working", "path": "/api/audit/test"}
 
 
 @router.post("/cancel/{report_id}")

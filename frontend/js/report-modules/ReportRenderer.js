@@ -25,9 +25,19 @@ class ReportRenderer {
     try {
       const apiUrl = window.API_BASE_URL || '';
       const url = `${apiUrl}/api/audit/status/${reportId}`;
-      console.log('Making request to:', url);
-      console.log('Report ID:', reportId, 'Type:', typeof reportId);
-      const response = await fetch(url);
+      console.log('🔵 Making request to:', url);
+      console.log('🔵 Report ID:', reportId, 'Type:', typeof reportId);
+      console.log('🔵 API Base URL:', apiUrl);
+      console.log('🔵 Full URL:', url);
+      console.log('🔵 Current location:', window.location.href);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' // Include cookies for auth
+      });
       console.log('Response status:', response.status, response.statusText);
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');

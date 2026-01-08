@@ -87,6 +87,7 @@ app.include_router(search.router, tags=["search"])
 app.include_router(analytics.router, tags=["analytics"])
 app.include_router(clients.router, tags=["clients"])  # Chat routes already have /api/audit prefix
 
+
 # Basic API routes (before static files)
 @app.get("/health")
 async def health():
