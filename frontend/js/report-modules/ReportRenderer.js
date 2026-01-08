@@ -7,7 +7,7 @@ class ReportRenderer {
     this.sections = [];
     this.totalPages = 0;
     this.styleManager = new StyleManager();
-
+    
     // Splitting thresholds - Much more conservative to prevent over-splitting
     this.SPLIT_TEXT_THRESHOLD = 8000;  // Greatly increased to prevent unnecessary splits
     this.SPLIT_ELEMENT_THRESHOLD = 100;  // Greatly increased 
@@ -46,7 +46,7 @@ class ReportRenderer {
       }
 
       const data = await response.json();
-
+      
       if (data.html_content) {
         return this.renderReportContent(data.html_content, data.report_data);
       } else {
@@ -74,11 +74,11 @@ class ReportRenderer {
     // Parse HTML content
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlContent, 'text/html');
-
+    
     // 1. Extract and inject embedded styles from the report
     // Pass both the parsed doc and original HTML string for style extraction
     this.styleManager.injectReportStyles(doc, htmlContent);
-
+    
     // 2. Find all sections - prioritize semantic IDs from data-section
     // Try multiple selectors to find sections
     let sections = Array.from(doc.querySelectorAll('section[data-section]'));
@@ -87,12 +87,12 @@ class ReportRenderer {
     if (sections.length === 0) {
       sections = Array.from(doc.querySelectorAll('[data-section]'));
     }
-
+    
     // Fallback to class-based selectors
     if (sections.length === 0) {
       sections = Array.from(doc.querySelectorAll('.section.page, section.page, .cover-page'));
     }
-
+    
     if (sections.length === 0) {
       sections = Array.from(doc.querySelectorAll('.section, section[data-page], [data-page]'));
     }
@@ -106,7 +106,7 @@ class ReportRenderer {
         if (el) sections.push(el);
       });
     }
-
+    
     console.log(`Found ${sections.length} sections in report content`);
 
     // Log section IDs for debugging
@@ -119,7 +119,7 @@ class ReportRenderer {
       }));
       console.log(`First 5 sections info:`, sectionInfo);
     }
-
+    
     if (sections.length === 0) {
       return this.renderFallbackContent(doc.body.innerHTML, pageContainer);
     }
@@ -139,12 +139,12 @@ class ReportRenderer {
     let pageNumber = 1;
     let skippedSections = 0;
     const processedSectionIds = new Set(); // Track processed sections to prevent duplicates
-
+    
     sections.forEach((section) => {
       if (section.classList.contains('page-break')) {
         return;
       }
-
+      
       // Get section ID - prioritize data-section attribute (should have semantic ID after mapping)
       let sectionId = section.getAttribute('data-section');
 
@@ -177,21 +177,21 @@ class ReportRenderer {
 
       const sectionTitle = section.querySelector('h1, h2, .section-title, [class*="title"]');
       const baseTitle = sectionTitle ? sectionTitle.textContent.trim() : this.formatSectionId(sectionId);
-
+      
       // Check if section should be split into multiple pages
       const subPages = this.splitSectionIntoPages(section, sectionId, baseTitle);
-
+      
       // Skip sections that returned empty (low quality content)
       if (subPages.length === 0) {
         skippedSections++;
         console.log(`⚠️ Skipped low-quality section: ${sectionId}`);
         return;
       }
-
+      
       subPages.forEach((subPage, subIndex) => {
         const pageEl = this.createPageElement(pageNumber, sectionId, subPage, subIndex, subPages.length, baseTitle);
         pageContainer.appendChild(pageEl);
-
+        
         // Track section info
         this.sections.push({
           pageNumber,
@@ -202,26 +202,26 @@ class ReportRenderer {
           baseTitle,
           hasContent: true // Mark as having actual content
         });
-
+        
         pageNumber++;
       });
     });
 
     // 6. Update totals and UI
     this.totalPages = Math.max(1, pageNumber - 1);
-
+    
     // Remove loading page
     const loadingPage = document.getElementById('page-loading');
     if (loadingPage && pageContainer.contains(loadingPage)) {
       pageContainer.removeChild(loadingPage);
     }
-
+    
     // Update section information for chat system
     this.updateChatSectionInfo();
-
+    
     console.log(`✓ Rendered ${this.totalPages} pages from ${sections.length} original sections (${skippedSections} low-quality sections skipped)`);
     console.log(`✓ Final result: ${this.sections.length} quality sections with actual content`);
-
+    
     return {
       totalPages: this.totalPages,
       sections: this.sections
@@ -239,7 +239,7 @@ class ReportRenderer {
     pageEl.dataset.sectionId = sectionId;
     pageEl.dataset.subPage = subIndex + 1;
     pageEl.dataset.totalSubPages = totalSubPages;
-
+    
     if (pageNumber === 1) {
       pageEl.classList.add('active');
     }
@@ -254,12 +254,12 @@ class ReportRenderer {
       }
     }
     pageEl.dataset.sectionTitle = pageTitle;
-
+    
     // Create page content
     const pageContent = document.createElement('div');
     pageContent.className = 'page-content';
     pageContent.innerHTML = subPage.content;
-
+    
     pageEl.appendChild(pageContent);
     return pageEl;
   }
@@ -270,19 +270,19 @@ class ReportRenderer {
   splitSectionIntoPages(section, sectionId, baseTitle) {
     const sectionClone = section.cloneNode(true);
     const sectionHTML = sectionClone.outerHTML;
-
+    
     const textLength = sectionClone.textContent.trim().length;
     const elementCount = sectionClone.querySelectorAll('*').length;
-
+    
     console.log(`Section "${sectionId}": ${textLength} chars, ${elementCount} elements - Will split: ${textLength >= this.SPLIT_TEXT_THRESHOLD || elementCount >= this.SPLIT_ELEMENT_THRESHOLD}`);
-
+    
     // Warn about sections with minimal content but don't skip them
     if (textLength < 100) {
       console.warn(`⚠️ Section "${sectionId}" has minimal content (${textLength} chars) - keeping for review`);
       // Don't skip - render as-is for visibility
       return [{ content: sectionHTML, title: null }];
     }
-
+    
     // For very short sections, check quality but still preserve
     if (textLength < 300 && elementCount < 5) {
       const contentText = sectionClone.textContent.trim().toLowerCase();
@@ -292,12 +292,12 @@ class ReportRenderer {
         return [{ content: sectionHTML, title: null }];
       }
     }
-
+    
     // Don't split small sections or special pages
     if (textLength < this.SPLIT_TEXT_THRESHOLD && elementCount < this.SPLIT_ELEMENT_THRESHOLD) {
       return [{ content: sectionHTML, title: null }];
     }
-
+    
     // Don't split key sections that should remain intact - ALWAYS return whole section
     const protectedSections = [
       'cover', 'executive_summary', 'kav_analysis', 'why_andzen', 
@@ -308,14 +308,14 @@ class ReportRenderer {
       console.log(`🔒 Protected section "${sectionId}" - preventing split`);
       return [{ content: sectionHTML, title: null }];
     }
-
+    
     // Try to find natural break points
     const breakPoints = this.findSectionBreakPoints(sectionClone);
-
+    
     if (breakPoints.length <= 1) {
       return this.splitByContentBlocks(sectionHTML, baseTitle, sectionId);
     }
-
+    
     // Split at break points
     const subPages = [];
     breakPoints.forEach((breakPoint) => {
@@ -326,11 +326,11 @@ class ReportRenderer {
         });
       }
     });
-
+    
     if (subPages.length === 0) {
       return [{ content: sectionHTML, title: null }];
     }
-
+    
     console.log(`Split section "${sectionId}" into ${subPages.length} pages`);
     return subPages;
   }
@@ -340,18 +340,18 @@ class ReportRenderer {
    */
   findSectionBreakPoints(sectionElement) {
     const breakPoints = [];
-
+    
     // Look for major headers as break points (only h2, not h3)
     const headers = sectionElement.querySelectorAll('h2');
-
+    
     if (headers.length === 0) {
       // No headers - try major elements
       const majorElements = sectionElement.querySelectorAll('table, .metric-card, .recommendation-card, .flow-card, .chart-container');
-
+      
       if (majorElements.length > 8) {  // Much more conservative - only split if LOTS of elements
         let elementGroups = [];
         let currentGroup = [];
-
+        
         Array.from(sectionElement.children).forEach(child => {
           currentGroup.push(child);
           if (currentGroup.length >= 6 || (child.tagName === 'TABLE' && currentGroup.length >= 2)) {  // Larger groups
@@ -359,11 +359,11 @@ class ReportRenderer {
             currentGroup = [];
           }
         });
-
+        
         if (currentGroup.length > 0) {
           elementGroups.push(currentGroup);
         }
-
+        
         elementGroups.forEach((group, index) => {
           const groupHtml = group.map(el => el.outerHTML).join('\n');
           breakPoints.push({
@@ -372,13 +372,13 @@ class ReportRenderer {
           });
         });
       }
-
+      
       return breakPoints;
     }
-
+    
     // Split by headers
     let contentBefore = '';
-
+    
     // Get content before first header
     const firstHeader = headers[0];
     let walker = document.createTreeWalker(
@@ -387,7 +387,7 @@ class ReportRenderer {
       null,
       false
     );
-
+    
     let node;
     while (node = walker.nextNode()) {
       if (node === firstHeader) break;
@@ -395,28 +395,28 @@ class ReportRenderer {
         contentBefore += node.outerHTML;
       }
     }
-
+    
     if (contentBefore.trim()) {
       breakPoints.push({
         content: contentBefore,
         title: 'Overview'
       });
     }
-
+    
     // Process each header and its content
     headers.forEach((header, index) => {
       const headerText = header.textContent.trim();
       let sectionContent = header.outerHTML;
-
+      
       // Get content until next header
       let nextSibling = header.nextElementSibling;
       const nextHeader = headers[index + 1];
-
+      
       while (nextSibling && nextSibling !== nextHeader) {
         sectionContent += nextSibling.outerHTML;
         nextSibling = nextSibling.nextElementSibling;
       }
-
+      
       if (sectionContent.trim()) {
         breakPoints.push({
           content: sectionContent,
@@ -424,7 +424,7 @@ class ReportRenderer {
         });
       }
     });
-
+    
     return breakPoints;
   }
 
@@ -435,19 +435,19 @@ class ReportRenderer {
     const parser = new DOMParser();
     const doc = parser.parseFromString(sectionHTML, 'text/html');
     const sectionEl = doc.body.firstElementChild;
-
+    
     if (!sectionEl) {
       return [{ content: sectionHTML, title: null }];
     }
-
+    
     const children = Array.from(sectionEl.children);
     const pages = [];
     let currentPageContent = [];
     let currentCharCount = 0;
-
+    
     children.forEach(child => {
       const childText = child.textContent.length;
-
+      
       // Much more conservative splitting - only if we have a LOT of content AND multiple elements
       if (currentCharCount + childText > this.maxCharsPerPage && 
           currentPageContent.length > 3 &&  // Require at least 4 elements before considering a split
@@ -466,7 +466,7 @@ class ReportRenderer {
         currentCharCount += childText;
       }
     });
-
+    
     // Add final page
     if (currentPageContent.length > 0) {
       pages.push({
@@ -477,7 +477,7 @@ class ReportRenderer {
         title: pages.length > 0 ? `Part ${pages.length + 1}` : null
       });
     }
-
+    
     return pages.length > 0 ? pages : [{ content: sectionHTML, title: null }];
   }
 
@@ -487,7 +487,7 @@ class ReportRenderer {
   wrapContentInSection(content, sectionId) {
     const knownSections = {
       'executive_summary': 'executive-summary',
-      'kav_analysis': 'kav-analysis',
+      'kav_analysis': 'kav-analysis', 
       'strategic_recommendations': 'strategic-recommendations',
       'campaign_performance': 'campaign-performance',
       'automation_overview': 'automation-overview',
@@ -497,10 +497,10 @@ class ReportRenderer {
       'flow_abandoned_cart': 'flow-abandoned-cart',
       'segmentation_strategy': 'segmentation-strategy'
     };
-
+    
     const sectionClass = sectionId.toLowerCase().replace(/_/g, '-');
     const backendId = knownSections[sectionId] || sectionId;
-
+    
     return `<section 
       data-section="${sectionId}" 
       data-backend-section="${backendId}"
@@ -589,14 +589,14 @@ class ReportRenderer {
   compareSections(a, b) {
     const pageA = a.getAttribute('data-page') || a.dataset.page || a.getAttribute('data-section') || '999';
     const pageB = b.getAttribute('data-page') || b.dataset.page || b.getAttribute('data-section') || '999';
-
+    
     const numA = parseInt(pageA);
     const numB = parseInt(pageB);
-
+    
     if (!isNaN(numA) && !isNaN(numB)) {
       return numA - numB;
     }
-
+    
     const sectionOrder = {
       'cover': 1, 'cover-page': 1, '1': 1,
       'why_andzen': 2, 'why-andzen': 2, 'andzen': 2,
@@ -617,26 +617,26 @@ class ReportRenderer {
       'strategic_recommendations': 17, 'strategic-recommendations': 17, 'recommendations': 17, 'strategic': 17,
       'next_steps': 18, 'next-steps': 18
     };
-
+    
     const getSectionOrder = (pageId) => {
       const id = pageId.toLowerCase();
-
+      
       if (sectionOrder[id] !== undefined) {
         return sectionOrder[id];
       }
-
+      
       for (const [key, order] of Object.entries(sectionOrder)) {
         if (id.includes(key.replace(/_/g, '-')) || id.includes(key.replace(/-/g, '_'))) {
           return order;
         }
       }
-
+      
       return 999;
     };
-
+    
     const orderA = getSectionOrder(pageA);
     const orderB = getSectionOrder(pageB);
-
+    
     return orderA - orderB;
   }
 
@@ -648,15 +648,15 @@ class ReportRenderer {
     pageEl.className = 'report-page active';
     pageEl.id = 'page-1';
     pageEl.dataset.page = 1;
-
+    
     const pageContent = document.createElement('div');
     pageContent.className = 'page-content';
     pageContent.innerHTML = htmlContent;
-
+    
     pageEl.appendChild(pageContent);
     container.innerHTML = '';
     container.appendChild(pageEl);
-
+    
     this.totalPages = 1;
     this.sections = [{ pageNumber: 1, sectionId: 'content', title: 'Report Content' }];
   }
@@ -678,7 +678,7 @@ class ReportRenderer {
     const sectionMap = {};
     const sectionContent = {};
     const fullReportContent = [];
-
+    
     this.sections.forEach(section => {
       const baseId = section.sectionId;
       if (!sectionMap[baseId]) {
@@ -691,12 +691,12 @@ class ReportRenderer {
         subPage: section.subPage || 1,
         totalSubPages: section.totalSubPages || 1
       });
-
+      
       const pageEl = document.getElementById(`page-${section.pageNumber}`);
       if (pageEl) {
         const pageContent = pageEl.textContent + '\n';
         sectionContent[baseId] += pageContent;
-
+        
         // Also add to full report content with page context
         fullReportContent.push({
           pageNumber: section.pageNumber,
@@ -706,30 +706,30 @@ class ReportRenderer {
         });
       }
     });
-
+    
     window.reportSections = {
       map: sectionMap,
       content: sectionContent,
       fullContent: fullReportContent, // Complete report content for chat context
       available: Object.keys(sectionMap),
-
+      
       // Enhanced section finder with better mapping
       findSection: (sectionName) => {
         const normalizedName = sectionName.toLowerCase()
           .replace(/\s+/g, '_')
           .replace(/-/g, '_');
-
+        
         if (sectionContent[normalizedName]) {
           return sectionContent[normalizedName];
         }
-
+        
         // Check partial matches
         for (const [id, content] of Object.entries(sectionContent)) {
           if (id.includes(normalizedName) || normalizedName.includes(id)) {
             return content;
           }
         }
-
+        
         // Enhanced mappings for better section detection
         const mappings = {
           'kav': ['kav_analysis', 'section-14', 'section-19'],
@@ -746,7 +746,7 @@ class ReportRenderer {
           'data': ['data_capture', 'section-8'],
           'form': ['data_capture', 'section-8']
         };
-
+        
         const possibleIds = mappings[normalizedName];
         if (possibleIds) {
           for (const id of possibleIds) {
@@ -755,10 +755,10 @@ class ReportRenderer {
             }
           }
         }
-
+        
         return null;
       },
-
+      
       // Get full report context for AI
       getFullContext: () => {
         return {
@@ -774,7 +774,7 @@ class ReportRenderer {
         };
       }
     };
-
+    
     console.log('Available sections for chat:', Object.keys(sectionMap));
   }
 

@@ -164,8 +164,8 @@ def sanitize_html_content(content: str, allowed_tags: List[str] = None) -> str:
     
     # Remove any tags not in the allowed list
     allowed_pattern = '|'.join(allowed_tags)
-    # Remove disallowed opening tags
-    content = re.sub(f'<(?!/?(?:{allowed_pattern})(?:\s[^>]*)?>) [^>]*>', '', content, flags=re.IGNORECASE)
+    # Remove disallowed opening tags (use raw string to avoid escape sequence warning)
+    content = re.sub(rf'<(?!/?(?:{allowed_pattern})(?:\s[^>]*)?>) [^>]*>', '', content, flags=re.IGNORECASE)
     
     return content
 

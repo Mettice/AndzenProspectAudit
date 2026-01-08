@@ -87,6 +87,19 @@ app.include_router(search.router, tags=["search"])
 app.include_router(analytics.router, tags=["analytics"])
 app.include_router(clients.router, tags=["clients"])  # Chat routes already have /api/audit prefix
 
+# Print all registered routes for debugging (after all routes are registered)
+print("\n" + "="*60)
+print("REGISTERED AUDIT ROUTES:")
+print("="*60)
+audit_routes = [r for r in app.routes if hasattr(r, 'path') and 'audit' in r.path]
+if audit_routes:
+    for route in sorted(audit_routes, key=lambda x: x.path):
+        methods = getattr(route, 'methods', set())
+        method_str = ', '.join(sorted(methods)) if methods else 'ANY'
+        print(f"  {method_str:8} {route.path}")
+else:
+    print("  ⚠️  NO AUDIT ROUTES FOUND!")
+print("="*60 + "\n")
 
 # Basic API routes (before static files)
 @app.get("/health")
