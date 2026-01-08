@@ -193,3 +193,4 @@
 - Each section should have **1 "Areas of Opportunity" table**
 - Total report should be **30-40 pages** (currently ~18 pages)
 
+

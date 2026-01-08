@@ -14,7 +14,7 @@ class EditModal {
    */
   init(reportId) {
     this.reportId = reportId;
-    this.setupEditMode();
+    // Remove setupEditMode() - let the main report viewer handle edit mode controls
     this.setupEventListeners();
   }
 
@@ -43,18 +43,13 @@ class EditModal {
 
   /**
    * Setup edit mode controls
+   * NOTE: This is now handled by the main report viewer (report-viewer.js)
+   * to avoid duplicate edit controls
    */
   setupEditMode() {
-    // Add edit mode toggle button if it doesn't exist
-    const reportHeader = document.querySelector('.report-header');
-    if (reportHeader && !document.querySelector('.edit-mode-toggle')) {
-      const editToggle = document.createElement('button');
-      editToggle.className = 'edit-mode-toggle btn-back';
-      editToggle.innerHTML = '✏️ Edit Mode';
-      editToggle.style.marginBottom = '8px';
-      editToggle.addEventListener('click', () => this.toggleEditMode());
-      reportHeader.appendChild(editToggle);
-    }
+    // DISABLED - Edit mode controls are now handled by report-viewer.js
+    // This prevents duplicate edit buttons and ensures proper positioning
+    console.log('EditModal: Edit mode controls handled by main report viewer');
   }
 
   /**

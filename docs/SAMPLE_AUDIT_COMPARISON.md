@@ -292,3 +292,4 @@ Sample audits show: Visual representations of revenue growth over time
 
 **Priority:** Focus on chart generation and image embedding first, as these are the most visible differences from sample audits.
 
+

@@ -3,6 +3,7 @@ Post purchase flow data preparer.
 """
 from typing import Dict, Any, Optional
 import logging
+from ..chart_generator import get_chart_generator
 
 logger = logging.getLogger(__name__)
 
@@ -154,6 +155,48 @@ async def prepare_post_purchase_data(
         risk_flags = []
         quick_wins = []
     
+    # Generate performance chart
+    performance_chart = None
+    try:
+        chart_generator = get_chart_generator()
+        flows = post_raw.get("flows", [])
+        
+        if flows:
+            # Get the first (main) flow for performance comparison
+            main_flow = flows[0] if flows else {}
+            
+            # Prepare flow data for chart
+            flow_data = {
+                'open_rate': main_flow.get('open_rate', 0),
+                'click_rate': main_flow.get('click_rate', 0), 
+                'conversion_rate': main_flow.get('placed_order_rate', 0),  # Use placed_order_rate as conversion
+                'revenue_per_recipient': main_flow.get('revenue_per_recipient', 0)
+            }
+            
+            # Prepare benchmark data
+            benchmarks = {
+                'average': {
+                    'open_rate': post_benchmarks.get("open_rate", {}).get("average", 65.30),
+                    'click_rate': post_benchmarks.get("click_rate", {}).get("average", 8.90),
+                    'conversion_rate': post_benchmarks.get("conversion_rate", {}).get("average", 4.20),
+                    'revenue_per_recipient': post_benchmarks.get("revenue_per_recipient", {}).get("average", 5.75)
+                }
+            }
+            
+            performance_chart_image = chart_generator.generate_flow_performance_chart(
+                flow_data=flow_data,
+                benchmarks=benchmarks,
+                flow_name=main_flow.get('name', 'Post Purchase Flow')
+            )
+            
+            if performance_chart_image:
+                performance_chart = f"data:image/png;base64,{performance_chart_image}"
+                logger.info("✅ Generated post purchase performance chart")
+            
+    except Exception as e:
+        logger.warning(f"Failed to generate post purchase performance chart: {e}")
+        performance_chart = None
+    
     return {
         "flows": flows,
         "benchmark": post_raw.get("benchmark", {
@@ -171,6 +214,7 @@ async def prepare_post_purchase_data(
         "areas_of_opportunity": areas_of_opportunity if isinstance(areas_of_opportunity, list) else [],  # LLM-generated areas of opportunity table
         "root_cause_analysis": root_cause_analysis,  # LLM-generated root cause analysis
         "risk_flags": risk_flags,  # LLM-generated risk flags
-        "quick_wins": quick_wins  # LLM-generated quick wins
+        "quick_wins": quick_wins,  # LLM-generated quick wins
+        "performance_chart": performance_chart  # Generated performance chart
     }
 

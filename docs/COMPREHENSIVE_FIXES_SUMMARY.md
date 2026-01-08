@@ -90,3 +90,4 @@ After these fixes, verify:
 3. **PDF testing:** Test PDF generation on Windows to confirm the fix works
 4. **Performance:** Monitor if the fallback generation adds any noticeable delay
 
+

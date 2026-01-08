@@ -145,3 +145,4 @@ For **Ritual Hockey** (test client):
 
 **Status:** ✅ **HARDCODED VALUES FIXED** - Ready for testing!
 
+

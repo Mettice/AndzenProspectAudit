@@ -172,3 +172,4 @@
 2. ⚠️ Hardcoded segmentation strategy (needs dynamic generation)
 3. ⚠️ Segmentation always shown (should be conditional)
 
+

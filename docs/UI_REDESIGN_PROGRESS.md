@@ -59,3 +59,4 @@
 4. Add keyboard shortcuts for formatting
 5. Add more formatting options (line spacing, etc.)
 
+

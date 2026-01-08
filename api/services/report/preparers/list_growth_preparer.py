@@ -231,6 +231,72 @@ async def prepare_list_growth_data(
         risk_flags = []
         quick_wins = []
     
+    # Generate chart images
+    chart_generator = get_chart_generator()
+    engagement_chart_image = None
+    net_change_chart_image = None
+    
+    try:
+        # Prepare chart data for list growth visualization
+        chart_data = list_raw.get("chart_data", {})
+        if chart_data:
+            # Generate engagement breakdown chart
+            engagement_chart_image = chart_generator.generate_engagement_breakdown_chart(
+                data=chart_data,
+                title="List Size Growth"
+            )
+            logger.info("✅ Generated list growth engagement chart")
+        
+        # Prepare net change chart data
+        net_change_data = list_raw.get("net_change_chart_data", {})
+        if net_change_data:
+            # Generate net change chart using the same function but with different title
+            net_change_chart_image = chart_generator.generate_engagement_breakdown_chart(
+                data=net_change_data,
+                title="Net Membership Change"
+            )
+            logger.info("✅ Generated net change chart")
+        
+        # If we don't have proper chart data, create charts from basic metrics
+        if not engagement_chart_image and list_raw.get("current_total", 0) > 0:
+            # Create a simple chart from available data
+            current_total = list_raw.get("current_total", 0)
+            net_change = list_raw.get("net_change", 0)
+            previous_total = current_total - net_change
+            
+            simple_data = {
+                "labels": ["Previous Period", "Current Period"],
+                "values": [max(0, previous_total), current_total],
+                "colors": ["#B7B9BC", "#65DA4F"]
+            }
+            engagement_chart_image = chart_generator.generate_engagement_breakdown_chart(
+                data=simple_data,
+                title="List Size Growth"
+            )
+            logger.info("✅ Generated simple list growth chart from basic metrics")
+            
+        if not net_change_chart_image and list_raw.get("net_change") is not None:
+            # Create net change visualization
+            net_change = list_raw.get("net_change", 0)
+            growth = list_raw.get("growth_subscribers", abs(net_change) if net_change > 0 else 0)
+            lost = list_raw.get("lost_subscribers", abs(net_change) if net_change < 0 else 0)
+            
+            net_data = {
+                "labels": ["New Subscribers", "Lost Subscribers", "Net Change"],
+                "values": [growth, lost, abs(net_change)],
+                "colors": ["#65DA4F", "#EB9E1D", "#262626"]
+            }
+            net_change_chart_image = chart_generator.generate_engagement_breakdown_chart(
+                data=net_data,
+                title="Net Membership Change"
+            )
+            logger.info("✅ Generated net change chart from basic metrics")
+            
+    except Exception as e:
+        logger.warning(f"Failed to generate list growth charts: {e}")
+        engagement_chart_image = None
+        net_change_chart_image = None
+
     return {
         "list_name": list_raw.get("list_name", "Primary List"),
         "period_months": period_months,
@@ -239,7 +305,41 @@ async def prepare_list_growth_data(
         "net_change": list_raw.get("net_change", 0),
         "growth_subscribers": list_raw.get("growth_subscribers", 0),
         "lost_subscribers": list_raw.get("lost_subscribers", 0),
+        "bounced": list_raw.get("bounced", 0),
+        "spam_complaints": list_raw.get("spam_complaints", 0),
+        "one_click_unsubscribes": list_raw.get("one_click_unsubscribes", 0),
         "churn_rate": list_raw.get("churn_rate", 0),
+        "unsubscribe_percentage": list_raw.get("unsubscribe_percentage", 0),
+        "bounce_percentage": list_raw.get("bounce_percentage", 0),
+        "spam_percentage": list_raw.get("spam_percentage", 0),
+        "one_click_percentage": list_raw.get("one_click_percentage", 0),
+        "churn_breakdown": list_raw.get("churn_breakdown", {
+            "unsubscribes": 0,
+            "bounces": 0,
+            "spam_complaints": 0,
+            "one_click_unsubscribes": 0,
+            "total_churn": 0
+        }),
+        "period_comparison": list_raw.get("period_comparison", {
+            "first_period_new": 0,
+            "second_period_new": 0,
+            "first_period_churn": 0,
+            "second_period_churn": 0,
+            "growth_change_percentage": 0,
+            "churn_change_percentage": 0,
+            "periods": {"first": "No Data", "second": "No Data"}
+        }),
+        "engagement_threshold": list_raw.get("engagement_threshold", {
+            "engaged_count": 0,
+            "unengaged_count": 0,
+            "engaged_percentage": 100.0,
+            "unengaged_percentage": 0.0,
+            "warning_threshold": False,
+            "received_no_emails": 0,
+            "received_no_emails_percentage": 0.0,
+            "engagement_rate": 100.0,
+            "calculation_method": "none"
+        }),
         "signup_sources": list_raw.get("signup_sources", {
             "popup_form": 0,
             "footer_form": 0,
@@ -248,6 +348,9 @@ async def prepare_list_growth_data(
         "chart_data": list_raw.get("chart_data", {}),
         "net_change_chart_data": list_raw.get("net_change_chart_data", {}),
         "analysis_text": analysis_text,  # LLM-generated analysis
+        # Chart images for template
+        "engagement_chart_image_base64": f"data:image/png;base64,{engagement_chart_image}" if engagement_chart_image else None,
+        "net_change_chart_image_base64": f"data:image/png;base64,{net_change_chart_image}" if net_change_chart_image else None,
         # Comprehensive subsections (new enhanced format)
         "list_growth_overview": list_growth_overview if 'list_growth_overview' in locals() else "",
         "growth_drivers": growth_drivers if 'growth_drivers' in locals() else "",

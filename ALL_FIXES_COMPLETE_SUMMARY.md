@@ -165,3 +165,4 @@ For Ritual Hockey:
 - ✅ No hardcoded values
 - ✅ High-quality charts with brand colors
 
+

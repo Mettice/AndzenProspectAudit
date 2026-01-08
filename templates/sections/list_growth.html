@@ -87,9 +87,9 @@
                         <span class="chart-metric-value">{{ "{:,}".format(list_growth_data.net_change) }}</span>
                         <span class="chart-metric-label">Net membership change</span>
                     </div>
-                    {% if list_growth_data.engagement_chart_image_base64 %}
+                    {% if list_growth_data.net_change_chart_image_base64 %}
                     <div class="generated-chart">
-                        <img src="{{ list_growth_data.engagement_chart_image_base64 }}" alt="Net Change Chart" style="width: 100%; height: auto; border-radius: 4px;">
+                        <img src="{{ list_growth_data.net_change_chart_image_base64 }}" alt="Net Change Chart" style="width: 100%; height: auto; border-radius: 4px;">
                     </div>
                     {% else %}
                     <div class="chart-error" style="padding: 1rem; text-align: center; color: #666; font-size: 0.9em;">
@@ -100,6 +100,236 @@
             </div>
         </div>
     </div>
+    
+    <!-- Detailed Churn Breakdown (Critical for Manual Audit Quality) -->
+    {% if list_growth_data.churn_breakdown %}
+    <div class="churn-breakdown-section">
+        <h4 class="subsection-title">Detailed Churn Breakdown</h4>
+        <div class="churn-overview">
+            <p><strong>Total Churn:</strong> {{ "{:,}".format(list_growth_data.churn_breakdown.total_churn) }} subscribers over {{ list_growth_data.period_months }} months ({{ list_growth_data.churn_rate }}% of new subscribers)</p>
+        </div>
+        
+        <div class="churn-breakdown-grid">
+            <div class="churn-metric-card">
+                <div class="churn-metric-title">One-Click Unsubscribes</div>
+                <div class="churn-metric-count">{{ "{:,}".format(list_growth_data.one_click_unsubscribes) }}</div>
+                <div class="churn-metric-percentage">{{ list_growth_data.one_click_percentage }}%</div>
+                <div class="churn-metric-description">Subscribers who used one-click unsubscribe links</div>
+            </div>
+            
+            <div class="churn-metric-card">
+                <div class="churn-metric-title">Manual Unsubscribes</div>
+                <div class="churn-metric-count">{{ "{:,}".format(list_growth_data.lost_subscribers) }}</div>
+                <div class="churn-metric-percentage">{{ list_growth_data.unsubscribe_percentage }}%</div>
+                <div class="churn-metric-description">Subscribers who manually unsubscribed</div>
+            </div>
+            
+            <div class="churn-metric-card">
+                <div class="churn-metric-title">Bounced Emails</div>
+                <div class="churn-metric-count">{{ "{:,}".format(list_growth_data.bounced) }}</div>
+                <div class="churn-metric-percentage">{{ list_growth_data.bounce_percentage }}%</div>
+                <div class="churn-metric-description">Hard and soft bounces from invalid emails</div>
+            </div>
+            
+            <div class="churn-metric-card">
+                <div class="churn-metric-title">Spam Complaints</div>
+                <div class="churn-metric-count">{{ "{:,}".format(list_growth_data.spam_complaints) }}</div>
+                <div class="churn-metric-percentage">{{ list_growth_data.spam_percentage }}%</div>
+                <div class="churn-metric-description">Subscribers who marked emails as spam</div>
+            </div>
+        </div>
+        
+        {% if list_growth_data.churn_breakdown.total_churn > 0 %}
+        <div class="churn-insights">
+            <div class="churn-insight-box">
+                <p><strong>Key Insights:</strong></p>
+                <ul>
+                    {% if list_growth_data.one_click_percentage > 3 %}
+                    <li><span class="warning-flag">⚠️</span> One-click unsubscribes are {{ list_growth_data.one_click_percentage }}% - consider reviewing email frequency and content relevance</li>
+                    {% endif %}
+                    {% if list_growth_data.bounce_percentage > 2 %}
+                    <li><span class="warning-flag">⚠️</span> Bounce rate is {{ list_growth_data.bounce_percentage }}% - implement email validation to improve deliverability</li>
+                    {% endif %}
+                    {% if list_growth_data.spam_percentage > 1 %}
+                    <li><span class="alert-flag">🚨</span> Spam complaints are {{ list_growth_data.spam_percentage }}% - review sending practices and list hygiene</li>
+                    {% endif %}
+                    {% if list_growth_data.churn_rate > 20 %}
+                    <li><span class="alert-flag">🚨</span> Total churn rate is {{ list_growth_data.churn_rate }}% - focus on engagement and retention strategies</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- Period-over-Period Comparison (Critical for Client Presentations) -->
+    {% if list_growth_data.period_comparison and list_growth_data.period_comparison.periods.first != "No Data" %}
+    <div class="period-comparison-section">
+        <h4 class="subsection-title">Period-over-Period Analysis</h4>
+        
+        <div class="period-comparison-grid">
+            <div class="period-comparison-card">
+                <div class="period-label">{{ list_growth_data.period_comparison.periods.first }}</div>
+                <div class="period-metrics">
+                    <div class="period-metric">
+                        <span class="period-metric-value">{{ "{:,}".format(list_growth_data.period_comparison.first_period_new) }}</span>
+                        <span class="period-metric-label">New Subscribers</span>
+                    </div>
+                    <div class="period-metric">
+                        <span class="period-metric-value">{{ "{:,}".format(list_growth_data.period_comparison.first_period_churn) }}</span>
+                        <span class="period-metric-label">Total Churn</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="period-comparison-arrow">
+                <div class="arrow">→</div>
+            </div>
+            
+            <div class="period-comparison-card">
+                <div class="period-label">{{ list_growth_data.period_comparison.periods.second }}</div>
+                <div class="period-metrics">
+                    <div class="period-metric">
+                        <span class="period-metric-value">{{ "{:,}".format(list_growth_data.period_comparison.second_period_new) }}</span>
+                        <span class="period-metric-label">New Subscribers</span>
+                    </div>
+                    <div class="period-metric">
+                        <span class="period-metric-value">{{ "{:,}".format(list_growth_data.period_comparison.second_period_churn) }}</span>
+                        <span class="period-metric-label">Total Churn</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="period-changes">
+            <div class="change-summary">
+                <div class="change-item">
+                    <span class="change-label">Growth Change:</span>
+                    <span class="change-value {% if list_growth_data.period_comparison.growth_change_percentage >= 0 %}positive{% else %}negative{% endif %}">
+                        {{ list_growth_data.period_comparison.growth_change_percentage|abs }}%
+                        {% if list_growth_data.period_comparison.growth_change_percentage >= 0 %}↗️{% else %}↘️{% endif %}
+                    </span>
+                </div>
+                <div class="change-item">
+                    <span class="change-label">Churn Change:</span>
+                    <span class="change-value {% if list_growth_data.period_comparison.churn_change_percentage <= 0 %}positive{% else %}negative{% endif %}">
+                        {{ list_growth_data.period_comparison.churn_change_percentage|abs }}%
+                        {% if list_growth_data.period_comparison.churn_change_percentage <= 0 %}↘️{% else %}↗️{% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="period-insights">
+                {% if list_growth_data.period_comparison.growth_change_percentage > 10 %}
+                <p class="insight positive">✅ <strong>Strong growth trend:</strong> New subscriber growth increased by {{ list_growth_data.period_comparison.growth_change_percentage }}% in the recent period.</p>
+                {% elif list_growth_data.period_comparison.growth_change_percentage < -10 %}
+                <p class="insight negative">⚠️ <strong>Declining growth:</strong> New subscriber growth decreased by {{ list_growth_data.period_comparison.growth_change_percentage|abs }}% - investigate data capture optimization.</p>
+                {% endif %}
+                
+                {% if list_growth_data.period_comparison.churn_change_percentage > 15 %}
+                <p class="insight negative">🚨 <strong>Rising churn:</strong> Subscriber churn increased by {{ list_growth_data.period_comparison.churn_change_percentage }}% - review email frequency and content relevance.</p>
+                {% elif list_growth_data.period_comparison.churn_change_percentage < -10 %}
+                <p class="insight positive">✅ <strong>Improved retention:</strong> Subscriber churn decreased by {{ list_growth_data.period_comparison.churn_change_percentage|abs }}% - current engagement strategy is working.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- List Engagement Threshold Analysis (20% Warning Rule) -->
+    {% if list_growth_data.engagement_threshold %}
+    <div class="engagement-threshold-section">
+        <h4 class="subsection-title">List Engagement Analysis</h4>
+        
+        <div class="engagement-overview">
+            <p><strong>Engagement Status:</strong> {{ list_growth_data.engagement_threshold.engaged_percentage }}% of subscribers are actively engaged ({{ "{:,}".format(list_growth_data.engagement_threshold.engaged_count) }} profiles)</p>
+            
+            {% if list_growth_data.engagement_threshold.warning_threshold %}
+            <div class="engagement-warning">
+                <p class="warning-message">⚠️ <strong>Warning:</strong> {{ list_growth_data.engagement_threshold.unengaged_percentage }}% of your list is unengaged ({{ "{:,}".format(list_growth_data.engagement_threshold.unengaged_count) }} profiles)</p>
+                <p class="warning-explanation">When more than 20% of your list is unengaged, it can negatively impact deliverability and sender reputation.</p>
+            </div>
+            {% else %}
+            <div class="engagement-success">
+                <p class="success-message">✅ <strong>Healthy engagement:</strong> Your unengaged rate of {{ list_growth_data.engagement_threshold.unengaged_percentage }}% is below the 20% warning threshold.</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="engagement-breakdown">
+            <div class="engagement-metrics-grid">
+                <div class="engagement-metric-card engaged">
+                    <div class="engagement-metric-icon">✅</div>
+                    <div class="engagement-metric-title">Engaged Subscribers</div>
+                    <div class="engagement-metric-count">{{ "{:,}".format(list_growth_data.engagement_threshold.engaged_count) }}</div>
+                    <div class="engagement-metric-percentage">{{ list_growth_data.engagement_threshold.engaged_percentage }}%</div>
+                    <div class="engagement-metric-description">Actively opening and clicking emails</div>
+                </div>
+                
+                <div class="engagement-metric-card unengaged {% if list_growth_data.engagement_threshold.warning_threshold %}warning{% endif %}">
+                    <div class="engagement-metric-icon">{% if list_growth_data.engagement_threshold.warning_threshold %}⚠️{% else %}😐{% endif %}</div>
+                    <div class="engagement-metric-title">Unengaged Subscribers</div>
+                    <div class="engagement-metric-count">{{ "{:,}".format(list_growth_data.engagement_threshold.unengaged_count) }}</div>
+                    <div class="engagement-metric-percentage">{{ list_growth_data.engagement_threshold.unengaged_percentage }}%</div>
+                    <div class="engagement-metric-description">Not opening or clicking recent emails</div>
+                </div>
+                
+                {% if list_growth_data.engagement_threshold.received_no_emails > 0 %}
+                <div class="engagement-metric-card no-emails">
+                    <div class="engagement-metric-icon">📭</div>
+                    <div class="engagement-metric-title">Received No Emails</div>
+                    <div class="engagement-metric-count">{{ "{:,}".format(list_growth_data.engagement_threshold.received_no_emails) }}</div>
+                    <div class="engagement-metric-percentage">{{ list_growth_data.engagement_threshold.received_no_emails_percentage }}%</div>
+                    <div class="engagement-metric-description">Haven't been sent emails recently</div>
+                    {% if list_growth_data.engagement_threshold.wasted_spend.annual_cost > 0 %}
+                    <div class="wasted-spend-amount">~${{ "%.0f"|format(list_growth_data.engagement_threshold.wasted_spend.annual_cost) }}/year wasted</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if list_growth_data.engagement_threshold.warning_threshold %}
+        <div class="engagement-recommendations">
+            <div class="recommendations-box">
+                <h5>Immediate Actions to Improve Engagement:</h5>
+                <ul>
+                    <li><strong>Segment your list:</strong> Create separate segments for engaged vs. unengaged subscribers</li>
+                    <li><strong>Re-engagement campaign:</strong> Send targeted emails to win back unengaged subscribers</li>
+                    <li><strong>List hygiene:</strong> Consider removing chronically unengaged subscribers to improve deliverability</li>
+                    <li><strong>Email frequency:</strong> Review sending frequency - you may be sending too many or too few emails</li>
+                    <li><strong>Content relevance:</strong> Survey subscribers to understand what content they want to receive</li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if list_growth_data.engagement_threshold.wasted_spend.annual_cost > 0 %}
+        <div class="cost-analysis">
+            <div class="cost-analysis-box">
+                <h5>💰 Estimated Cost Impact</h5>
+                <div class="cost-breakdown">
+                    <div class="cost-item">
+                        <span class="cost-label">Monthly wasted spend:</span>
+                        <span class="cost-value">${{ "%.0f"|format(list_growth_data.engagement_threshold.wasted_spend.monthly_cost) }}</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="cost-label">Annual wasted spend:</span>
+                        <span class="cost-value">${{ "%.0f"|format(list_growth_data.engagement_threshold.wasted_spend.annual_cost) }}</span>
+                    </div>
+                </div>
+                <p class="cost-explanation">Based on industry average of ${{ list_growth_data.engagement_threshold.wasted_spend.cost_per_email|round(4) }}/email × estimated send frequency to unengaged subscribers</p>
+                <p class="cost-note"><small><em>{{ list_growth_data.engagement_threshold.wasted_spend.calculation_note }}</em></small></p>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="engagement-methodology">
+            <p class="methodology-note"><small><em>Engagement calculated based on recent email activity (90-day window). Method: {{ list_growth_data.engagement_threshold.calculation_method|replace('_', ' ')|title }}</em></small></p>
+        </div>
+    </div>
+    {% endif %}
     
     {% if list_growth_data.areas_of_opportunity %}
     <div class="areas-of-opportunity-section">
@@ -343,6 +573,532 @@
     line-height: 1.8;
     color: #262626;
     margin: 0;
+}
+
+/* Detailed Churn Breakdown Styles */
+.churn-breakdown-section {
+    margin: 2rem 0;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    padding: 1.5rem;
+}
+
+.churn-overview {
+    margin-bottom: 1.5rem;
+}
+
+.churn-overview p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #000000;
+    margin: 0;
+}
+
+.churn-breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.churn-metric-card {
+    background: #F8F9FA;
+    border: 1px solid #E5E7EB;
+    padding: 1rem;
+    text-align: center;
+    border-radius: 8px;
+}
+
+.churn-metric-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #262626;
+    margin-bottom: 0.5rem;
+}
+
+.churn-metric-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: #262626;
+    margin-bottom: 0.25rem;
+}
+
+.churn-metric-percentage {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #65DA4F;
+    margin-bottom: 0.5rem;
+}
+
+.churn-metric-description {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    color: #666666;
+    line-height: 1.4;
+}
+
+.churn-insights {
+    margin-top: 1.5rem;
+}
+
+.churn-insight-box {
+    background: #FFF8E1;
+    border: 1px solid #FFC107;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.churn-insight-box p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #000000;
+    margin: 0 0 0.75rem 0;
+}
+
+.churn-insight-box ul {
+    margin: 0;
+    padding: 0 0 0 1.5rem;
+    list-style: none;
+}
+
+.churn-insight-box li {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #262626;
+    margin-bottom: 0.5rem;
+    position: relative;
+}
+
+.warning-flag {
+    margin-right: 0.5rem;
+    font-size: 1rem;
+}
+
+.alert-flag {
+    margin-right: 0.5rem;
+    font-size: 1rem;
+}
+
+@media print {
+    .churn-breakdown-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Period-over-Period Comparison Styles */
+.period-comparison-section {
+    margin: 2rem 0;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    padding: 1.5rem;
+}
+
+.period-comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1.5rem;
+    align-items: center;
+    margin: 1.5rem 0;
+}
+
+.period-comparison-card {
+    background: #F8F9FA;
+    border: 1px solid #E5E7EB;
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.period-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #262626;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background: #E9ECEF;
+    border-radius: 4px;
+}
+
+.period-metrics {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.period-metric {
+    display: flex;
+    flex-direction: column;
+}
+
+.period-metric-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    color: #262626;
+    margin-bottom: 0.25rem;
+}
+
+.period-metric-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    color: #666666;
+}
+
+.period-comparison-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.arrow {
+    font-size: 2rem;
+    color: #65DA4F;
+    font-weight: bold;
+}
+
+.period-changes {
+    margin-top: 1.5rem;
+}
+
+.change-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: #F8F9FA;
+    border-radius: 8px;
+}
+
+.change-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.change-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #262626;
+}
+
+.change-value {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.change-value.positive {
+    color: #65DA4F;
+}
+
+.change-value.negative {
+    color: #DC3545;
+}
+
+.period-insights {
+    margin-top: 1rem;
+}
+
+.insight {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin: 0.5rem 0;
+    padding: 0.75rem;
+    border-radius: 6px;
+}
+
+.insight.positive {
+    background: #D4EDDA;
+    color: #155724;
+    border: 1px solid #C3E6CB;
+}
+
+.insight.negative {
+    background: #F8D7DA;
+    color: #721C24;
+    border: 1px solid #F5C6CB;
+}
+
+@media print {
+    .period-comparison-grid {
+        grid-template-columns: 1fr auto 1fr;
+    }
+    
+    .change-summary {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Engagement Threshold Analysis Styles */
+.engagement-threshold-section {
+    margin: 2rem 0;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    padding: 1.5rem;
+}
+
+.engagement-overview {
+    margin-bottom: 1.5rem;
+}
+
+.engagement-overview p {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #000000;
+    margin: 0 0 1rem 0;
+}
+
+.engagement-warning {
+    background: #FFF3CD;
+    border: 1px solid #FFC107;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.engagement-success {
+    background: #D4EDDA;
+    border: 1px solid #28A745;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.warning-message {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #856404;
+    margin: 0 0 0.5rem 0;
+}
+
+.warning-explanation {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    color: #6C757D;
+    margin: 0;
+}
+
+.success-message {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #155724;
+    margin: 0;
+}
+
+.engagement-breakdown {
+    margin: 1.5rem 0;
+}
+
+.engagement-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.engagement-metric-card {
+    background: #F8F9FA;
+    border: 1px solid #E5E7EB;
+    padding: 1.5rem;
+    text-align: center;
+    border-radius: 8px;
+    position: relative;
+}
+
+.engagement-metric-card.engaged {
+    border-color: #28A745;
+    background: #F8FFF8;
+}
+
+.engagement-metric-card.unengaged.warning {
+    border-color: #FFC107;
+    background: #FFFBF0;
+}
+
+.engagement-metric-card.no-emails {
+    border-color: #6C757D;
+    background: #F8F9FA;
+}
+
+.engagement-metric-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.engagement-metric-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #262626;
+    margin-bottom: 0.5rem;
+}
+
+.engagement-metric-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: #262626;
+    margin-bottom: 0.25rem;
+}
+
+.engagement-metric-percentage {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.engagement-metric-card.engaged .engagement-metric-percentage {
+    color: #28A745;
+}
+
+.engagement-metric-card.unengaged.warning .engagement-metric-percentage {
+    color: #FFC107;
+}
+
+.engagement-metric-card.no-emails .engagement-metric-percentage {
+    color: #6C757D;
+}
+
+.engagement-metric-description {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    color: #666666;
+    line-height: 1.4;
+}
+
+.engagement-recommendations {
+    margin-top: 1.5rem;
+}
+
+.recommendations-box {
+    background: #FFF3CD;
+    border: 1px solid #FFC107;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.recommendations-box h5 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #856404;
+    margin: 0 0 1rem 0;
+}
+
+.recommendations-box ul {
+    margin: 0;
+    padding: 0 0 0 1.5rem;
+}
+
+.recommendations-box li {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #6C757D;
+    margin-bottom: 0.5rem;
+}
+
+.wasted-spend-amount {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #DC3545;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background: #FFE6E8;
+    border-radius: 4px;
+}
+
+.cost-analysis {
+    margin-top: 1.5rem;
+}
+
+.cost-analysis-box {
+    background: #E8F4FD;
+    border: 1px solid #007BFF;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.cost-analysis-box h5 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #004085;
+    margin: 0 0 1rem 0;
+}
+
+.cost-breakdown {
+    margin: 1rem 0;
+}
+
+.cost-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.cost-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    color: #262626;
+}
+
+.cost-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #DC3545;
+}
+
+.cost-explanation {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    color: #6C757D;
+    margin: 1rem 0 0.5rem 0;
+    line-height: 1.5;
+}
+
+.cost-note {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    color: #6C757D;
+    font-style: italic;
+    margin: 0;
+}
+
+.engagement-methodology {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.methodology-note {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    color: #6C757D;
+    font-style: italic;
+    margin: 0;
+}
+
+@media print {
+    .engagement-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 </style>
 

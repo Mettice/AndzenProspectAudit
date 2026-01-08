@@ -3,6 +3,7 @@ Abandoned cart flow data preparer.
 """
 from typing import Dict, Any, Optional
 import logging
+from ..chart_generator import get_chart_generator
 
 logger = logging.getLogger(__name__)
 
@@ -176,6 +177,48 @@ async def prepare_abandoned_cart_data(
         risk_flags = []
         quick_wins = []
     
+    # Generate performance chart
+    performance_chart = None
+    try:
+        chart_generator = get_chart_generator()
+        flows = cart_raw.get("flows", [])
+        
+        if flows:
+            # Get the first (main) flow for performance comparison
+            main_flow = flows[0] if flows else {}
+            
+            # Prepare flow data for chart
+            flow_data = {
+                'open_rate': main_flow.get('open_rate', 0),
+                'click_rate': main_flow.get('click_rate', 0), 
+                'conversion_rate': main_flow.get('placed_order_rate', 0),  # Use placed_order_rate as conversion
+                'revenue_per_recipient': main_flow.get('revenue_per_recipient', 0)
+            }
+            
+            # Prepare benchmark data
+            benchmarks = {
+                'average': {
+                    'open_rate': cart_benchmarks.get("open_rate", {}).get("average", 54.74),
+                    'click_rate': cart_benchmarks.get("click_rate", {}).get("average", 6.25),
+                    'conversion_rate': cart_benchmarks.get("conversion_rate", {}).get("average", 3.36),
+                    'revenue_per_recipient': cart_benchmarks.get("revenue_per_recipient", {}).get("average", 3.80)
+                }
+            }
+            
+            performance_chart_image = chart_generator.generate_flow_performance_chart(
+                flow_data=flow_data,
+                benchmarks=benchmarks,
+                flow_name=main_flow.get('name', 'Abandoned Cart Flow')
+            )
+            
+            if performance_chart_image:
+                performance_chart = f"data:image/png;base64,{performance_chart_image}"
+                logger.info("✅ Generated abandoned cart performance chart")
+            
+    except Exception as e:
+        logger.warning(f"Failed to generate abandoned cart performance chart: {e}")
+        performance_chart = None
+    
     return {
         "flows": cart_raw.get("flows", []),
         "benchmark": cart_raw.get("benchmark", {
@@ -194,6 +237,7 @@ async def prepare_abandoned_cart_data(
         "areas_of_opportunity": areas_of_opportunity if isinstance(areas_of_opportunity, list) else [],  # LLM-generated areas of opportunity table
         "root_cause_analysis": root_cause_analysis,  # LLM-generated root cause analysis
         "risk_flags": risk_flags,  # LLM-generated risk flags
-        "quick_wins": quick_wins  # LLM-generated quick wins
+        "quick_wins": quick_wins,  # LLM-generated quick wins
+        "performance_chart": performance_chart  # Generated performance chart
     }
 

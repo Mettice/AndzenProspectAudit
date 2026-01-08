@@ -572,7 +572,40 @@ class ReportViewer {
       const revenue = reportData.total_revenue
         ? `$${(reportData.total_revenue / 1000).toFixed(0)}K Revenue Analyzed`
         : 'Revenue Analyzed';
-      reportSubtitle.textContent = `${industry} • ${revenue}`;
+      
+      // Add proper generation date with validation
+      let dateString = '';
+      if (reportData.created_at) {
+        const generatedDate = new Date(reportData.created_at);
+        console.log('Report created_at:', reportData.created_at, 'Parsed date:', generatedDate);
+        
+        if (isNaN(generatedDate.getTime())) {
+          // Invalid date, use current date
+          console.warn('Invalid created_at date, using current date');
+          const currentDate = new Date();
+          dateString = currentDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long', 
+            day: 'numeric'
+          });
+        } else {
+          dateString = generatedDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+        }
+      } else {
+        // No created_at, use current date
+        const currentDate = new Date();
+        dateString = currentDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      }
+      
+      reportSubtitle.textContent = `${industry} • ${revenue} • Generated on ${dateString}`;
     }
   }
 

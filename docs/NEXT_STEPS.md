@@ -156,3 +156,4 @@ renderReportContent(htmlContent) {
 - Some script paths may need adjustment based on deployment structure
 - Consider adding loading states for better UX
 
+

@@ -247,3 +247,4 @@ Updated campaign benchmarks to match official Klaviyo 2025 benchmarks:
 All fixes are backward compatible and improve accuracy without breaking existing functionality.
 
 
+

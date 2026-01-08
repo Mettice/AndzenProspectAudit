@@ -27,12 +27,22 @@ class ChatMessage(BaseModel):
     context_type: Optional[str] = None  # Type of context being sent
 
 
+class ChatAction(BaseModel):
+    """Represents an action the chat can perform."""
+    action_type: str  # "regenerate_section", "edit_content", "add_content", "analyze_deeper"
+    target_section: Optional[str] = None
+    description: str
+    parameters: Optional[Dict[str, Any]] = None
+    confidence: Optional[float] = None  # How confident the AI is this will help
+
 class ChatResponse(BaseModel):
-    """Chat response model."""
+    """Enhanced chat response model with actions."""
     response: str
+    suggested_actions: Optional[List[ChatAction]] = None
     suggested_edits: Optional[List[Dict[str, Any]]] = None
     section_references: Optional[List[str]] = None
     navigation_actions: Optional[List[Dict[str, Any]]] = None
+    data_insights: Optional[Dict[str, Any]] = None  # Key metrics/insights extracted
 
 
 class EditRequest(BaseModel):
@@ -110,20 +120,52 @@ async def chat_about_report(
         html_content = report.html_content or ""
         logger.info(f"Chat request for report {report_id}: html_content length={len(html_content) if html_content else 0}, file_path_html={report.file_path_html}")
         
+        # Extract key metrics from report model  
+        report_metrics = {
+            'client_name': report.client_name,
+            'total_revenue': report.total_revenue,
+            'attributed_revenue': report.attributed_revenue,
+            'industry': report.industry,
+            'analysis_period_days': report.analysis_period_days
+        }
+        logger.info(f"Report metrics: {report_metrics}")
+        
         if not html_content and report.file_path_html:
             # Try to load from file if not in database
             try:
                 from pathlib import Path
-                reports_dir = Path(__file__).parent.parent.parent / "data" / "reports"
-                html_filename = Path(report.file_path_html).name
-                html_file_path = reports_dir / html_filename
-                logger.info(f"Attempting to load HTML from file: {html_file_path}")
-                if html_file_path.exists():
-                    with open(html_file_path, "r", encoding="utf-8") as f:
+                import os
+                
+                # Try the direct file path first
+                if os.path.exists(report.file_path_html):
+                    logger.info(f"Loading HTML from direct path: {report.file_path_html}")
+                    with open(report.file_path_html, "r", encoding="utf-8") as f:
                         html_content = f.read()
-                    logger.info(f"✓ Loaded HTML from file: {len(html_content)} chars")
+                    logger.info(f"✓ Loaded HTML from direct path: {len(html_content)} chars")
                 else:
-                    logger.warning(f"HTML file not found: {html_file_path}")
+                    # Try the relative path from API folder
+                    reports_dir = Path(__file__).parent.parent.parent / "api" / "data" / "reports"
+                    html_filename = Path(report.file_path_html).name
+                    html_file_path = reports_dir / html_filename
+                    logger.info(f"Attempting to load HTML from API path: {html_file_path}")
+                    
+                    if html_file_path.exists():
+                        with open(html_file_path, "r", encoding="utf-8") as f:
+                            html_content = f.read()
+                        logger.info(f"✓ Loaded HTML from API path: {len(html_content)} chars")
+                    else:
+                        # Try root data/reports path
+                        reports_dir = Path(__file__).parent.parent.parent / "data" / "reports"  
+                        html_file_path = reports_dir / html_filename
+                        logger.info(f"Attempting to load HTML from root path: {html_file_path}")
+                        
+                        if html_file_path.exists():
+                            with open(html_file_path, "r", encoding="utf-8") as f:
+                                html_content = f.read()
+                            logger.info(f"✓ Loaded HTML from root path: {len(html_content)} chars")
+                        else:
+                            logger.warning(f"HTML file not found in any expected location")
+                            
             except Exception as e:
                 logger.error(f"Could not load HTML from file: {e}", exc_info=True)
         
@@ -300,13 +342,41 @@ async def chat_about_report(
                         return section
                     return None
                 
-                # Extract KAV metrics
-                kav_section = find_section('kav_analysis')
+                def find_section_by_title(title_keywords):
+                    """Find section by title content."""
+                    for section in soup.find_all('section'):
+                        h1 = section.find('h1')
+                        if h1 and any(keyword.lower() in h1.get_text().lower() for keyword in title_keywords):
+                            return section
+                    return None
+                
+                # Extract KAV metrics - try multiple approaches
+                kav_section = find_section('kav_analysis') or find_section_by_title(['KAV', 'KLAVIYO', 'REVENUE'])
                 if kav_section:
                     kav_text = kav_section.get_text(separator='\n', strip=True)
-                    # Extract key numbers from tables
-                    kav_tables = kav_section.find_all('table')
+                    
+                    # Extract key KAV metrics from the section
                     kav_metrics = []
+                    
+                    # Look for stat values in kav-stat elements
+                    kav_stats = kav_section.find_all('div', class_='kav-stat')
+                    for stat in kav_stats:
+                        value = stat.find('span', class_='stat-value')
+                        label = stat.find('span', class_='stat-label')
+                        percent = stat.find('span', class_='stat-percent')
+                        if value and label:
+                            metric_text = f"{label.get_text(strip=True)}: {value.get_text(strip=True)}"
+                            if percent:
+                                metric_text += f" ({percent.get_text(strip=True)})"
+                            kav_metrics.append(metric_text)
+                    
+                    # Look for kav-amount (total revenue)
+                    kav_amount = kav_section.find('span', class_='kav-amount')
+                    if kav_amount:
+                        kav_metrics.append(f"Total Revenue: {kav_amount.get_text(strip=True)}")
+                    
+                    # Extract key numbers from tables if present
+                    kav_tables = kav_section.find_all('table')
                     for table in kav_tables:
                         rows = table.find_all('tr')
                         for row in rows:
@@ -314,13 +384,14 @@ async def chat_about_report(
                             if len(cells) >= 2:
                                 label = cells[0].get_text(strip=True)
                                 value = cells[1].get_text(strip=True)
-                                if label and value:
+                                if label and value and not label.startswith('Month'):
                                     kav_metrics.append(f"{label}: {value}")
+                    
                     if kav_metrics:
-                        context_parts.append("KAV Metrics:\n" + "\n".join(kav_metrics[:15]) + "\n")
+                        context_parts.append("KAV (Klaviyo Attributed Value) Metrics:\n" + "\n".join(kav_metrics[:15]) + "\n")
                     if kav_text:
                         context_parts.append(f"KAV Analysis Summary:\n{kav_text[:3000]}\n")
-                    logger.info(f"✓ Extracted KAV section: {len(kav_text)} chars")
+                    logger.info(f"✓ Extracted KAV section: {len(kav_text)} chars, {len(kav_metrics)} metrics")
                 else:
                     logger.warning("KAV section not found in HTML")
                 
@@ -387,12 +458,40 @@ async def chat_about_report(
                     if all_text:
                         context_parts.append(f"Full Report Content:\n{all_text[:20000]}\n")
                 
-                # Combine all context (limit to 40k chars for safety)
+                # Combine all context - prioritize critical sections
                 report_context = '\n'.join(context_parts)
-                if len(report_context) > 40000:
-                    report_context = report_context[:40000] + "\n[... content truncated ...]"
                 
-                logger.info(f"✓ Extracted report context: {len(report_context)} chars from {len(context_parts)} sections")
+                # Add real report metrics to context
+                if report_metrics:
+                    summary_lines = []
+                    
+                    # Add basic report info
+                    if report_metrics['client_name']:
+                        summary_lines.append(f"Client: {report_metrics['client_name']}")
+                    if report_metrics['industry']:
+                        summary_lines.append(f"Industry: {report_metrics['industry']}")
+                    if report_metrics['analysis_period_days']:
+                        summary_lines.append(f"Analysis Period: {report_metrics['analysis_period_days']} days")
+                    
+                    # Add revenue metrics if available
+                    if report_metrics['total_revenue'] and report_metrics['attributed_revenue']:
+                        summary_lines.append(f"Revenue Overview: {report_metrics['attributed_revenue']} attributed out of {report_metrics['total_revenue']} total")
+                    
+                    if summary_lines:
+                        report_context = "REPORT OVERVIEW:\n" + "\n".join(summary_lines) + "\n\n" + report_context
+                
+                # Increase context limit for comprehensive analysis (100k chars)
+                if len(report_context) > 100000:
+                    # Prioritize: keep structured summary + first 50k + last 45k
+                    lines = report_context.split('\n')
+                    if len(lines) > 100:
+                        middle_cut = len(lines) // 2
+                        kept_lines = lines[:middle_cut//2] + ["[... middle content truncated for length ...]"] + lines[-middle_cut//2:]
+                        report_context = '\n'.join(kept_lines)
+                    else:
+                        report_context = report_context[:100000] + "\n[... content truncated ...]"
+                
+                logger.info(f"✓ Extracted comprehensive report context: {len(report_context)} chars from {len(context_parts)} sections")
                 
             except Exception as e:
                 logger.error(f"Error extracting context from HTML: {e}", exc_info=True)
@@ -428,17 +527,34 @@ async def chat_about_report(
             if guidelines:
                 system_prompt += "Guidelines:\n" + "\n".join([f"- {guideline}" for guideline in guidelines]) + "\n\n"
         else:
-            system_prompt = f"""You are an expert Klaviyo email marketing consultant analyzing an EMAIL MARKETING audit report for a client named {report.client_name}.
+            system_prompt = f"""You are an intelligent Klaviyo email marketing consultant assistant that can both ANALYZE and MODIFY audit reports for {report.client_name}.
 
-IMPORTANT CONTEXT: This is about EMAIL MARKETING performance analysis, NOT chat support or live chat systems. You are reviewing:
-- Email campaign performance metrics
-- Email automation flows (welcome, abandoned cart, etc.)
-- List growth and segmentation strategies  
-- Klaviyo Attributed Value (KAV) and revenue attribution
-- Email deliverability and engagement rates
-- Strategic recommendations for email marketing optimization
+CORE CAPABILITIES:
+1. **Analysis**: Deep dive into email marketing performance data
+2. **Actions**: Suggest specific improvements and edits to the report
+3. **Content Generation**: Create new sections or regenerate existing ones with better insights
+4. **Real-time Editing**: Modify report content based on user requests
 
-When the user asks about "performance" or "metrics", they are asking about EMAIL MARKETING metrics from their Klaviyo account."""
+IMPORTANT CONTEXT: This is about EMAIL MARKETING performance analysis, NOT chat support. You have access to:
+- Complete audit report content and structured data
+- Ability to regenerate sections with improved analysis
+- Power to edit and enhance existing content
+- Capability to add new insights and recommendations
+
+KEY DEFINITIONS:
+- KAV (Klaviyo Attributed Value) = Email marketing revenue attribution (Good: 25-30%, Average: 15-25%)
+- You can suggest ACTIONS to improve low-performing areas
+- You can REGENERATE sections with deeper insights
+- You can EDIT content to be more actionable and specific
+
+AVAILABLE ACTIONS:
+- "regenerate_section": Recreate a section with better analysis
+- "edit_content": Modify existing content for clarity/impact  
+- "add_recommendations": Insert specific improvement strategies
+- "analyze_deeper": Provide more detailed analysis of specific metrics
+- "create_action_plan": Generate step-by-step improvement plans
+
+When the user asks about performance issues, don't just explain - SUGGEST ACTIONS to fix them."""
         
         # Build available sections list (prefer frontend-provided)
         available_sections_text = ""
@@ -467,32 +583,43 @@ CURRENT USER MESSAGE:
 {section_context if section_context else ""}
 
 INSTRUCTIONS:
-1. Answer the user's question based on the audit report content above
-2. Reference specific sections and metrics when relevant - use the exact section_id from the available sections list
-3. If the user asks about KAV, revenue, or performance metrics, reference the specific numbers from the report context
-4. If asked about opportunities, reference the "Areas of Opportunity" or recommendations mentioned in the report
-5. Be conversational but professional - write as if you're explaining the audit findings to the client
-6. If the user asks to "go to" or "show" a section, include it in section_references so the UI can navigate there
-7. If the user asks to edit something, suggest the edit but don't apply it yet - include it in suggested_edits
-8. When suggesting edits, provide the full HTML content for that section (preserve structure)
+You are an intelligent assistant. Analyze the ACTUAL report data above and:
+
+1. **Extract real metrics** - Find the actual KAV %, revenue numbers, open rates, etc. from the context
+2. **Intelligent analysis** - Compare real performance to industry standards and identify gaps  
+3. **Actionable insights** - Suggest specific improvements based on what the data reveals
+4. **Dynamic responses** - Don't use templates, respond based on what you actually find
+5. **Offer to help** - Suggest regenerating sections, adding analysis, or improving content when relevant
+6. **Navigate smartly** - Reference specific sections when it makes sense for the conversation
+
+If the user wants to improve something, offer to:
+- Regenerate sections with deeper analysis
+- Add specific recommendations  
+- Edit content for better clarity/impact
+- Create action plans with timelines
 
 IMPORTANT: You MUST respond with valid JSON only. Do not include any text before or after the JSON object.
 
 RESPOND IN THIS EXACT JSON FORMAT (no markdown, no code blocks, just raw JSON):
 {{
-    "response": "Your conversational response to the user based on the audit report context",
-    "suggested_edits": [],
-    "section_references": [],
-    "navigation_actions": []
+    "response": "Your intelligent analysis with specific insights from the actual data",
+    "suggested_actions": [
+        {{
+            "action_type": "regenerate_section|edit_content|add_recommendations|analyze_deeper",
+            "target_section": "section_name_from_actual_data",
+            "description": "What this will accomplish for this client",
+            "confidence": 0.8
+        }}
+    ],
+    "section_references": ["relevant_sections_you_found"],
+    "navigation_actions": [{{"action": "scroll_to", "section_id": "section_from_context"}}]
 }}
 
-Example response for "why is the kav low?":
-{{
-    "response": "Based on the audit report, your KAV (Klaviyo Attributed Value) percentage is shown in the KAV Analysis section. This indicates that [explanation based on report context]. To improve this, I recommend [specific recommendations from the report].",
-    "suggested_edits": [],
-    "section_references": ["kav_analysis", "strategic_recommendations"],
-    "navigation_actions": [{{"action": "scroll_to", "section_id": "kav_analysis"}}]
-}}"""
+BE INTELLIGENT: 
+- Extract ACTUAL metrics from the report context above (don't use placeholder numbers)
+- Analyze what those real numbers mean compared to industry benchmarks  
+- Suggest specific, actionable improvements based on what you find
+- If you can't find specific data, say so - don't make up numbers"""
         
         # Call LLM
         llm_response = await llm_service.generate_insights(
@@ -504,6 +631,7 @@ Example response for "why is the kav low?":
         # Parse response (should be JSON)
         try:
             response_text = ""
+            suggested_actions = []
             suggested_edits = []
             section_references = []
             navigation_actions = []
@@ -524,6 +652,7 @@ Example response for "why is the kav low?":
                     try:
                         parsed = json.loads(cleaned)
                         response_text = parsed.get("response", "")
+                        suggested_actions = parsed.get("suggested_actions", [])
                         suggested_edits = parsed.get("suggested_edits", [])
                         section_references = parsed.get("section_references", [])
                         navigation_actions = parsed.get("navigation_actions", [])
@@ -560,6 +689,7 @@ Example response for "why is the kav low?":
                 # llm_response is already a dict
                 parsed = llm_response if isinstance(llm_response, dict) else {"response": str(llm_response)}
                 response_text = parsed.get("response", str(llm_response))
+                suggested_actions = parsed.get("suggested_actions", [])
                 suggested_edits = parsed.get("suggested_edits", [])
                 section_references = parsed.get("section_references", [])
                 navigation_actions = parsed.get("navigation_actions", [])
@@ -577,6 +707,7 @@ Example response for "why is the kav low?":
             logger.warning(f"Error parsing LLM response: {parse_error}")
             # Fallback: treat entire response as text
             response_text = str(llm_response) if llm_response else "I'm sorry, I couldn't generate a proper response."
+            suggested_actions = []
             suggested_edits = []
             section_references = []
             navigation_actions = []
@@ -605,6 +736,7 @@ Example response for "why is the kav low?":
         
         return ChatResponse(
             response=response_text,
+            suggested_actions=[ChatAction(**action) for action in suggested_actions] if suggested_actions else None,
             suggested_edits=suggested_edits if suggested_edits else None,
             section_references=section_references if section_references else None,
             navigation_actions=navigation_actions if navigation_actions else None
