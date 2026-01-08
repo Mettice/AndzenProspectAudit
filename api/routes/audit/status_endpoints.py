@@ -15,13 +15,32 @@ from .shared_state import get_report_cache, get_running_tasks
 
 async def get_report_status(report_id: int):
     """Get the status of an audit report generation."""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"get_report_status called with report_id: {report_id} (type: {type(report_id)})")
+    
     _report_cache = get_report_cache()
+    
+    # Validate report_id
+    if not report_id or (isinstance(report_id, str) and not report_id.isdigit()):
+        logger.error(f"Invalid report ID: {report_id}")
+        raise HTTPException(status_code=400, detail=f"Invalid report ID: {report_id}")
+    
+    # Convert to int if string
+    try:
+        report_id = int(report_id)
+    except (ValueError, TypeError):
+        logger.error(f"Report ID conversion failed: {report_id}")
+        raise HTTPException(status_code=400, detail=f"Report ID must be a number: {report_id}")
     
     db = SessionLocal()
     try:
+        logger.info(f"Querying database for report_id: {report_id}")
         report = db.query(Report).filter(Report.id == report_id).first()
         if not report:
-            raise HTTPException(status_code=404, detail="Report not found")
+            logger.warning(f"Report {report_id} not found in database")
+            raise HTTPException(status_code=404, detail=f"Report {report_id} not found")
+        logger.info(f"Found report {report_id}, status: {report.status}")
         
         # Get cached content if available
         cached = _report_cache.get(report_id, {})

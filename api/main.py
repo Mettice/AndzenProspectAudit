@@ -74,7 +74,39 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files for frontend
+# IMPORTANT: Register API routes BEFORE static file mounts
+# FastAPI matches routes in order, so API routes must come first
+# Include routers
+app.include_router(auth.router, prefix="/api", tags=["authentication"])
+app.include_router(reports.router, prefix="/api", tags=["reports"])
+app.include_router(admin.router, prefix="/api", tags=["admin"])
+app.include_router(audit_router, prefix="/api/audit", tags=["audit"])
+app.include_router(chat.router, tags=["chat"])
+app.include_router(dashboard.router, tags=["dashboard"])
+app.include_router(search.router, tags=["search"])
+app.include_router(analytics.router, tags=["analytics"])
+app.include_router(clients.router, tags=["clients"])  # Chat routes already have /api/audit prefix
+
+# Basic API routes (before static files)
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+@app.get("/test-ui")
+async def test_ui():
+    return {"message": "UI test route works", "frontend_path": str(FRONTEND_DIR)}
+
+# Route to serve template styles for report viewer fallback
+TEMPLATE_DIR = BASE_DIR / "templates"
+@app.get("/templates/assets/styles.css")
+async def serve_template_styles():
+    """Serve template styles.css for report viewer."""
+    css_path = TEMPLATE_DIR / "assets" / "styles.css"
+    if css_path.exists():
+        return FileResponse(css_path, media_type="text/css")
+    return {"error": "Template styles not found"}
+
+# Mount static files for frontend (AFTER API routes)
 # This serves all files in the frontend directory under /ui
 if FRONTEND_DIR.exists():
     # Mount static files for /ui/ (with trailing slash) and sub-paths
@@ -99,17 +131,7 @@ async def serve_css():
         return FileResponse(css_path, media_type="text/css")
     return {"error": "CSS not found"}
 
-# Route to serve template styles for report viewer fallback
-TEMPLATE_DIR = BASE_DIR / "templates"
-@app.get("/templates/assets/styles.css")
-async def serve_template_styles():
-    """Serve template styles.css for report viewer."""
-    css_path = TEMPLATE_DIR / "assets" / "styles.css"
-    if css_path.exists():
-        return FileResponse(css_path, media_type="text/css")
-    return {"error": "Template styles not found"}
-
-# Basic routes
+# Root route (last, as fallback)
 @app.get("/")
 async def root():
     """Root endpoint - redirect to UI or show API info."""
@@ -118,22 +140,3 @@ async def root():
     if index_path.exists():
         return FileResponse(index_path)
     return {"message": "Klaviyo Prospect Audit API", "version": "1.0.0", "ui": "/ui"}
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy"}
-
-@app.get("/test-ui")
-async def test_ui():
-    return {"message": "UI test route works", "frontend_path": str(FRONTEND_DIR)}
-
-# Include routers
-app.include_router(auth.router, prefix="/api", tags=["authentication"])
-app.include_router(reports.router, prefix="/api", tags=["reports"])
-app.include_router(admin.router, prefix="/api", tags=["admin"])
-app.include_router(audit_router, prefix="/api/audit", tags=["audit"])
-app.include_router(chat.router, tags=["chat"])
-app.include_router(dashboard.router, tags=["dashboard"])
-app.include_router(search.router, tags=["search"])
-app.include_router(analytics.router, tags=["analytics"])
-app.include_router(clients.router, tags=["clients"])  # Chat routes already have /api/audit prefix

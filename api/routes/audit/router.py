@@ -2,7 +2,7 @@
 Main router for audit API endpoints.
 Imports and registers all audit-related endpoints.
 """
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from typing import Optional
 
 from api.models.schemas import AuditRequest, AuditResponse, ReportStatusResponse
@@ -37,8 +37,22 @@ async def generate_audit_pro(request: AuditRequest):
 
 @router.get("/status/{report_id}", response_model=ReportStatusResponse)
 async def get_report_status_endpoint(report_id: int):
-    """Get the status of an audit report generation."""
-    return await get_report_status(report_id)
+    """
+    Get the status of an audit report generation.
+    
+    Args:
+        report_id: Integer ID of the report
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"GET /api/audit/status/{report_id} - Request received")
+    try:
+        return await get_report_status(report_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Error fetching report status: {str(e)}")
 
 
 @router.post("/cancel/{report_id}")
