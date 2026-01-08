@@ -23,7 +23,8 @@ class ReportRenderer {
     }
 
     try {
-      const response = await fetch(`/api/audit/status/${reportId}`);
+      const apiUrl = window.API_BASE_URL || '';
+      const response = await fetch(`${apiUrl}/api/audit/status/${reportId}`);
       if (!response.ok) {
         throw new Error('Failed to load report');
       }
