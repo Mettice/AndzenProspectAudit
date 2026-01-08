@@ -17,22 +17,32 @@
       return `http://${window.location.hostname}:${apiPort}`;
     }
     
-    // For production: Use relative URLs if frontend and API are on same domain
-    // This works for Railway deployments where frontend is served from /ui
-    // Check if we're on the same domain (Railway serves frontend from /ui)
-    if (window.location.pathname.startsWith('/ui/') || window.location.pathname === '/ui') {
-      // Use relative URLs - same domain
-      return '';
-    }
-    
-    // Fallback: Check if window.API_URL is set and not a placeholder
-    if (window.API_URL && !window.API_URL.includes('your-app.railway.app')) {
+    // PRIORITY 1: Check if window.API_URL is explicitly set (for Vercel -> Railway)
+    // This is set in index.html or via environment variable
+    if (window.API_URL && window.API_URL.trim() !== '' && !window.API_URL.includes('your-app.railway.app')) {
+      console.log('Using window.API_URL:', window.API_URL);
       return window.API_URL;
     }
     
-    // Last resort: Use empty string for relative URLs (same domain)
-    // This assumes frontend and API are on the same domain
-    return '';
+    // PRIORITY 2: Check if frontend and API are on same domain (Railway serves frontend from /ui)
+    // This works for Railway deployments where frontend is served from /ui
+    if (window.location.pathname.startsWith('/ui/') || window.location.pathname === '/ui') {
+      // Use relative URLs - same domain
+      console.log('Using relative URLs (same domain - Railway)');
+      return '';
+    }
+    
+    // PRIORITY 3: Check environment variable (for Vercel builds)
+    // Vercel sets this during build via inject-api-url.js
+    const envApiUrl = window.API_URL || '';
+    if (envApiUrl && !envApiUrl.includes('your-app.railway.app')) {
+      console.log('Using environment API_URL:', envApiUrl);
+      return envApiUrl;
+    }
+    
+    // FALLBACK: Default Railway URL (should be overridden by window.API_URL)
+    console.warn('⚠️ No API URL configured, using default Railway URL');
+    return 'https://web-production-2ce0.up.railway.app';
   })();
 
   console.log('API Base URL:', window.API_BASE_URL);

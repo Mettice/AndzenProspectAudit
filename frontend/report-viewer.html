@@ -9,6 +9,10 @@
     href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="report-viewer.css">
+  <!-- API Configuration - must be set before config.js loads -->
+  <script>
+    window.API_URL = window.API_URL || 'https://web-production-2ce0.up.railway.app';
+  </script>
   <!-- Audit report styles will be loaded dynamically by JavaScript -->
   <style>
     /* Viewer-specific overrides for report content */
@@ -193,6 +197,8 @@
   </div>
 
   <!-- Load modules in dependency order -->
+  <!-- Load config.js FIRST to set up API_BASE_URL -->
+  <script src="js/config.js"></script>
   <script src="js/report-modules/StyleManager.js"></script>
   <script src="js/report-modules/TabSwitching.js"></script>
   <script src="js/report-modules/ReportRenderer.js"></script>
