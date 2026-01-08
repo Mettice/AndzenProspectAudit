@@ -98,7 +98,7 @@ class ReportViewer {
    */
   async updateReportHeader() {
     try {
-      const response = await fetch(`/api/audit/status/${this.reportId}`);
+      const response = await fetch(`${window.API_BASE_URL}/api/audit/status/${this.reportId}`);
       if (!response.ok) return;
 
       const data = await response.json();

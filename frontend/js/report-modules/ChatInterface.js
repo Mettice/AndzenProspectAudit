@@ -155,7 +155,7 @@ class ChatInterface {
       };
     }
 
-    const response = await fetch(`/api/audit/${this.reportId}/chat`, {
+    const response = await fetch(`${window.API_BASE_URL}/api/audit/${this.reportId}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestData)
@@ -190,7 +190,7 @@ class ChatInterface {
     if (!this.reportId) return;
 
     try {
-      const response = await fetch(`/api/audit/${this.reportId}/chat/history`);
+      const response = await fetch(`${window.API_BASE_URL}/api/audit/${this.reportId}/chat/history`);
       if (!response.ok) return;
 
       const data = await response.json();

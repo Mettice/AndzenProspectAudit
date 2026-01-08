@@ -74,7 +74,7 @@ class ExportManager {
       this.showToast(`Preparing ${format.toUpperCase()} export...`, 'info');
 
       // Get report data first
-      const response = await fetch(`/api/audit/status/${this.reportId}`);
+      const response = await fetch(`${window.API_BASE_URL}/api/audit/status/${this.reportId}`);
       if (!response.ok) throw new Error('Failed to get report info');
       
       const data = await response.json();
@@ -114,7 +114,7 @@ class ExportManager {
    * Generate new export
    */
   async generateExport(format) {
-    const exportResponse = await fetch(`/api/audit/${this.reportId}/export/${format}`, {
+    const exportResponse = await fetch(`${window.API_BASE_URL}/api/audit/${this.reportId}/export/${format}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -154,7 +154,7 @@ class ExportManager {
       attempts++;
       
       try {
-        const response = await fetch(`/api/audit/status/${this.reportId}`);
+        const response = await fetch(`${window.API_BASE_URL}/api/audit/status/${this.reportId}`);
         if (!response.ok) return;
         
         const data = await response.json();
@@ -288,7 +288,7 @@ class ExportManager {
     const exportOptions = { ...defaultOptions, ...options };
 
     try {
-      const response = await fetch(`/api/audit/${this.reportId}/export/custom`, {
+      const response = await fetch(`${window.API_BASE_URL}/api/audit/${this.reportId}/export/custom`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -325,7 +325,7 @@ class ExportManager {
     if (!this.reportId) return [];
 
     try {
-      const response = await fetch(`/api/audit/${this.reportId}/export/history`);
+      const response = await fetch(`${window.API_BASE_URL}/api/audit/${this.reportId}/export/history`);
       if (!response.ok) return [];
 
       const data = await response.json();

@@ -319,7 +319,7 @@ class QuoteBuilder {
         generateBtn.textContent = 'Generating...';
       }
 
-      const response = await fetch(`/api/audit/${this.reportId}/quote`, {
+      const response = await fetch(`${window.API_BASE_URL}/api/audit/${this.reportId}/quote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

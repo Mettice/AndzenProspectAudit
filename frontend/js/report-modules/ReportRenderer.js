@@ -24,9 +24,13 @@ class ReportRenderer {
 
     try {
       const apiUrl = window.API_BASE_URL || '';
+      console.log('Making request to:', `${apiUrl}/api/audit/status/${reportId}`);
       const response = await fetch(`${apiUrl}/api/audit/status/${reportId}`);
+      console.log('Response status:', response.status, response.statusText);
       if (!response.ok) {
-        throw new Error('Failed to load report');
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error('Failed to load report. Response:', errorText);
+        throw new Error(`Failed to load report: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
