@@ -106,17 +106,47 @@ class ReportViewer {
       const titleEl = document.querySelector('.report-title h1');
       const descEl = document.querySelector('.report-title p');
       
-      if (titleEl && data.report_data?.client_name) {
-        titleEl.textContent = `${data.report_data.client_name} Audit`;
+      // Update title
+      if (titleEl) {
+        if (data.report_data?.client_name) {
+          titleEl.textContent = data.report_data.client_name;
+        } else {
+          titleEl.textContent = 'Audit Report';
+        }
       }
       
+      // Update date - use created_at from the response
       if (descEl) {
-        const date = new Date(data.created_at).toLocaleDateString();
-        descEl.textContent = `Generated on ${date}`;
+        let dateStr = '';
+        if (data.created_at) {
+          try {
+            const date = new Date(data.created_at);
+            if (!isNaN(date.getTime())) {
+              dateStr = date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              });
+            }
+          } catch (e) {
+            console.error('Error parsing date:', e);
+          }
+        }
+        
+        if (dateStr) {
+          descEl.textContent = `Generated on ${dateStr}`;
+        } else {
+          descEl.textContent = '';
+        }
       }
       
     } catch (error) {
       console.error('Failed to update report header:', error);
+      // Set fallback text if update fails
+      const titleEl = document.querySelector('.report-title h1');
+      const descEl = document.querySelector('.report-title p');
+      if (titleEl) titleEl.textContent = 'Audit Report';
+      if (descEl) descEl.textContent = '';
     }
   }
 
@@ -162,6 +192,19 @@ class ReportViewer {
    * Setup event listeners for inter-module communication
    */
   setupModuleEventListeners() {
+    // Back to dashboard button is handled by ExportManager.setupBackButton()
+    // No need to duplicate here
+    
+    // Edit report button
+    const editBtn = document.getElementById('btn-edit-report');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        if (this.editModal) {
+          this.editModal.toggleEditMode();
+        }
+      });
+    }
+    
     // Page navigation events
     window.addEventListener('navigateToPage', (e) => {
       this.pageNavigator.goToPage(e.detail.page);

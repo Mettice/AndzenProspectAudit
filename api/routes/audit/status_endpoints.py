@@ -145,20 +145,38 @@ async def get_report_status(report_id: int):
                     except Exception as e:
                         print(f"⚠ Final fallback failed: {e}")
             
+            # Format created_at date
+            created_at_str = None
+            if report.created_at:
+                if isinstance(report.created_at, str):
+                    created_at_str = report.created_at
+                else:
+                    created_at_str = report.created_at.isoformat()
+            
             return ReportStatusResponse(
                 report_id=report.id,
                 status="completed",
                 progress=100.0,
                 report_url=report_data.get("html_url") or (f"/api/audit/download-file?path={report.file_path_html}" if report.file_path_html else None),
                 html_content=html_content,
-                report_data=report_data
+                report_data=report_data,
+                created_at=created_at_str
             )
         elif report.status == ReportStatus.FAILED:
+            # Format created_at date
+            created_at_str = None
+            if report.created_at:
+                if isinstance(report.created_at, str):
+                    created_at_str = report.created_at
+                else:
+                    created_at_str = report.created_at.isoformat()
+            
             return ReportStatusResponse(
                 report_id=report.id,
                 status="failed",
                 progress=0.0,
-                error=cached.get("error", "Unknown error occurred")
+                error=cached.get("error", "Unknown error occurred"),
+                created_at=created_at_str
             )
         else:
             # Still processing - get progress from cache
@@ -204,6 +222,14 @@ async def get_report_status(report_id: int):
                 except:
                     pass
             
+            # Format created_at date
+            created_at_str = None
+            if report.created_at:
+                if isinstance(report.created_at, str):
+                    created_at_str = report.created_at
+                else:
+                    created_at_str = report.created_at.isoformat()
+            
             return ReportStatusResponse(
                 report_id=report.id,
                 status="processing",
@@ -213,7 +239,8 @@ async def get_report_status(report_id: int):
                     "progress": cached_progress,
                     "estimated_remaining_minutes": estimated_remaining,
                     "start_time": start_time
-                }
+                },
+                created_at=created_at_str
             )
     finally:
         db.close()

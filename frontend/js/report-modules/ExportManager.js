@@ -226,13 +226,27 @@ class ExportManager {
    */
   navigateBack() {
     try {
-      // Check if there's a dashboard URL in session or use default
-      const dashboardUrl = sessionStorage.getItem('dashboardUrl') || '/ui/';
-      
       // Add confirmation if there are unsaved changes
       if (this.hasUnsavedChanges()) {
         const confirmLeave = confirm('You have unsaved changes. Are you sure you want to leave?');
         if (!confirmLeave) return;
+      }
+      
+      // Check deployment environment and navigate accordingly
+      let dashboardUrl = sessionStorage.getItem('dashboardUrl');
+      
+      if (!dashboardUrl) {
+        // Determine dashboard URL based on deployment
+        if (window.location.hostname.includes('vercel.app')) {
+          // Vercel deployment - go to main dashboard URL
+          dashboardUrl = 'https://andzen-prospect-audit.vercel.app';
+        } else if (window.location.pathname.startsWith('/ui/')) {
+          // Railway deployment - use relative path
+          dashboardUrl = '/ui/';
+        } else {
+          // Fallback - try to go to index or dashboard
+          dashboardUrl = window.location.origin + '/ui/';
+        }
       }
       
       window.location.href = dashboardUrl;

@@ -20,11 +20,15 @@ class ChatMessage(BaseModel):
     """Chat message model."""
     message: str
     section_id: Optional[str] = None  # If user clicked on a specific section
-    report_id: int
+    report_id: Optional[int] = None  # Optional - can be in URL path instead
     full_context: Optional[Dict[str, Any]] = None  # Frontend-provided full context
     available_sections: Optional[List[str]] = None  # Frontend-provided section list
     system_context: Optional[Dict[str, Any]] = None  # Frontend-provided system context
     context_type: Optional[str] = None  # Type of context being sent
+    
+    class Config:
+        # Allow extra fields to be ignored (for backward compatibility)
+        extra = "ignore"
 
 
 class ChatAction(BaseModel):
@@ -79,6 +83,14 @@ async def chat_about_report(
     message: ChatMessage,
     db: Session = Depends(get_db)
 ):
+    # Debug: Log the incoming message structure
+    logger.info(f"Chat request received - report_id: {report_id}, message type: {type(message)}")
+    if hasattr(message, 'dict'):
+        msg_dict = message.dict()
+        logger.info(f"Message dict keys: {list(msg_dict.keys())}")
+        logger.info(f"Has full_context: {bool(msg_dict.get('full_context'))}")
+        logger.info(f"Has available_sections: {bool(msg_dict.get('available_sections'))}")
+        logger.info(f"Has system_context: {bool(msg_dict.get('system_context'))}")
     """
     Chat with AI about a generated audit report.
     
@@ -186,16 +198,39 @@ async def chat_about_report(
                 section_context = section_match.group(1)[:2000]  # Limit context
         
         # Check if frontend provided full context (preferred over HTML parsing)
+        # Get message as dict to access all fields (Pydantic models support .dict())
+        msg_dict = message.dict() if hasattr(message, 'dict') else {}
         frontend_context = None
-        if hasattr(message, 'full_context') and message.full_context:
+        if msg_dict.get('full_context'):
+            frontend_context = msg_dict['full_context']
+            logger.info(f"✓ Using frontend-provided context (from dict): {len(frontend_context.get('report_summary', []))} summary items, {len(frontend_context.get('full_content', []))} full content pages")
+        elif hasattr(message, 'full_context') and message.full_context:
             frontend_context = message.full_context
-            logger.info(f"Using frontend-provided context: {len(frontend_context.get('report_summary', []))} sections")
+            logger.info(f"✓ Using frontend-provided context (direct): {len(frontend_context.get('report_summary', []))} summary items")
         
         # Check if frontend provided available sections mapping
         frontend_sections = None
-        if hasattr(message, 'available_sections') and message.available_sections:
+        if msg_dict.get('available_sections'):
+            frontend_sections = msg_dict['available_sections']
+            logger.info(f"✓ Using frontend-provided section mapping (from dict): {len(frontend_sections)} sections")
+        elif hasattr(message, 'available_sections') and message.available_sections:
             frontend_sections = message.available_sections
-            logger.info(f"Using frontend-provided section mapping: {len(frontend_sections)} sections")
+            logger.info(f"✓ Using frontend-provided section mapping (direct): {len(frontend_sections)} sections")
+        
+        # Check if frontend provided system context
+        frontend_system_context = None
+        if msg_dict.get('system_context'):
+            frontend_system_context = msg_dict['system_context']
+            logger.info(f"✓ Using frontend-provided system context (from dict)")
+        elif hasattr(message, 'system_context') and message.system_context:
+            frontend_system_context = message.system_context
+            logger.info(f"✓ Using frontend-provided system context (direct)")
+        
+        # Check if frontend provided system context
+        frontend_system_context = None
+        if (hasattr(message, 'system_context') and message.system_context) or (hasattr(message, 'dict') and message.dict().get('system_context')):
+            frontend_system_context = message.system_context if hasattr(message, 'system_context') else message.dict().get('system_context')
+            logger.info(f"✓ Using frontend-provided system context")
         
         # Call LLM service for chat
         from ..services.llm import LLMService
@@ -279,14 +314,18 @@ async def chat_about_report(
             
             # Prefer full_content if available (most comprehensive)
             if frontend_context.get('full_content'):
+                logger.info(f"✓ Frontend provided full_content with {len(frontend_context['full_content'])} pages")
                 for page in frontend_context['full_content'][:30]:  # First 30 pages
                     if isinstance(page, dict):
                         section_id = page.get('sectionId', page.get('section', 'unknown'))
                         title = page.get('title', 'Untitled')
                         content = page.get('content', '')
                         if content:
-                            context_parts.append(f"{title} ({section_id}):\n{content[:3000]}\n")
-                logger.info(f"✓ Using frontend full_content: {len(frontend_context['full_content'])} pages")
+                            # Send more content for KAV and other important sections
+                            content_limit = 8000 if 'kav' in section_id.lower() else 5000
+                            context_parts.append(f"{title} ({section_id}):\n{content[:content_limit]}\n")
+                            logger.debug(f"  - Added {section_id}: {len(content)} chars (limited to {content_limit})")
+                logger.info(f"✓ Built context from {len(context_parts)} pages with {sum(len(p) for p in context_parts)} total chars")
             
             # Fallback to report summary
             elif frontend_context.get('report_summary'):
@@ -307,10 +346,25 @@ async def chat_about_report(
             
             if context_parts:
                 report_context = '\n'.join(context_parts)
-                if len(report_context) > 40000:
-                    report_context = report_context[:40000] + "\n[... content truncated ...]"
+                # Increase context limit to 100k for comprehensive analysis
+                if len(report_context) > 100000:
+                    # Keep first 50k and last 50k, truncate middle
+                    report_context = report_context[:50000] + "\n[... middle content truncated for length ...]\n" + report_context[-50000:]
+                    logger.info(f"⚠ Context truncated from {len(''.join(context_parts))} to 100k chars")
                 
                 logger.info(f"✓ Using frontend-provided context: {len(report_context)} chars from {len(context_parts)} sections")
+                # Log a sample to verify KAV content is included
+                if 'kav' in report_context.lower():
+                    kav_sample = report_context.lower().find('kav')
+                    # Extract a sample of KAV content for debugging
+                    sample_start = max(0, kav_sample - 100)
+                    sample_end = min(len(report_context), kav_sample + 500)
+                    kav_sample_text = report_context[sample_start:sample_end]
+                    logger.info(f"✓ KAV content found in context (position: {kav_sample})")
+                    logger.info(f"✓ KAV sample: {kav_sample_text[:200]}...")
+                else:
+                    logger.warning("⚠ KAV content NOT found in context - may need to check frontend data")
+                    logger.warning(f"⚠ Context preview (first 500 chars): {report_context[:500]}")
         
         # Fallback to HTML parsing if frontend context not available
         elif html_content:
@@ -516,10 +570,18 @@ async def chat_about_report(
         
         # Build system context from frontend if provided
         system_prompt = ""
-        if message.system_context:
-            role = message.system_context.get('role', 'expert email marketing consultant')
-            capabilities = message.system_context.get('capabilities', [])
-            guidelines = message.system_context.get('guidelines', [])
+        # Use frontend_system_context if available, otherwise check message
+        system_context = frontend_system_context or msg_dict.get('system_context') or (message.system_context if hasattr(message, 'system_context') and message.system_context else None)
+        if system_context:
+            # Handle both dict and object access
+            if isinstance(system_context, dict):
+                role = system_context.get('role', 'expert email marketing consultant')
+                capabilities = system_context.get('capabilities', [])
+                guidelines = system_context.get('guidelines', [])
+            else:
+                role = getattr(system_context, 'role', 'expert email marketing consultant')
+                capabilities = getattr(system_context, 'capabilities', [])
+                guidelines = getattr(system_context, 'guidelines', [])
             
             system_prompt = f"{role}\n\n"
             if capabilities:
@@ -582,15 +644,43 @@ CURRENT USER MESSAGE:
 {"SECTION CONTEXT (user clicked on this section):" if section_context else ""}
 {section_context if section_context else ""}
 
-INSTRUCTIONS:
-You are an intelligent assistant. Analyze the ACTUAL report data above and:
+CRITICAL INSTRUCTIONS:
+You are analyzing a REAL Klaviyo audit report. The "AUDIT REPORT CONTEXT" section above contains ACTUAL data from this specific client's account.
 
-1. **Extract real metrics** - Find the actual KAV %, revenue numbers, open rates, etc. from the context
-2. **Intelligent analysis** - Compare real performance to industry standards and identify gaps  
-3. **Actionable insights** - Suggest specific improvements based on what the data reveals
-4. **Dynamic responses** - Don't use templates, respond based on what you actually find
-5. **Offer to help** - Suggest regenerating sections, adding analysis, or improving content when relevant
-6. **Navigate smartly** - Reference specific sections when it makes sense for the conversation
+**READ THE CONTEXT FIRST**: Before answering ANY question, search the "AUDIT REPORT CONTEXT" section above for the relevant information.
+
+**HOW TO ANSWER QUESTIONS**:
+1. **Identify the topic** - What section or metric is the user asking about? (KAV, Executive Summary, List Growth, Campaign Performance, etc.)
+2. **Find the section** - Search the context for sections matching the topic (check section titles, IDs, and content)
+3. **Extract actual data** - Pull real numbers, percentages, and metrics from that section
+4. **Reference the source** - Always say "According to your [Section Name] section..." or "Based on your [metric] data..."
+5. **Use real numbers** - Never use placeholders or generic examples - use the actual data from the context
+
+**COMMON TERMS IN KLAVIYO AUDITS**:
+- **KAV** = Klaviyo Attributed Value (email marketing revenue attribution)
+- **List Growth** = Subscriber growth metrics
+- **Data Capture** = Form and data collection performance
+- **Automation/Flows** = Email automation performance (Welcome, Abandoned Cart, etc.)
+- **Campaign Performance** = One-time email campaign metrics
+- **Strategic Recommendations** = Action items and improvement suggestions
+
+**EXAMPLE OF GOOD RESPONSE**:
+User: "what is the KAV?"
+Context shows: "KAV Analysis (kav_analysis): Your KAV is 23.5% with $125,000 attributed revenue..."
+Response: "According to your KAV Analysis section, your Klaviyo Attributed Value is 23.5% with $125,000 in attributed revenue. This means..."
+
+**EXAMPLE OF BAD RESPONSE** (DON'T DO THIS):
+User: "what is the KAV?"
+Response: "Chat analysis: The chat section shows..." - WRONG! User asked about KAV (revenue metric), not chat functionality.
+
+**RULES FOR ALL QUESTIONS**:
+1. **ALWAYS check the context first** - Search for the relevant section in "AUDIT REPORT CONTEXT"
+2. **Use actual numbers** - Extract real metrics from the context, don't use placeholders
+3. **Reference the section** - Say "According to your [Section Name] section..."
+4. **If data is missing** - Say "I couldn't find [X] in your report context" - don't make up answers
+5. **Match the question to the context** - If user asks about "KAV", look for KAV/revenue sections, not chat/widget sections
+
+IMPORTANT: The user is asking about THEIR SPECIFIC AUDIT REPORT. The context above contains their actual data. Use it!
 
 If the user wants to improve something, offer to:
 - Regenerate sections with deeper analysis
@@ -621,12 +711,23 @@ BE INTELLIGENT:
 - Suggest specific, actionable improvements based on what you find
 - If you can't find specific data, say so - don't make up numbers"""
         
+        # Log prompt length for debugging
+        logger.info(f"📤 Sending prompt to LLM: {len(prompt)} chars, context: {len(report_context)} chars")
+        if 'kav' in sanitized_message.lower():
+            logger.info(f"🔍 User asked about KAV - checking if KAV content is in context...")
+            if 'kav' in report_context.lower():
+                logger.info(f"✅ KAV content IS in context - LLM should be able to answer")
+            else:
+                logger.warning(f"❌ KAV content NOT in context - LLM will give generic answer")
+        
         # Call LLM
         llm_response = await llm_service.generate_insights(
             section="chat",
             data={"prompt": prompt},
             context={}
         )
+        
+        logger.info(f"📥 Received LLM response: {type(llm_response)}, length: {len(str(llm_response)) if llm_response else 0}")
         
         # Parse response (should be JSON)
         try:

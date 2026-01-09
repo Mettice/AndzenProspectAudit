@@ -155,6 +155,26 @@ body {
   font-weight: 600;
 }
 
+/* Edit Report button in page controls */
+.page-controls .btn-edit-report {
+  padding: 10px 20px;
+  background: var(--andzen-green);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 12px;
+}
+
+.page-controls .btn-edit-report:hover {
+  background: var(--andzen-green-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(110, 216, 85, 0.3);
+}
+
 /* Export Section */
 .export-section {
   padding: 24px;
@@ -494,6 +514,64 @@ body {
   cursor: not-allowed;
 }
 
+/* Formatting Toolbar */
+.formatting-toolbar {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 1px solid var(--page-border);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  box-shadow: var(--shadow-card);
+  z-index: 1000;
+  flex-wrap: wrap;
+  max-width: 90%;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 4px;
+  padding: 0 8px;
+  border-right: 1px solid var(--page-border);
+}
+
+.toolbar-group:last-child {
+  border-right: none;
+}
+
+.toolbar-btn {
+  padding: 6px 10px;
+  border: 1px solid var(--page-border);
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: var(--text-primary);
+  min-width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-btn:hover {
+  background: var(--andzen-green);
+  color: white;
+  border-color: var(--andzen-green);
+}
+
+.toolbar-btn.active {
+  background: var(--andzen-green);
+  color: white;
+  border-color: var(--andzen-green);
+}
+
 .page-indicator {
   display: flex;
   align-items: center;
@@ -527,6 +605,7 @@ body {
 /* Sidebar Tabs */
 .sidebar-tabs {
   display: flex;
+  align-items: center;
   border-bottom: 1px solid var(--page-border);
 }
 
@@ -577,6 +656,67 @@ body {
 .chat-header p {
   font-size: 14px;
   color: var(--text-muted);
+}
+
+/* Clear chat button - in chat input area */
+.chat-input .btn-clear-chat {
+  background: transparent;
+  border: 1px solid var(--page-border);
+  color: var(--text-muted);
+  font-size: 16px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-input .btn-clear-chat:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--error);
+  color: var(--error);
+}
+
+/* Loading indicator */
+.message.loading .message-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--andzen-green);
+  animation: loading-dot 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes loading-dot {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .chat-messages {
@@ -692,8 +832,15 @@ body {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-send:hover {
+  background: var(--andzen-green-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(110, 216, 85, 0.3);
 }
 
 .btn-send:hover {

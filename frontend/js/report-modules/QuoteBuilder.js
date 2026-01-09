@@ -55,6 +55,18 @@ class QuoteBuilder {
    * Add item to quote
    */
   addQuoteItem(content, effort = null, impact = null) {
+    // Check for duplicates - compare content (normalized)
+    const normalizedContent = content.trim().toLowerCase().substring(0, 100); // First 100 chars for comparison
+    const isDuplicate = this.quoteItems.some(item => {
+      const itemContent = (item.content || '').trim().toLowerCase().substring(0, 100);
+      return itemContent === normalizedContent;
+    });
+    
+    if (isDuplicate) {
+      this.showToast('This item is already in the quote', 'warning');
+      return;
+    }
+    
     const item = {
       id: Date.now().toString(),
       content: content,
@@ -67,7 +79,7 @@ class QuoteBuilder {
     this.updateQuoteDisplay();
     this.updateQuoteTotals();
     
-    this.showToast(`Added "${item.title || 'item'}" to quote`, 'success');
+    this.showToast(`Added item to quote`, 'success');
   }
 
   /**

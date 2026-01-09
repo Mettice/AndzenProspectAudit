@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
-from api.routes import auth, reports, admin, chat
+from api.routes import auth, reports, admin
+from api.routes.chat import router as chat_router
 from api.routes.audit.router import router as audit_router
 from api.routes import dashboard, search, analytics, clients
 from api.database import init_db
@@ -80,8 +81,12 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api", tags=["authentication"])
 app.include_router(reports.router, prefix="/api", tags=["reports"])
 app.include_router(admin.router, prefix="/api", tags=["admin"])
+# Chat router must come BEFORE audit router to avoid route conflicts
+# Chat router has prefix="/api/audit" and routes like /{report_id}/chat
+# Audit router has routes like /status/{report_id} and /cancel/{report_id}
+# Order matters: more specific routes (chat) should come first
+app.include_router(chat_router, tags=["chat"])
 app.include_router(audit_router, prefix="/api/audit", tags=["audit"])
-app.include_router(chat.router, tags=["chat"])
 app.include_router(dashboard.router, tags=["dashboard"])
 app.include_router(search.router, tags=["search"])
 app.include_router(analytics.router, tags=["analytics"])

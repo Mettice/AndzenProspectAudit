@@ -70,16 +70,13 @@
       <div class="report-header">
         <button class="btn-back">← Dashboard</button>
         <div class="report-title">
-          <h1>Loading...</h1>
-          <p>Loading report data...</p>
+          <h1></h1>
+          <p></p>
         </div>
       </div>
 
       <nav class="section-nav">
         <!-- Navigation will be dynamically populated based on report sections -->
-        <div class="nav-loading" style="padding: 20px; color: var(--text-muted); text-align: center;">
-          <p>Loading sections...</p>
-        </div>
       </nav>
 
       <!-- Export Options -->
@@ -129,6 +126,7 @@
         </div>
 
         <button class="btn-nav next">Next →</button>
+        <button class="btn-edit-report" id="btn-edit-report" title="Toggle edit mode">✏️ Edit Report</button>
       </div>
 
     </main>
@@ -159,6 +157,7 @@
 
         <div class="chat-input">
           <input type="text" placeholder="Ask about this audit..." id="chat-input">
+          <button class="btn-clear-chat" id="btn-clear-chat" title="Clear chat history">🗑️</button>
           <button class="btn-send">Send</button>
         </div>
       </div>

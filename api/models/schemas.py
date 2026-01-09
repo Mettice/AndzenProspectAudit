@@ -50,6 +50,7 @@ class ReportStatusResponse(BaseModel):
     html_content: Optional[str] = Field(None, description="HTML content (when completed)")
     report_data: Optional[Dict[str, Any]] = Field(None, description="Report metadata (when completed)")
     error: Optional[str] = Field(None, description="Error message (if failed)")
+    created_at: Optional[str] = Field(None, description="Report creation date")
 
 
 class MetricData(BaseModel):

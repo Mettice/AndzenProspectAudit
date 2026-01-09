@@ -24,6 +24,7 @@ class ChatInterface {
   setupChatInterface() {
     const chatInput = document.getElementById('chat-input');
     const sendBtn = document.querySelector('.btn-send');
+    const clearBtn = document.getElementById('btn-clear-chat');
 
     const sendMessage = async () => {
       const message = chatInput.value.trim();
@@ -63,6 +64,15 @@ class ChatInterface {
         }
       });
     }
+
+    // Clear chat button
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        if (confirm('Clear all chat messages? This cannot be undone.')) {
+          this.clearChatHistory();
+        }
+      });
+    }
   }
 
   /**
@@ -72,9 +82,37 @@ class ChatInterface {
     this.isProcessing = processing;
     const chatInput = document.getElementById('chat-input');
     const sendBtn = document.querySelector('.btn-send');
+    const messagesContainer = document.getElementById('chat-messages');
 
     if (chatInput) chatInput.disabled = processing;
     if (sendBtn) sendBtn.disabled = processing;
+    
+    // Show/hide loading indicator
+    let loadingIndicator = document.getElementById('chat-loading-indicator');
+    if (processing) {
+      if (!loadingIndicator) {
+        loadingIndicator = document.createElement('div');
+        loadingIndicator.id = 'chat-loading-indicator';
+        loadingIndicator.className = 'message assistant loading';
+        loadingIndicator.innerHTML = `
+          <div class="message-avatar">🤖</div>
+          <div class="message-content">
+            <div class="loading-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <span style="margin-left: 8px; color: #999;">Analyzing report...</span>
+          </div>
+        `;
+        if (messagesContainer) {
+          messagesContainer.appendChild(loadingIndicator);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      }
+    } else {
+      if (loadingIndicator) {
+        loadingIndicator.remove();
+      }
+    }
     
     if (!processing && chatInput) {
       chatInput.focus();
@@ -92,9 +130,9 @@ class ChatInterface {
     console.log('Sending chat message to API:', message);
     
     // Prepare comprehensive request data with full context
+    // NOTE: report_id is in the URL path, not in the body
     const requestData = {
       message: message,
-      report_id: this.reportId,
       context_type: 'full_report', // Indicate we're sending full context
     };
     
@@ -119,20 +157,23 @@ class ChatInterface {
         console.log(`✓ Sending full content context: ${window.reportSections.fullContent.length} pages available, sending ${Math.min(30, window.reportSections.fullContent.length)}`);
       }
       
+      // Also include specific section mapping for backend reference
+      if (window.reportSections.available) {
+        requestData.available_sections = window.reportSections.available;
+      }
+      
       // Log what we're sending for debugging
       if (requestData.full_context) {
-        console.log('Chat context being sent:', {
+        console.log('📤 Chat context being sent:', {
           has_full_content: !!requestData.full_context.full_content,
           full_content_pages: requestData.full_context.full_content?.length || 0,
           has_summary: !!requestData.full_context.report_summary,
           summary_items: requestData.full_context.report_summary?.length || 0,
-          available_sections: requestData.available_sections?.length || 0
+          available_sections: requestData.available_sections?.length || 0,
+          has_system_context: !!requestData.system_context
         });
-      }
-      
-      // Also include specific section mapping for backend reference
-      if (window.reportSections.available) {
-        requestData.available_sections = window.reportSections.available;
+      } else {
+        console.warn('⚠️ No report sections available - chat will have limited context. window.reportSections:', !!window.reportSections);
       }
       
       // Add system prompt context for the AI
@@ -250,49 +291,76 @@ class ChatInterface {
   }
 
   /**
+   * Escape HTML to prevent XSS and syntax errors
+   */
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  /**
    * Format chat content with proper styling
    */
   formatChatContent(content) {
     if (!content) return '';
     
-    // Handle markdown-style formatting
-    let formatted = content
+    // First escape HTML to prevent XSS and syntax errors
+    let escaped = this.escapeHtml(content);
+    
+    // Handle markdown-style formatting (after escaping)
+    let formatted = escaped
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`(.*?)`/g, '<code style="background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 3px;">$1</code>')
       .replace(/\n/g, '<br>');
     
-    // Handle lists
-    if (formatted.includes('- ')) {
-      const lines = formatted.split('<br>');
-      let inList = false;
-      let result = '';
-      
-      for (let line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('- ')) {
-          if (!inList) {
-            result += '<ul style="margin: 8px 0; padding-left: 20px;">';
-            inList = true;
-          }
-          result += `<li>${trimmed.substring(2)}</li>`;
-        } else {
-          if (inList) {
-            result += '</ul>';
-            inList = false;
-          }
-          if (trimmed) {
-            result += `<p style="margin: 4px 0;">${line}</p>`;
+    // Handle headers (## Header or ### Header)
+    formatted = formatted
+      .replace(/###\s+(.+?)(<br>|$)/g, '<h3 style="margin: 12px 0 8px 0; font-size: 16px; font-weight: 600;">$1</h3>')
+      .replace(/##\s+(.+?)(<br>|$)/g, '<h2 style="margin: 16px 0 10px 0; font-size: 18px; font-weight: 700;">$1</h2>')
+      .replace(/#\s+(.+?)(<br>|$)/g, '<h1 style="margin: 20px 0 12px 0; font-size: 20px; font-weight: 700;">$1</h1>');
+    
+    // Handle numbered lists (1. item or 1) item)
+    formatted = formatted.replace(/(\d+[.)]\s+)(.+?)(<br>|$)/g, (match, num, text, br) => {
+      return `<ol style="margin: 8px 0; padding-left: 24px; list-style-type: decimal;">${text}</ol>`;
+    });
+    
+    // Handle bullet lists
+    const lines = formatted.split('<br>');
+    let inList = false;
+    let result = '';
+    
+    for (let line of lines) {
+      const trimmed = line.trim();
+      // Check for bullet points (-, *, •)
+      if (trimmed.match(/^[-*•]\s+/)) {
+        if (!inList) {
+          result += '<ul style="margin: 8px 0; padding-left: 20px; list-style-type: disc;">';
+          inList = true;
+        }
+        result += `<li style="margin: 4px 0;">${trimmed.replace(/^[-*•]\s+/, '')}</li>`;
+      } else {
+        if (inList) {
+          result += '</ul>';
+          inList = false;
+        }
+        if (trimmed) {
+          // Wrap in paragraph if not already a header
+          if (!trimmed.startsWith('<h') && !trimmed.startsWith('<ul') && !trimmed.startsWith('<ol')) {
+            result += `<p style="margin: 6px 0; line-height: 1.6;">${line}</p>`;
+          } else {
+            result += line;
           }
         }
       }
-      
-      if (inList) {
-        result += '</ul>';
-      }
-      
-      formatted = result;
     }
+    
+    if (inList) {
+      result += '</ul>';
+    }
+    
+    formatted = result;
     
     return formatted;
   }
@@ -335,8 +403,15 @@ class ChatInterface {
   requestEdit(content) {
     // Enable inline editing mode instead of modal
     if (window.reportViewer && window.reportViewer.getModules().editModal) {
-      window.reportViewer.getModules().editModal.enableInlineEditing();
-      this.addChatMessage('assistant', '✏️ Inline editing enabled! Click any content on the current page to edit it directly. Click "Edit Mode" again when you\'re done to save changes.');
+      const editModal = window.reportViewer.getModules().editModal;
+      // Use toggleEditMode if available, otherwise use basic inline editing
+      if (editModal.toggleEditMode && !editModal.isEditModeEnabled) {
+        editModal.toggleEditMode();
+        this.addChatMessage('assistant', '✏️ Edit mode enabled! Click any content on the current page to edit it directly. Click "Edit Mode" again when you\'re done to save changes.');
+      } else {
+        // Fallback to basic editing mode
+        this.enableBasicInlineEditing();
+      }
     } else {
       // Fallback to basic editing mode
       this.enableBasicInlineEditing();
@@ -410,6 +485,7 @@ class ChatInterface {
     const messagesContainer = document.getElementById('chat-messages');
     if (messagesContainer) {
       messagesContainer.innerHTML = '';
+      this.chatHistory = [];
       this.addChatMessage('assistant', 'Chat cleared. How can I help you with this audit?');
     }
   }

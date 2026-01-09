@@ -58,6 +58,7 @@ class EditModal {
   toggleEditMode() {
     this.isEditModeEnabled = !this.isEditModeEnabled;
     const toggle = document.querySelector('.edit-mode-toggle');
+    const editBtn = document.getElementById('btn-edit-report');
     const pages = document.querySelectorAll('.report-page .page-content');
     
     if (this.isEditModeEnabled) {
@@ -67,6 +68,10 @@ class EditModal {
         toggle.style.color = 'white';
         toggle.style.borderColor = 'var(--warning)';
       }
+      if (editBtn) {
+        editBtn.innerHTML = '👁️ View Mode';
+        editBtn.style.background = 'var(--warning)';
+      }
       
       // Make content editable
       pages.forEach(page => {
@@ -74,6 +79,9 @@ class EditModal {
         page.style.outline = '2px dashed var(--warning)';
         page.style.outlineOffset = '4px';
       });
+      
+      // Show formatting toolbar
+      this.showFormattingToolbar();
       
       this.showToast('Edit mode enabled. Click any content to edit.', 'info');
     } else {
@@ -83,6 +91,10 @@ class EditModal {
         toggle.style.color = '';
         toggle.style.borderColor = '';
       }
+      if (editBtn) {
+        editBtn.innerHTML = '✏️ Edit Report';
+        editBtn.style.background = 'var(--andzen-green)';
+      }
       
       // Disable content editing
       pages.forEach(page => {
@@ -91,7 +103,78 @@ class EditModal {
         page.style.outlineOffset = '';
       });
       
+      // Hide formatting toolbar
+      this.hideFormattingToolbar();
+      
       this.showToast('Edit mode disabled.', 'info');
+    }
+  }
+
+  /**
+   * Show formatting toolbar
+   */
+  showFormattingToolbar() {
+    // Remove existing toolbar if present
+    this.hideFormattingToolbar();
+    
+    const toolbar = document.createElement('div');
+    toolbar.id = 'formatting-toolbar';
+    toolbar.className = 'formatting-toolbar';
+    toolbar.innerHTML = `
+      <div class="toolbar-group">
+        <button class="toolbar-btn" data-command="bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
+        <button class="toolbar-btn" data-command="italic" title="Italic (Ctrl+I)"><em>I</em></button>
+        <button class="toolbar-btn" data-command="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+      </div>
+      <div class="toolbar-group">
+        <button class="toolbar-btn" data-command="formatBlock" data-value="h2" title="Heading 2">H2</button>
+        <button class="toolbar-btn" data-command="formatBlock" data-value="h3" title="Heading 3">H3</button>
+        <button class="toolbar-btn" data-command="formatBlock" data-value="p" title="Paragraph">P</button>
+      </div>
+      <div class="toolbar-group">
+        <button class="toolbar-btn" data-command="insertUnorderedList" title="Bullet List">• List</button>
+        <button class="toolbar-btn" data-command="insertOrderedList" title="Numbered List">1. List</button>
+      </div>
+      <div class="toolbar-group">
+        <button class="toolbar-btn" data-command="justifyLeft" title="Align Left">◀</button>
+        <button class="toolbar-btn" data-command="justifyCenter" title="Align Center">⬌</button>
+        <button class="toolbar-btn" data-command="justifyRight" title="Align Right">▶</button>
+      </div>
+      <div class="toolbar-group">
+        <button class="toolbar-btn" data-command="removeFormat" title="Remove Formatting">Clear</button>
+      </div>
+    `;
+    
+    document.body.appendChild(toolbar);
+    
+    // Setup toolbar button handlers
+    toolbar.querySelectorAll('.toolbar-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const command = btn.dataset.command;
+        const value = btn.dataset.value;
+        
+        if (value) {
+          document.execCommand(command, false, value);
+        } else {
+          document.execCommand(command, false, null);
+        }
+        
+        // Update active state
+        toolbar.querySelectorAll('.toolbar-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        setTimeout(() => btn.classList.remove('active'), 200);
+      });
+    });
+  }
+
+  /**
+   * Hide formatting toolbar
+   */
+  hideFormattingToolbar() {
+    const toolbar = document.getElementById('formatting-toolbar');
+    if (toolbar) {
+      toolbar.remove();
     }
   }
 
