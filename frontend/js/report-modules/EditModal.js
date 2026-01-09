@@ -127,6 +127,23 @@ class EditModal {
         <button class="toolbar-btn" data-command="underline" title="Underline (Ctrl+U)"><u>U</u></button>
       </div>
       <div class="toolbar-group">
+        <select class="toolbar-select" id="font-size-select" title="Font Size">
+          <option value="">Size</option>
+          <option value="12px">12px</option>
+          <option value="14px">14px</option>
+          <option value="16px">16px</option>
+          <option value="18px">18px</option>
+          <option value="20px">20px</option>
+          <option value="24px">24px</option>
+          <option value="28px">28px</option>
+          <option value="32px">32px</option>
+        </select>
+      </div>
+      <div class="toolbar-group">
+        <input type="color" class="toolbar-color" id="text-color-picker" title="Text Color" value="#000000">
+        <input type="color" class="toolbar-color" id="bg-color-picker" title="Background Color" value="#ffffff">
+      </div>
+      <div class="toolbar-group">
         <button class="toolbar-btn" data-command="formatBlock" data-value="h2" title="Heading 2">H2</button>
         <button class="toolbar-btn" data-command="formatBlock" data-value="h3" title="Heading 3">H3</button>
         <button class="toolbar-btn" data-command="formatBlock" data-value="p" title="Paragraph">P</button>
@@ -166,6 +183,46 @@ class EditModal {
         setTimeout(() => btn.classList.remove('active'), 200);
       });
     });
+    
+    // Setup font size selector
+    const fontSizeSelect = toolbar.querySelector('#font-size-select');
+    if (fontSizeSelect) {
+      fontSizeSelect.addEventListener('change', (e) => {
+        const size = e.target.value;
+        if (size) {
+          document.execCommand('fontSize', false, '7'); // Use fontSize 7 as base
+          // Then apply custom size via style
+          const selection = window.getSelection();
+          if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const span = document.createElement('span');
+            span.style.fontSize = size;
+            try {
+              range.surroundContents(span);
+            } catch (e) {
+              // If surroundContents fails, use alternative method
+              span.appendChild(range.extractContents());
+              range.insertNode(span);
+            }
+          }
+        }
+      });
+    }
+    
+    // Setup color pickers
+    const textColorPicker = toolbar.querySelector('#text-color-picker');
+    if (textColorPicker) {
+      textColorPicker.addEventListener('change', (e) => {
+        document.execCommand('foreColor', false, e.target.value);
+      });
+    }
+    
+    const bgColorPicker = toolbar.querySelector('#bg-color-picker');
+    if (bgColorPicker) {
+      bgColorPicker.addEventListener('change', (e) => {
+        document.execCommand('backColor', false, e.target.value);
+      });
+    }
   }
 
   /**

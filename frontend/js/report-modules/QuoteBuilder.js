@@ -335,22 +335,24 @@ class QuoteBuilder {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: this.quoteItems,
-          report_id: this.reportId
+          priorities: this.quoteItems.map(item => item.content.substring(0, 200)), // Send item summaries
+          custom_message: `Generate a quote based on ${this.quoteItems.length} items with total effort of ${this.quoteItems.reduce((sum, item) => sum + item.effort, 0)} hours and potential impact of $${this.quoteItems.reduce((sum, item) => sum + item.impact, 0).toLocaleString()}/month`
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate quote');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to generate quote');
       }
 
       const data = await response.json();
       
-      if (data.quote_url) {
-        window.open(data.quote_url, '_blank');
+      if (data.success && data.quote) {
+        // Display the quote in a modal or new window
+        this.displayQuote(data.quote);
         this.showToast('Quote generated successfully!', 'success');
       } else {
-        throw new Error('No quote URL returned');
+        throw new Error('Invalid quote response format');
       }
       
     } catch (error) {
@@ -428,6 +430,107 @@ class QuoteBuilder {
       impact: this.quoteItems.reduce((sum, item) => sum + item.impact, 0),
       itemCount: this.quoteItems.length
     };
+  }
+
+  /**
+   * Display generated quote
+   */
+  displayQuote(quoteData) {
+    // Create a modal or new window to display the quote
+    const quoteWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!quoteWindow) {
+      // If popup blocked, show in modal
+      this.showQuoteModal(quoteData);
+      return;
+    }
+
+    quoteWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${quoteData.quote_title || 'Sales Quote'}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+          h1 { color: #6ED855; border-bottom: 3px solid #6ED855; padding-bottom: 10px; }
+          h2 { color: #333; margin-top: 30px; }
+          .service { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px; }
+          .service h3 { color: #6ED855; margin-top: 0; }
+          .total { background: #6ED855; color: white; padding: 20px; border-radius: 8px; text-align: center; font-size: 24px; font-weight: bold; margin: 30px 0; }
+          ul { line-height: 1.8; }
+          .next-steps { background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <h1>${quoteData.quote_title || 'Klaviyo Optimization Services'}</h1>
+        ${quoteData.executive_summary ? `<div>${quoteData.executive_summary.replace(/\n/g, '<br>')}</div>` : ''}
+        
+        ${quoteData.services && quoteData.services.length > 0 ? `
+          <h2>Services</h2>
+          ${quoteData.services.map(service => `
+            <div class="service">
+              <h3>${service.service_name || 'Service'}</h3>
+              <p>${service.description || ''}</p>
+              ${service.deliverables && service.deliverables.length > 0 ? `
+                <h4>Deliverables:</h4>
+                <ul>
+                  ${service.deliverables.map(d => `<li>${d}</li>`).join('')}
+                </ul>
+              ` : ''}
+              <p><strong>Timeline:</strong> ${service.timeline || 'TBD'}</p>
+              <p><strong>Investment:</strong> ${service.investment || 'Contact for pricing'}</p>
+            </div>
+          `).join('')}
+        ` : ''}
+        
+        ${quoteData.total_investment ? `
+          <div class="total">Total Investment: ${quoteData.total_investment}</div>
+        ` : ''}
+        
+        ${quoteData.expected_roi ? `
+          <h2>Expected ROI</h2>
+          <p>${quoteData.expected_roi}</p>
+        ` : ''}
+        
+        ${quoteData.next_steps && quoteData.next_steps.length > 0 ? `
+          <div class="next-steps">
+            <h2>Next Steps</h2>
+            <ul>
+              ${quoteData.next_steps.map(step => `<li>${step}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+        
+        ${quoteData.payment_terms ? `<p><strong>Payment Terms:</strong> ${quoteData.payment_terms}</p>` : ''}
+        ${quoteData.quote_valid_until ? `<p><strong>Quote Valid Until:</strong> ${quoteData.quote_valid_until}</p>` : ''}
+      </body>
+      </html>
+    `);
+    quoteWindow.document.close();
+  }
+
+  /**
+   * Show quote in modal (fallback if popup blocked)
+   */
+  showQuoteModal(quoteData) {
+    // Create modal element
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7); z-index: 10000; display: flex;
+      align-items: center; justify-content: center; padding: 20px;
+    `;
+    
+    modal.innerHTML = `
+      <div style="background: white; border-radius: 12px; padding: 30px; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative;">
+        <button onclick="this.closest('div[style*=\"position: fixed\"]').remove()" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
+        <h1 style="color: #6ED855; border-bottom: 3px solid #6ED855; padding-bottom: 10px;">${quoteData.quote_title || 'Sales Quote'}</h1>
+        ${quoteData.executive_summary ? `<div style="margin: 20px 0;">${quoteData.executive_summary.replace(/\n/g, '<br>')}</div>` : ''}
+        ${quoteData.total_investment ? `<div style="background: #6ED855; color: white; padding: 20px; border-radius: 8px; text-align: center; font-size: 24px; font-weight: bold; margin: 20px 0;">Total: ${quoteData.total_investment}</div>` : ''}
+        <button onclick="this.closest('div[style*=\"position: fixed\"]').remove()" style="margin-top: 20px; padding: 10px 20px; background: #6ED855; color: white; border: none; border-radius: 8px; cursor: pointer;">Close</button>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
   }
 }
 

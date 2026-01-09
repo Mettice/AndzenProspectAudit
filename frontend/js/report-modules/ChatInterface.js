@@ -6,6 +6,7 @@ class ChatInterface {
     this.reportId = null;
     this.chatHistory = [];
     this.isProcessing = false;
+    this.isRequestingEdit = false; // Prevent duplicate edit requests
   }
 
   /**
@@ -401,20 +402,37 @@ class ChatInterface {
    * Request edit for content - now uses inline editing
    */
   requestEdit(content) {
+    // Prevent duplicate calls
+    if (this.isRequestingEdit) {
+      return;
+    }
+    this.isRequestingEdit = true;
+    
     // Enable inline editing mode instead of modal
     if (window.reportViewer && window.reportViewer.getModules().editModal) {
       const editModal = window.reportViewer.getModules().editModal;
       // Use toggleEditMode if available, otherwise use basic inline editing
       if (editModal.toggleEditMode && !editModal.isEditModeEnabled) {
         editModal.toggleEditMode();
-        this.addChatMessage('assistant', '✏️ Edit mode enabled! Click any content on the current page to edit it directly. Click "Edit Mode" again when you\'re done to save changes.');
+        // Only add message once if edit mode was successfully enabled
+        setTimeout(() => {
+          if (editModal.isEditModeEnabled) {
+            this.addChatMessage('assistant', '✏️ Edit mode enabled! Click any content on the current page to edit it directly. Click "Edit Report" again when you\'re done to save changes.');
+          }
+          this.isRequestingEdit = false;
+        }, 100);
+      } else if (editModal.isEditModeEnabled) {
+        // Already in edit mode, don't add duplicate message
+        this.isRequestingEdit = false;
       } else {
-        // Fallback to basic editing mode
+        // Fallback to basic inline editing
         this.enableBasicInlineEditing();
+        this.isRequestingEdit = false;
       }
     } else {
-      // Fallback to basic editing mode
+      // Fallback to basic inline editing
       this.enableBasicInlineEditing();
+      this.isRequestingEdit = false;
     }
   }
 
@@ -545,13 +563,8 @@ class ChatInterface {
       editInstructions.innerHTML = '✏️ Editing Mode Active - Click text to edit, then click "Save Changes" in chat when done';
       document.body.appendChild(editInstructions);
       
-      this.addChatMessage('assistant', '✅ Inline editing enabled! You can now click and edit content directly on the page. When you\'re done, I\'ll provide a "Save Changes" button.');
-      
-      // Add save option to next assistant message
-      setTimeout(() => {
-        const saveActions = `<button class="btn-save-inline" onclick="window.reportViewer.getModules().chatInterface.saveInlineEdits()">💾 Save Changes</button>`;
-        this.addChatMessage('assistant', '👆 When you\'re finished editing, click the button below to save your changes:', saveActions);
-      }, 1000);
+      // Don't add duplicate messages - edit mode is already enabled
+      // The user can see the formatting toolbar and edit directly
       
     } else {
       // Disable editing mode

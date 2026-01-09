@@ -572,6 +572,50 @@ body {
   border-color: var(--andzen-green);
 }
 
+.toolbar-select {
+  padding: 6px 8px;
+  border: 1px solid var(--page-border);
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 70px;
+}
+
+.toolbar-select:hover {
+  border-color: var(--andzen-green);
+}
+
+.toolbar-select:focus {
+  outline: none;
+  border-color: var(--andzen-green);
+}
+
+.toolbar-color {
+  width: 40px;
+  height: 32px;
+  border: 1px solid var(--page-border);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 2px;
+  background: white;
+}
+
+.toolbar-color:hover {
+  border-color: var(--andzen-green);
+}
+
+.toolbar-color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.toolbar-color::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
 .page-indicator {
   display: flex;
   align-items: center;
